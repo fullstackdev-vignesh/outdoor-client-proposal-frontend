@@ -49,7 +49,7 @@ export default function NewProposalPage() {
   const filteredClients = clients.filter((c) => c.name.toLowerCase().includes(clientSearch.toLowerCase()));
   const filteredSites = sites.filter(
     (s) =>
-      s.mediaName.toLowerCase().includes(siteSearch.toLowerCase()) ||
+      (s.mediaName || s.mediaId).toLowerCase().includes(siteSearch.toLowerCase()) ||
       s.city.toLowerCase().includes(siteSearch.toLowerCase())
   );
 

@@ -1,19 +1,30 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Search, Plus, Upload, Download, Eye, Pencil, Trash2, RefreshCcw } from 'lucide-react';
-import api from '@/lib/api';
+import { Search, Plus, Upload, Download, Eye, Pencil, Trash2, RefreshCcw, X, ImageOff } from 'lucide-react';
+import api, { fileBaseURL } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useToast } from '@/components/ui/Toast';
 import StatusBadge from '@/components/ui/StatusBadge';
-import Pagination from '@/components/ui/Pagination';
 import EmptyState from '@/components/ui/EmptyState';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import SiteFormModal from '@/components/sites/SiteFormModal';
 import StatusChangeModal from '@/components/sites/StatusChangeModal';
-import type { Site, PaginatedResponse } from '@/lib/types';
+import SiteViewModal from '@/components/sites/SiteViewModal';
+import { StateSelect, CitySelect } from '@/components/ui/StateCitySelect';
+import { formatIST } from '@/lib/date';
+import type { Site } from '@/lib/types';
+
+const PAGE_SIZE = 20;
+
+function resolveImageUrl(image?: string) {
+  if (!image) return '';
+  return /^(https?:|data:|blob:)/.test(image) ? image : `${fileBaseURL}${image}`;
+}
+
+const emptyFilters = { mediaType: '', state: '', city: '', mediaStatus: '', isActive: '' };
 
 export default function SitesPage() {
   const { user } = useAuth();
@@ -21,45 +32,107 @@ export default function SitesPage() {
   const params = useSearchParams();
   const canManage = user?.role === 'admin' || user?.role === 'tl';
 
-  const [data, setData] = useState<PaginatedResponse<Site> | null>(null);
+  const [items, setItems] = useState<Site[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [search, setSearch] = useState('');
-  const [filters, setFilters] = useState({ mediaType: '', state: '', city: '', mediaStatus: '', isActive: '' });
-  const [page, setPage] = useState(1);
+  const [filters, setFilters] = useState(emptyFilters);
+  const [exporting, setExporting] = useState(false);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingSite, setEditingSite] = useState<Site | null>(null);
   const [statusSite, setStatusSite] = useState<Site | null>(null);
+  const [viewSite, setViewSite] = useState<Site | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Site | null>(null);
+  const [previewImage, setPreviewImage] = useState('');
 
-  const fetchSites = useCallback(() => {
-    setLoading(true);
-    api
-      .get('/sites', { params: { page, limit: 20, search, ...filters } })
-      .then((res) => setData(res.data))
-      .finally(() => setLoading(false));
-  }, [page, search, filters]);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const queryKey = JSON.stringify({ search, filters });
+
+  const fetchPage = useCallback(
+    (pageNum: number, append: boolean) => {
+      const setter = append ? setLoadingMore : setLoading;
+      setter(true);
+      return api
+        .get('/sites', { params: { page: pageNum, limit: PAGE_SIZE, search, ...filters } })
+        .then((res) => {
+          setTotal(res.data.total);
+          setItems((prev) => {
+            if (!append) return res.data.items;
+            const existingIds = new Set(prev.map((s) => s._id));
+            return [...prev, ...res.data.items.filter((s: Site) => !existingIds.has(s._id))];
+          });
+        })
+        .finally(() => setter(false));
+    },
+    [search, filters]
+  );
 
   useEffect(() => {
-    fetchSites();
-  }, [fetchSites]);
+    fetchPage(1, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryKey]);
 
   useEffect(() => {
     if (params.get('action') === 'add') setFormOpen(true);
   }, [params]);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !loading && !loadingMore && items.length < total) {
+          fetchPage(Math.floor(items.length / PAGE_SIZE) + 1, true);
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [loading, loadingMore, items.length, total, fetchPage]);
+
+  function refresh() {
+    fetchPage(1, false);
+  }
 
   async function handleDelete() {
     if (!deleteTarget) return;
     try {
       await api.delete(`/sites/${deleteTarget._id}`);
       showToast('Site deleted successfully');
-      fetchSites();
+      refresh();
     } catch (err: any) {
       showToast(err?.response?.data?.message || 'Failed to delete site', 'error');
     } finally {
       setDeleteTarget(null);
     }
   }
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const res = await api.get('/sites/export', { params: { search, ...filters }, responseType: 'blob' });
+      const disposition = res.headers['content-disposition'] || '';
+      const match = disposition.match(/filename="?([^"]+)"?/);
+      const filename = match?.[1] || 'sites_export.xlsx';
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      showToast('Failed to export sites', 'error');
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  const filtersActive = search || Object.values(filters).some(Boolean);
 
   return (
     <div className="space-y-4">
@@ -76,8 +149,12 @@ export default function SitesPage() {
             >
               <Upload className="h-4 w-4" /> Bulk Upload
             </Link>
-            <button className="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
-              <Download className="h-4 w-4" /> Export
+            <button
+              onClick={handleExport}
+              disabled={exporting}
+              className="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+            >
+              <Download className="h-4 w-4" /> {exporting ? 'Exporting...' : 'Export'}
             </button>
             <button
               onClick={() => {
@@ -98,59 +175,54 @@ export default function SitesPage() {
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
             <input
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              placeholder="Search by Media ID, Name, Type, City, State, Location..."
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by MediaCode, Type, City, State, Location..."
               className="w-full rounded-lg border border-slate-300 pl-9 pr-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
             />
           </div>
           <select
             value={filters.mediaStatus}
-            onChange={(e) => {
-              setFilters((f) => ({ ...f, mediaStatus: e.target.value }));
-              setPage(1);
-            }}
+            onChange={(e) => setFilters((f) => ({ ...f, mediaStatus: e.target.value }))}
             className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
           >
-            <option value="">All Statuses</option>
+            <option value="">All Media Status</option>
             <option value="available">Available</option>
             <option value="booked">Booked</option>
             <option value="blocked">Blocked</option>
           </select>
           <select
             value={filters.isActive}
-            onChange={(e) => {
-              setFilters((f) => ({ ...f, isActive: e.target.value }));
-              setPage(1);
-            }}
+            onChange={(e) => setFilters((f) => ({ ...f, isActive: e.target.value }))}
             className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
           >
             <option value="">Active / Inactive</option>
             <option value="true">Active</option>
             <option value="false">Inactive</option>
           </select>
-          <input
-            placeholder="State"
+          <StateSelect
             value={filters.state}
-            onChange={(e) => {
-              setFilters((f) => ({ ...f, state: e.target.value }));
-              setPage(1);
-            }}
-            className="w-28 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            onChange={(state) => setFilters((f) => ({ ...f, state, city: '' }))}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm w-40"
           />
-          <input
-            placeholder="City"
+          <CitySelect
+            state={filters.state}
             value={filters.city}
-            onChange={(e) => {
-              setFilters((f) => ({ ...f, city: e.target.value }));
-              setPage(1);
-            }}
-            className="w-28 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            onChange={(city) => setFilters((f) => ({ ...f, city }))}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm w-40"
           />
+          {filtersActive && (
+            <button
+              onClick={() => {
+                setSearch('');
+                setFilters(emptyFilters);
+              }}
+              className="flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
+            >
+              <X className="h-3.5 w-3.5" /> Clear Filters
+            </button>
+          )}
           <button
-            onClick={fetchSites}
+            onClick={refresh}
             className="flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
           >
             <RefreshCcw className="h-3.5 w-3.5" /> Refresh
@@ -163,37 +235,55 @@ export default function SitesPage() {
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500 uppercase">
               <tr>
-                <th className="px-4 py-3">Media ID</th>
-                <th className="px-4 py-3">Media Name</th>
+                <th className="px-4 py-3">S.No</th>
+                <th className="px-4 py-3">Image</th>
+                <th className="px-4 py-3">MediaCode</th>
                 <th className="px-4 py-3">Type</th>
                 <th className="px-4 py-3">City / State</th>
                 <th className="px-4 py-3">Size</th>
-                <th className="px-4 py-3">Monthly Amount</th>
+                <th className="px-4 py-3">Total Cost</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Active</th>
+                <th className="px-4 py-3">Inventory Updated</th>
+                <th className="px-4 py-3">Last Updated</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading && (
                 <tr>
-                  <td colSpan={9} className="px-4 py-10 text-center text-slate-400">
+                  <td colSpan={12} className="px-4 py-10 text-center text-slate-400">
                     Loading sites...
                   </td>
                 </tr>
               )}
-              {!loading && data?.items.length === 0 && (
+              {!loading && items.length === 0 && (
                 <tr>
-                  <td colSpan={9}>
+                  <td colSpan={12}>
                     <EmptyState title="No sites found" subtitle="Try adjusting your filters or add a new site." />
                   </td>
                 </tr>
               )}
               {!loading &&
-                data?.items.map((site) => (
+                items.map((site, index) => (
                   <tr key={site._id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 font-mono text-xs text-slate-500">{site.mediaId}</td>
-                    <td className="px-4 py-3 font-medium text-slate-800">{site.mediaName}</td>
+                    <td className="px-4 py-3 text-slate-400">{index + 1}</td>
+                    <td className="px-4 py-3">
+                      {site.image ? (
+                        <button type="button" onClick={() => setPreviewImage(resolveImageUrl(site.image))} className="block">
+                          <img
+                            src={resolveImageUrl(site.image)}
+                            alt=""
+                            className="h-10 w-14 rounded object-cover border border-slate-200 hover:opacity-80 cursor-zoom-in"
+                          />
+                        </button>
+                      ) : (
+                        <div className="h-10 w-14 rounded border border-dashed border-slate-200 flex items-center justify-center text-slate-300">
+                          <ImageOff className="h-4 w-4" />
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-slate-500">{site.mediaCode || site.mediaId}</td>
                     <td className="px-4 py-3 text-slate-600">{site.mediaType}</td>
                     <td className="px-4 py-3 text-slate-600">
                       {site.city}, {site.state}
@@ -202,7 +292,7 @@ export default function SitesPage() {
                       {site.width && site.height ? `${site.width}x${site.height} ${site.sizeUnit}` : '-'}
                     </td>
                     <td className="px-4 py-3 text-slate-600">
-                      {site.monthlyAmount ? `₹${site.monthlyAmount.toLocaleString()}` : '-'}
+                      {site.totalCost ? `₹${site.totalCost.toLocaleString()}` : '-'}
                     </td>
                     <td className="px-4 py-3">
                       <button
@@ -218,11 +308,17 @@ export default function SitesPage() {
                         {site.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </td>
+                    <td className="px-4 py-3 text-xs text-slate-500">
+                      {formatIST(site.inventoryUpdatedAt)}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-500">
+                      {formatIST(site.updatedAt)}
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
-                        <Link href={`/sites/${site._id}`} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+                        <button onClick={() => setViewSite(site)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
                           <Eye className="h-4 w-4" />
-                        </Link>
+                        </button>
                         {canManage && (
                           <>
                             <button
@@ -249,25 +345,41 @@ export default function SitesPage() {
             </tbody>
           </table>
         </div>
-        {data && <Pagination page={data.page} pages={data.pages} total={data.total} onChange={setPage} />}
+        <div ref={sentinelRef} className="py-4 text-center text-xs text-slate-400">
+          {loadingMore && 'Loading more...'}
+          {!loading && !loadingMore && `Showing ${items.length} of ${total} Sites`}
+        </div>
       </div>
 
-      <SiteFormModal
-        open={formOpen}
-        onClose={() => setFormOpen(false)}
-        site={editingSite}
-        onSaved={fetchSites}
-      />
-      <StatusChangeModal open={!!statusSite} onClose={() => setStatusSite(null)} site={statusSite} onSaved={fetchSites} />
+      <SiteFormModal open={formOpen} onClose={() => setFormOpen(false)} site={editingSite} onSaved={refresh} />
+      <StatusChangeModal open={!!statusSite} onClose={() => setStatusSite(null)} site={statusSite} onSaved={refresh} />
+      <SiteViewModal open={!!viewSite} onClose={() => setViewSite(null)} site={viewSite} />
       <ConfirmDialog
         open={!!deleteTarget}
         title="Delete Site"
-        message={`Are you sure you want to delete "${deleteTarget?.mediaName}"? This action cannot be undone.`}
+        message={`Are you sure you want to delete "${deleteTarget?.mediaCode || deleteTarget?.mediaId}"? This action cannot be undone.`}
         confirmLabel="Delete"
         danger
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
       />
+
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-4"
+          onClick={() => setPreviewImage('')}
+        >
+          <div className="relative max-w-3xl max-h-[85vh]">
+            <img src={previewImage} alt="Media preview" className="max-w-full max-h-[85vh] rounded-lg object-contain" />
+            <button
+              onClick={() => setPreviewImage('')}
+              className="absolute -top-3 -right-3 rounded-full bg-white p-1.5 shadow text-slate-600 hover:text-slate-900"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

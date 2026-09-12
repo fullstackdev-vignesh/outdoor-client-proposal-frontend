@@ -6,7 +6,20 @@ import api from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import type { Client } from '@/lib/types';
 
-const empty = { name: '', phone: '', email: '', location: '', latitude: '', longitude: '', notes: '' };
+const empty = {
+  customerType: 'client' as 'client' | 'agency',
+  name: '',
+  phone: '',
+  email: '',
+  location: '',
+  latitude: '',
+  longitude: '',
+  agencyComm: '',
+  gst: '',
+  vendorName: '',
+  vendorCost: '',
+  notes: '',
+};
 
 export default function ClientFormModal({
   open,
@@ -26,12 +39,17 @@ export default function ClientFormModal({
   useEffect(() => {
     if (client) {
       setForm({
+        customerType: client.customerType || 'client',
         name: client.name,
         phone: client.phone || '',
         email: client.email || '',
         location: client.location || '',
         latitude: client.latitude?.toString() || '',
         longitude: client.longitude?.toString() || '',
+        agencyComm: client.agencyComm?.toString() || '',
+        gst: client.gst || '',
+        vendorName: client.vendorName || '',
+        vendorCost: client.vendorCost?.toString() || '',
         notes: '',
       });
     } else {
@@ -39,18 +57,36 @@ export default function ClientFormModal({
     }
   }, [client, open]);
 
-  function update<K extends keyof typeof form>(key: K, value: string) {
+  function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  function validate(): string | null {
+    if (!form.name.trim()) return form.customerType === 'agency' ? 'Agency name is required' : 'Client name is required';
+    if (!form.latitude) return 'Latitude is required';
+    if (!form.longitude) return 'Longitude is required';
+    if (isNaN(Number(form.latitude)) || Number(form.latitude) < -90 || Number(form.latitude) > 90) return 'Latitude must be between -90 and 90';
+    if (isNaN(Number(form.longitude)) || Number(form.longitude) < -180 || Number(form.longitude) > 180) return 'Longitude must be between -180 and 180';
+    if (form.agencyComm && (isNaN(Number(form.agencyComm)) || Number(form.agencyComm) < 0)) return 'Agency Comm must be a valid number >= 0';
+    if (form.vendorCost && (isNaN(Number(form.vendorCost)) || Number(form.vendorCost) < 0)) return 'Vendor Cost must be a valid number >= 0';
+    return null;
   }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    const error = validate();
+    if (error) {
+      showToast(error, 'error');
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
         ...form,
         latitude: form.latitude ? Number(form.latitude) : undefined,
         longitude: form.longitude ? Number(form.longitude) : undefined,
+        agencyComm: form.agencyComm ? Number(form.agencyComm) : undefined,
+        vendorCost: form.vendorCost ? Number(form.vendorCost) : undefined,
       };
       if (client) {
         await api.put(`/clients/${client._id}`, payload);
@@ -68,29 +104,53 @@ export default function ClientFormModal({
     }
   }
 
+  const isAgency = form.customerType === 'agency';
+
   return (
     <Modal open={open} onClose={onClose} title={client ? 'Edit Client' : 'Add Client'} size="md">
       <form onSubmit={submit} className="space-y-4">
-        <Field label="Client Name" required>
-          <input required value={form.name} onChange={(e) => update('name', e.target.value)} className={inputCls} />
+        <Field label="Customer Type" required>
+          <div className="flex gap-2">
+            {(['client', 'agency'] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => update('customerType', t)}
+                className={`rounded-lg border px-4 py-2 text-sm font-medium capitalize ${
+                  form.customerType === t ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200'
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        </Field>
+        <Field label={isAgency ? 'Agency Name' : 'Client Name'} required>
+          <input
+            required
+            placeholder={isAgency ? 'Enter agency name' : 'Enter client name'}
+            value={form.name}
+            onChange={(e) => update('name', e.target.value)}
+            className={inputCls}
+          />
         </Field>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Phone">
-            <input value={form.phone} onChange={(e) => update('phone', e.target.value)} className={inputCls} />
+            <input placeholder="Enter phone number" value={form.phone} onChange={(e) => update('phone', e.target.value)} className={inputCls} />
           </Field>
           <Field label="Email">
-            <input type="email" value={form.email} onChange={(e) => update('email', e.target.value)} className={inputCls} />
+            <input type="email" placeholder="Enter email" value={form.email} onChange={(e) => update('email', e.target.value)} className={inputCls} />
           </Field>
         </div>
         <Field label="Location">
-          <input value={form.location} onChange={(e) => update('location', e.target.value)} className={inputCls} />
+          <input placeholder="Enter location" value={form.location} onChange={(e) => update('location', e.target.value)} className={inputCls} />
         </Field>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Latitude">
-            <input value={form.latitude} onChange={(e) => update('latitude', e.target.value)} className={inputCls} />
+          <Field label="Latitude" required>
+            <input placeholder="Enter latitude" value={form.latitude} onChange={(e) => update('latitude', e.target.value)} className={inputCls} />
           </Field>
-          <Field label="Longitude">
-            <input value={form.longitude} onChange={(e) => update('longitude', e.target.value)} className={inputCls} />
+          <Field label="Longitude" required>
+            <input placeholder="Enter longitude" value={form.longitude} onChange={(e) => update('longitude', e.target.value)} className={inputCls} />
           </Field>
         </div>
         {form.latitude && form.longitude && (
@@ -99,6 +159,22 @@ export default function ClientFormModal({
             src={`https://maps.google.com/maps?q=${form.latitude},${form.longitude}&z=14&output=embed`}
           />
         )}
+        {isAgency && (
+          <Field label="Agency Comm">
+            <input placeholder="Enter agency commission" value={form.agencyComm} onChange={(e) => update('agencyComm', e.target.value)} className={inputCls} />
+          </Field>
+        )}
+        <Field label="GST">
+          <input placeholder="Enter GST details" value={form.gst} onChange={(e) => update('gst', e.target.value)} className={inputCls} />
+        </Field>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Vendor Name">
+            <input placeholder="Enter vendor name" value={form.vendorName} onChange={(e) => update('vendorName', e.target.value)} className={inputCls} />
+          </Field>
+          <Field label="Vendor Cost">
+            <input placeholder="Enter vendor cost" value={form.vendorCost} onChange={(e) => update('vendorCost', e.target.value)} className={inputCls} />
+          </Field>
+        </div>
         <Field label="Other Details">
           <textarea value={form.notes} onChange={(e) => update('notes', e.target.value)} className={inputCls} rows={2} />
         </Field>

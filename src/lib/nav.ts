@@ -14,6 +14,7 @@ import {
   Settings,
   Search,
   FolderOutput,
+  ClipboardList,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -29,6 +30,7 @@ const NAV: Record<Role, NavItem[]> = {
     { label: 'TL Management', href: '/tl-management', icon: UserCog },
     { label: 'BD Management', href: '/bd-management', icon: UserCheck },
     { label: 'Site / Media', href: '/sites', icon: Building2 },
+    { label: 'Inventory', href: '/inventory', icon: ClipboardList },
     { label: 'Clients', href: '/clients', icon: Contact2 },
     // { label: 'PPT Master', href: '/ppt-master', icon: Presentation },
     // { label: 'Excel Templates', href: '/excel-templates', icon: FileSpreadsheet },
@@ -38,6 +40,7 @@ const NAV: Record<Role, NavItem[]> = {
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { label: 'Users', href: '/users', icon: Users },
     { label: 'Sites / Media', href: '/sites', icon: Building2 },
+    { label: 'Inventory', href: '/inventory', icon: ClipboardList },
     { label: 'Clients', href: '/clients', icon: Contact2 },
     { label: 'Bookings', href: '/bookings', icon: CalendarCheck },
     { label: 'Proposals', href: '/proposals', icon: FileText },

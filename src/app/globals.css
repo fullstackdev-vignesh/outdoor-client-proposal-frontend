@@ -22,3 +22,16 @@ input::-ms-reveal,
 input::-ms-clear {
   display: none;
 }
+
+button:not(:disabled),
+select:not(:disabled),
+[role='button']:not([aria-disabled='true']),
+a {
+  cursor: pointer;
+}
+
+button:disabled,
+select:disabled,
+[aria-disabled='true'] {
+  cursor: not-allowed;
+}

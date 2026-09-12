@@ -1,0 +1,360 @@
+'use client';
+
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { Search, Download, X, ImageOff, Building2, CheckCircle2, CalendarCheck, Ban } from 'lucide-react';
+import api, { fileBaseURL } from '@/lib/api';
+import { useToast } from '@/components/ui/Toast';
+import StatusBadge from '@/components/ui/StatusBadge';
+import EmptyState from '@/components/ui/EmptyState';
+import { StatCard } from '@/components/ui/Card';
+import { StateSelect, CitySelect } from '@/components/ui/StateCitySelect';
+import StatusChangeModal from '@/components/sites/StatusChangeModal';
+import BulkStatusModal from '@/components/inventory/BulkStatusModal';
+import { formatIST } from '@/lib/date';
+import type { Site, MediaStatus } from '@/lib/types';
+
+const PAGE_SIZE = 20;
+const emptyFilters = { state: '', city: '', mediaStatus: '', isActive: '' };
+
+function resolveImageUrl(image?: string) {
+  if (!image) return '';
+  return /^(https?:|data:|blob:)/.test(image) ? image : `${fileBaseURL}${image}`;
+}
+
+export default function InventoryPage() {
+  const { showToast } = useToast();
+
+  const [summary, setSummary] = useState({ total: 0, available: 0, booked: 0, blocked: 0 });
+  const [items, setItems] = useState<Site[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [search, setSearch] = useState('');
+  const [filters, setFilters] = useState(emptyFilters);
+  const [exporting, setExporting] = useState(false);
+
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkStatus, setBulkStatus] = useState<MediaStatus | ''>('');
+  const [bulkModalOpen, setBulkModalOpen] = useState(false);
+  const [rowPending, setRowPending] = useState<Record<string, MediaStatus>>({});
+  const [rowModal, setRowModal] = useState<{ site: Site; status: MediaStatus } | null>(null);
+
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const queryKey = JSON.stringify({ search, filters });
+
+  const fetchSummary = useCallback(() => {
+    api.get('/sites/summary', { params: { search, ...filters } }).then((res) => setSummary(res.data));
+  }, [search, filters]);
+
+  const fetchPage = useCallback(
+    (pageNum: number, append: boolean) => {
+      const setter = append ? setLoadingMore : setLoading;
+      setter(true);
+      return api
+        .get('/sites', { params: { page: pageNum, limit: PAGE_SIZE, search, ...filters } })
+        .then((res) => {
+          setTotal(res.data.total);
+          setItems((prev) => {
+            if (!append) return res.data.items;
+            const existingIds = new Set(prev.map((s: Site) => s._id));
+            return [...prev, ...res.data.items.filter((s: Site) => !existingIds.has(s._id))];
+          });
+        })
+        .finally(() => setter(false));
+    },
+    [search, filters]
+  );
+
+  useEffect(() => {
+    fetchPage(1, false);
+    fetchSummary();
+    setSelected(new Set());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryKey]);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !loading && !loadingMore && items.length < total) {
+          fetchPage(Math.floor(items.length / PAGE_SIZE) + 1, true);
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [loading, loadingMore, items.length, total, fetchPage]);
+
+  function refresh() {
+    fetchPage(1, false);
+    fetchSummary();
+    setSelected(new Set());
+    setRowPending({});
+    setBulkStatus('');
+    setBulkModalOpen(false);
+  }
+
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    setSelected((prev) => (prev.size === items.length ? new Set() : new Set(items.map((s) => s._id))));
+  }
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const res = await api.get('/sites/export', {
+        params: { search, ...filters, filenamePrefix: 'inventory' },
+        responseType: 'blob',
+      });
+      const disposition = res.headers['content-disposition'] || '';
+      const match = disposition.match(/filename="?([^"]+)"?/);
+      const filename = match?.[1] || 'inventory_export.xlsx';
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      showToast('Failed to export inventory', 'error');
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  const selectedSites = items.filter((s) => selected.has(s._id));
+  const filtersActive = search || Object.values(filters).some(Boolean);
+
+  return (
+    <div className="space-y-4 pb-20">
+      <div>
+        <h1 className="text-xl font-bold text-slate-900">Inventory Management</h1>
+        <p className="text-sm text-slate-500">Bulk manage media status across all sites</p>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <StatCard label="Total Sites" value={summary.total} icon={Building2} accent="slate" />
+        <StatCard label="Available Sites" value={summary.available} icon={CheckCircle2} accent="emerald" />
+        <StatCard label="Booked Sites" value={summary.booked} icon={CalendarCheck} accent="blue" />
+        <StatCard label="Blocked Sites" value={summary.blocked} icon={Ban} accent="red" />
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+        <div className="flex flex-wrap gap-3">
+          <div className="relative flex-1 min-w-[220px]">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search MediaCode, Type, City, State..."
+              className="w-full rounded-lg border border-slate-300 pl-9 pr-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+            />
+          </div>
+          <select
+            value={filters.mediaStatus}
+            onChange={(e) => setFilters((f) => ({ ...f, mediaStatus: e.target.value }))}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          >
+            <option value="">All Media Status</option>
+            <option value="available">Available</option>
+            <option value="booked">Booked</option>
+            <option value="blocked">Blocked</option>
+          </select>
+          <select
+            value={filters.isActive}
+            onChange={(e) => setFilters((f) => ({ ...f, isActive: e.target.value }))}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          >
+            <option value="">Active / Inactive</option>
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+          </select>
+          <StateSelect
+            value={filters.state}
+            onChange={(state) => setFilters((f) => ({ ...f, state, city: '' }))}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm w-40"
+          />
+          <CitySelect
+            state={filters.state}
+            value={filters.city}
+            onChange={(city) => setFilters((f) => ({ ...f, city }))}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm w-40"
+          />
+          {filtersActive && (
+            <button
+              onClick={() => {
+                setSearch('');
+                setFilters(emptyFilters);
+              }}
+              className="flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
+            >
+              <X className="h-3.5 w-3.5" /> Reset Filters
+            </button>
+          )}
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            className="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+          >
+            <Download className="h-4 w-4" /> {exporting ? 'Exporting...' : 'Export'}
+          </button>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500 uppercase">
+              <tr>
+                <th className="px-4 py-3">
+                  <input type="checkbox" checked={items.length > 0 && selected.size === items.length} onChange={toggleSelectAll} />
+                </th>
+                <th className="px-4 py-3">Image</th>
+                <th className="px-4 py-3">MediaCode</th>
+                <th className="px-4 py-3">City / State</th>
+                <th className="px-4 py-3">Active</th>
+                <th className="px-4 py-3">Media Status</th>
+                <th className="px-4 py-3">Inventory Updated</th>
+                <th className="px-4 py-3">Site Last Updated</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {loading && (
+                <tr>
+                  <td colSpan={8} className="px-4 py-10 text-center text-slate-400">
+                    Loading inventory...
+                  </td>
+                </tr>
+              )}
+              {!loading && items.length === 0 && (
+                <tr>
+                  <td colSpan={8}>
+                    <EmptyState title="No sites found" subtitle="Try adjusting your filters." />
+                  </td>
+                </tr>
+              )}
+              {!loading &&
+                items.map((site) => {
+                  const pending = rowPending[site._id];
+                  return (
+                    <tr key={site._id} className={`hover:bg-slate-50 ${selected.has(site._id) ? 'bg-blue-50/50' : ''}`}>
+                      <td className="px-4 py-3">
+                        <input type="checkbox" checked={selected.has(site._id)} onChange={() => toggleSelect(site._id)} />
+                      </td>
+                      <td className="px-4 py-3">
+                        {site.image ? (
+                          <img src={resolveImageUrl(site.image)} alt="" className="h-10 w-14 rounded object-cover border border-slate-200" />
+                        ) : (
+                          <div className="h-10 w-14 rounded border border-dashed border-slate-200 flex items-center justify-center text-slate-300">
+                            <ImageOff className="h-4 w-4" />
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-slate-500">{site.mediaCode || site.mediaId}</td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {site.city}, {site.state}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`text-xs font-medium ${site.isActive ? 'text-emerald-600' : 'text-slate-400'}`}>
+                          {site.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={pending || site.mediaStatus}
+                            onChange={(e) =>
+                              setRowPending((prev) => ({ ...prev, [site._id]: e.target.value as MediaStatus }))
+                            }
+                            className="rounded-lg border border-slate-300 px-2 py-1 text-xs capitalize"
+                          >
+                            {(['available', 'booked', 'blocked'] as MediaStatus[]).map((s) => (
+                              <option key={s} value={s}>
+                                {s}
+                              </option>
+                            ))}
+                          </select>
+                          {pending && pending !== site.mediaStatus && (
+                            <button
+                              onClick={() => setRowModal({ site, status: pending })}
+                              className="rounded-lg bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700"
+                            >
+                              Save
+                            </button>
+                          )}
+                          {!pending && <StatusBadge status={site.mediaStatus} />}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-500">
+                        {formatIST(site.inventoryUpdatedAt)}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-500">
+                        {formatIST(site.updatedAt)}
+                      </td>
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </table>
+        </div>
+        <div ref={sentinelRef} className="py-4 text-center text-xs text-slate-400">
+          {loadingMore && 'Loading more...'}
+          {!loading && !loadingMore && `Showing ${items.length} of ${total} Sites`}
+        </div>
+      </div>
+
+      {selected.size > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white shadow-lg">
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-3 md:pl-64">
+            <span className="text-sm font-medium text-slate-700">{selected.size} Sites Selected</span>
+            <select
+              value={bulkStatus}
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              onChange={(e) => setBulkStatus(e.target.value as MediaStatus | '')}
+            >
+              <option value="">Select status</option>
+              <option value="available">Available</option>
+              <option value="booked">Booked</option>
+              <option value="blocked">Blocked</option>
+            </select>
+            <button
+              disabled={!bulkStatus}
+              onClick={() => setBulkModalOpen(true)}
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              Apply to Selected
+            </button>
+          </div>
+        </div>
+      )}
+
+      <StatusChangeModal
+        open={!!rowModal}
+        onClose={() => setRowModal(null)}
+        site={rowModal?.site || null}
+        initialStatus={rowModal?.status}
+        onSaved={refresh}
+      />
+
+      <BulkStatusModal
+        open={bulkModalOpen && !!bulkStatus && selectedSites.length > 0}
+        onClose={() => setBulkModalOpen(false)}
+        sites={selectedSites}
+        status={bulkStatus || 'available'}
+        onSaved={refresh}
+      />
+    </div>
+  );
+}

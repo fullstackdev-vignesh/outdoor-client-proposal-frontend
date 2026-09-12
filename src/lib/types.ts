@@ -10,10 +10,13 @@ export interface AuthUser {
 }
 
 export interface BookingInfo {
+  customerType?: 'client' | 'agency';
   client?: { _id: string; name: string } | string;
   bookingRef?: string;
   startDate?: string;
   endDate?: string;
+  durationDays?: number;
+  monthlyTotalCost?: number;
   amount?: number;
   bookedBy?: string;
 }
@@ -28,35 +31,60 @@ export interface BlockInfo {
 export interface Site {
   _id: string;
   mediaId: string;
-  mediaName: string;
+  mediaCode?: string;
+  mediaName?: string;
   mediaType: string;
+  quantity?: number;
   state: string;
   city: string;
   location?: string;
+  areaName?: string;
+  locationDetails?: string;
   latitude?: number;
   longitude?: number;
+  illumination?: string;
   width?: number;
   height?: number;
   sizeUnit?: string;
+  autoSize?: number;
   amount?: number;
   gstAmount?: number;
   monthlyAmount?: number;
+  printingCost?: number;
+  mountingCost?: number;
+  totalCost?: number;
   image?: string;
   isActive: boolean;
   mediaStatus: MediaStatus;
   bookingInfo?: BookingInfo;
   blockInfo?: BlockInfo;
   createdAt: string;
+  updatedAt?: string;
+  inventoryUpdatedAt?: string;
+}
+
+export interface SiteHistoryEntry {
+  _id: string;
+  field: string;
+  oldValue: any;
+  newValue: any;
+  changedBy?: { _id: string; name: string } | string;
+  changedAt: string;
 }
 
 export interface Client {
   _id: string;
+  customerType?: 'client' | 'agency';
   name: string;
   phone?: string;
   email?: string;
   location?: string;
   latitude?: number;
   longitude?: number;
+  agencyComm?: number;
+  gst?: string;
+  vendorName?: string;
+  vendorCost?: number;
   isActive: boolean;
   createdAt: string;
 }
