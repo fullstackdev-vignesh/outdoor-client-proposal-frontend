@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, EyeOff } from 'lucide-react';
 import api from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import Modal from '@/components/ui/Modal';
 import EmptyState from '@/components/ui/EmptyState';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
-import type { AuthUser, Role } from '@/lib/types';
+import type { Role } from '@/lib/types';
 
 export default function UserManager({ role, title, subtitle }: { role: Role; title: string; subtitle: string }) {
   const { showToast } = useToast();
@@ -16,7 +16,9 @@ export default function UserManager({ role, title, subtitle }: { role: Role; tit
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
-  const [form, setForm] = useState({ name: '', email: '', password: '', phone: '', isActive: true });
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '', phone: '', isActive: true });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const fetchItems = useCallback(() => {
     setLoading(true);
@@ -32,16 +34,36 @@ export default function UserManager({ role, title, subtitle }: { role: Role; tit
 
   function openForm(item: any) {
     setEditing(item);
-    setForm({ name: item?.name || '', email: item?.email || '', password: '', phone: item?.phone || '', isActive: item?.isActive ?? true });
+    setForm({
+      name: item?.name || '',
+      email: item?.email || '',
+      password: '',
+      confirmPassword: '',
+      phone: item?.phone || '',
+      isActive: item?.isActive ?? true,
+    });
+    setShowPassword(false);
+    setShowConfirmPassword(false);
     setFormOpen(true);
   }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+
+    if (!editing || form.password) {
+      if (form.password !== form.confirmPassword) {
+        showToast('Password and Confirm Password do not match', 'error');
+        return;
+      }
+    }
+
     try {
       if (editing) {
         const payload: any = { name: form.name, phone: form.phone, isActive: form.isActive };
-        if (form.password) payload.password = form.password;
+        if (form.password) {
+          payload.password = form.password;
+          payload.confirmPassword = form.confirmPassword;
+        }
         await api.put(`/users/${editing._id}`, payload);
         showToast('User updated successfully');
       } else {
@@ -68,6 +90,8 @@ export default function UserManager({ role, title, subtitle }: { role: Role; tit
     }
   }
 
+  const roleLabel = role === 'tl' ? 'TL' : role === 'bd' ? 'BD' : 'User';
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -79,7 +103,7 @@ export default function UserManager({ role, title, subtitle }: { role: Role; tit
           onClick={() => openForm(null)}
           className="flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >
-          <Plus className="h-4 w-4" /> Add {role === 'tl' ? 'TL' : 'User'}
+          <Plus className="h-4 w-4" /> Add {roleLabel}
         </button>
       </div>
 
@@ -140,7 +164,7 @@ export default function UserManager({ role, title, subtitle }: { role: Role; tit
         </div>
       </div>
 
-      <Modal open={formOpen} onClose={() => setFormOpen(false)} title={editing ? 'Edit User' : 'Create User'} size="sm">
+      <Modal open={formOpen} onClose={() => setFormOpen(false)} title={editing ? `Edit ${roleLabel}` : `Create ${roleLabel}`} size="sm">
         <form onSubmit={submit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Name *</label>
@@ -156,8 +180,34 @@ export default function UserManager({ role, title, subtitle }: { role: Role; tit
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">{editing ? 'New Password (optional)' : 'Password *'}</label>
-            <input required={!editing} type="password" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} className={inputCls} />
+            <div className="relative flex items-center">
+              <input required={!editing} type={showPassword ? 'text' : 'password'} value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} className={`${inputCls} pr-10`} />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-2.5 z-10 p-1 text-slate-500 hover:text-slate-700 transition focus:outline-none cursor-pointer flex items-center justify-center"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff className="h-5 w-5 text-slate-500" /> : <Eye className="h-5 w-5 text-slate-500" />}
+              </button>
+            </div>
           </div>
+          {(!editing || form.password) && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{editing ? 'Confirm New Password' : 'Confirm Password *'}</label>
+              <div className="relative flex items-center">
+                <input required={!editing} type={showConfirmPassword ? 'text' : 'password'} value={form.confirmPassword} onChange={(e) => setForm((f) => ({ ...f, confirmPassword: e.target.value }))} className={`${inputCls} pr-10`} />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((prev) => !prev)}
+                  className="absolute right-2.5 z-10 p-1 text-slate-500 hover:text-slate-700 transition focus:outline-none cursor-pointer flex items-center justify-center"
+                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-5 w-5 text-slate-500" /> : <Eye className="h-5 w-5 text-slate-500" />}
+                </button>
+              </div>
+            </div>
+          )}
           {editing && (
             <label className="flex items-center gap-2 text-sm text-slate-700">
               <input type="checkbox" checked={form.isActive} onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))} />
@@ -177,8 +227,8 @@ export default function UserManager({ role, title, subtitle }: { role: Role; tit
 
       <ConfirmDialog
         open={!!deleteTarget}
-        title="Delete User"
-        message={`Delete user "${deleteTarget?.name}"?`}
+        title={`Delete ${roleLabel}`}
+        message={`Delete ${roleLabel.toLowerCase()} "${deleteTarget?.name}"?`}
         confirmLabel="Delete"
         danger
         onConfirm={handleDelete}

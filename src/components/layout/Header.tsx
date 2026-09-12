@@ -15,10 +15,10 @@ export default function Header() {
         <p className="text-sm font-semibold text-slate-900">{user?.name}</p>
       </div>
       <div className="flex items-center gap-4">
-        <button className="relative rounded-lg p-2 text-slate-500 hover:bg-slate-50">
+        {/* <button className="relative rounded-lg p-2 text-slate-500 hover:bg-slate-50">
           <Bell className="h-5 w-5" />
           <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-red-500" />
-        </button>
+        </button> */}
         <div className="relative">
           <button
             onClick={() => setOpen((o) => !o)}

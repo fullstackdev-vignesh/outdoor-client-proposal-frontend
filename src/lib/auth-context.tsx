@@ -5,10 +5,20 @@ import { useRouter } from 'next/navigation';
 import api from './api';
 import type { AuthUser, Role } from './types';
 
+export interface RegisterData {
+  userName: string;
+  userEmail?: string;
+  userPhone: string;
+  password: string;
+  confirmPassword: string;
+  userType: number;
+}
+
 interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
   login: (email: string, password: string, role: Role) => Promise<void>;
+  register: (data: RegisterData) => Promise<any>;
   logout: () => void;
 }
 
@@ -33,6 +43,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push('/dashboard');
   }
 
+  async function register(data: RegisterData) {
+    const res = await api.post('/auth/register', data);
+    const token = res.data?.token;
+    const userData = res.data?.user;
+    if (token && userData) {
+      localStorage.setItem('outdoor_token', token);
+      localStorage.setItem('outdoor_user', JSON.stringify(userData));
+      setUser(userData);
+      router.push('/dashboard');
+    }
+    return res.data;
+  }
+
   function logout() {
     localStorage.removeItem('outdoor_token');
     localStorage.removeItem('outdoor_user');
@@ -40,7 +63,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push('/login');
   }
 
-  return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        login,
+        register,
+        logout,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import {
   Users,
   UserCog,
+  UserCheck,
   Building2,
   CheckCircle2,
   XCircle,
@@ -55,6 +56,7 @@ export default function DashboardPage() {
   const cardDefs = [
     { key: 'totalUsers', label: 'Total Users', icon: Users, accent: 'blue', roles: ['admin'] },
     { key: 'totalTLs', label: 'Total TLs', icon: UserCog, accent: 'blue', roles: ['admin'] },
+    { key: 'totalBDs', label: 'Total BDs', icon: UserCheck, accent: 'blue', roles: ['admin'] },
     { key: 'totalSites', label: 'Total Sites', icon: Building2, accent: 'blue' },
     { key: 'activeSites', label: 'Active Sites', icon: CheckCircle2, accent: 'emerald' },
     { key: 'inactiveSites', label: 'Inactive Sites', icon: XCircle, accent: 'slate' },

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Building2, Loader2 } from 'lucide-react';
+import { Building2, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import type { Role } from '@/lib/types';
 
@@ -10,6 +10,7 @@ export default function LoginPage() {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<Role>('admin');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -45,26 +46,26 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
-              <div className="grid grid-cols-3 gap-2">
-                {(['admin', 'tl', 'user'] as Role[]).map((r) => (
+              <div className="grid grid-cols-4 gap-1.5">
+                {(['admin', 'tl', 'user', 'bd'] as Role[]).map((r) => (
                   <button
                     type="button"
                     key={r}
                     onClick={() => setRole(r)}
-                    className={`rounded-lg border px-3 py-2 text-sm font-medium capitalize transition ${
+                    className={`rounded-lg border px-2 py-2 text-xs font-medium uppercase transition ${
                       role === r
                         ? 'bg-blue-600 text-white border-blue-600'
                         : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'
                     }`}
                   >
-                    {r === 'tl' ? 'Team Leader' : r}
+                    {r}
                   </button>
                 ))}
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Username / Email</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
               <input
                 type="email"
                 required
@@ -77,14 +78,24 @@ export default function LoginPage() {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-              />
+              <div className="relative flex items-center">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-2.5 z-10 p-1 text-slate-500 hover:text-slate-700 transition focus:outline-none cursor-pointer flex items-center justify-center"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5 text-slate-500" /> : <Eye className="h-5 w-5 text-slate-500" />}
+                </button>
+              </div>
             </div>
 
             {error && (
@@ -109,10 +120,6 @@ export default function LoginPage() {
               Login
             </button>
           </form>
-
-          <div className="mt-6 rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-xs text-slate-500">
-            Demo: admin@outdoor.com / Admin@123 · tl@outdoor.com / Tl@12345 · user@outdoor.com / User@123
-          </div>
         </div>
       </div>
     </div>

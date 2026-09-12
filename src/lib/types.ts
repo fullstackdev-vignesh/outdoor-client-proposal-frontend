@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'tl' | 'user';
+export type Role = 'admin' | 'tl' | 'user' | 'bd';
 
 export type MediaStatus = 'available' | 'booked' | 'blocked';
 
