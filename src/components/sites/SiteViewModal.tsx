@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Modal from '@/components/ui/Modal';
 import StatusBadge from '@/components/ui/StatusBadge';
 import api, { fileBaseURL } from '@/lib/api';
-import { formatIST } from '@/lib/date';
+import { formatIST, formatISTDate } from '@/lib/date';
 import type { Site, SiteHistoryEntry } from '@/lib/types';
 
 function resolveImageUrl(image?: string) {
@@ -41,25 +41,31 @@ function label(field: string) {
   return map[field] || field;
 }
 
-export default function SiteViewModal({ open, onClose, site }: { open: boolean; onClose: () => void; site: Site | null }) {
+export default function SiteViewModal({ open, onClose, site: siteProp }: { open: boolean; onClose: () => void; site: Site | null }) {
   const [tab, setTab] = useState<'view' | 'history'>('view');
   const [history, setHistory] = useState<SiteHistoryEntry[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [fullSite, setFullSite] = useState<Site | null>(null);
 
   useEffect(() => {
     if (open) setTab('view');
-  }, [open, site]);
+    setFullSite(null);
+    if (open && siteProp) {
+      api.get(`/sites/${siteProp._id}`).then((res) => setFullSite(res.data));
+    }
+  }, [open, siteProp]);
 
   useEffect(() => {
-    if (open && tab === 'history' && site) {
+    if (open && tab === 'history' && siteProp) {
       setLoadingHistory(true);
       api
-        .get(`/sites/${site._id}/history`)
+        .get(`/sites/${siteProp._id}/history`)
         .then((res) => setHistory(res.data))
         .finally(() => setLoadingHistory(false));
     }
-  }, [open, tab, site]);
+  }, [open, tab, siteProp]);
 
+  const site = fullSite || siteProp;
   if (!site) return null;
 
   return (
@@ -94,13 +100,13 @@ export default function SiteViewModal({ open, onClose, site }: { open: boolean; 
             )}
             <div className="flex-1 space-y-2.5">
               <div className="flex items-center gap-2.5 flex-wrap">
-                <span className="font-mono text-xl font-bold text-slate-900">{site.mediaCode || site.mediaId}</span>
+                <span className="font-mono text-base font-bold text-slate-900">{site.mediaCode || site.mediaId}</span>
                 <StatusBadge status={site.mediaStatus} />
                 <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${site.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}`}>
                   {site.isActive ? 'Active' : 'Inactive'}
                 </span>
               </div>
-              <p className="text-base font-medium text-slate-700">{site.mediaType}</p>
+              <p className="text-sm font-medium text-slate-700">{site.mediaType}</p>
               <p className="text-sm text-slate-600">
                 {[site.location, site.areaName, site.city, site.state].filter(Boolean).join(', ') || '-'}
               </p>
@@ -124,6 +130,14 @@ export default function SiteViewModal({ open, onClose, site }: { open: boolean; 
           <ViewSection title="Location Details">
             <Row label="Latitude" value={site.latitude} />
             <Row label="Longitude" value={site.longitude} />
+            {site.latitude && site.longitude && (
+              <div className="col-span-2 sm:col-span-3 rounded-lg overflow-hidden border border-slate-200 h-48">
+                <iframe
+                  className="w-full h-full"
+                  src={`https://maps.google.com/maps?q=${site.latitude},${site.longitude}&z=14&output=embed`}
+                />
+              </div>
+            )}
           </ViewSection>
 
           <ViewSection title="Media Size">
@@ -137,6 +151,37 @@ export default function SiteViewModal({ open, onClose, site }: { open: boolean; 
             <Row label="Mounting Cost" value={site.mountingCost ? `₹${site.mountingCost.toLocaleString()}` : '-'} />
             <Row label="Total Cost" value={<span className="text-emerald-600 font-bold text-base">{site.totalCost ? `₹${site.totalCost.toLocaleString()}` : '-'}</span>} />
           </ViewSection>
+
+          {site.mediaStatus === 'booked' && site.bookingInfo && (
+            <ViewSection title="Booking Details">
+              <Row
+                label="Customer Type"
+                value={site.bookingInfo.customerType ? site.bookingInfo.customerType.charAt(0).toUpperCase() + site.bookingInfo.customerType.slice(1) : 'Client'}
+              />
+              <Row label="Customer" value={typeof site.bookingInfo.client === 'object' ? site.bookingInfo.client?.name : undefined} />
+              <Row label="Start Date" value={formatISTDate(site.bookingInfo.startDate)} />
+              <Row label="End Date" value={formatISTDate(site.bookingInfo.endDate)} />
+              <Row label="Duration" value={site.bookingInfo.durationDays ? `${site.bookingInfo.durationDays} Days` : undefined} />
+              <Row label="Monthly Cost" value={site.bookingInfo.monthlyTotalCost ? `₹${site.bookingInfo.monthlyTotalCost.toLocaleString()}` : undefined} />
+              <Row
+                label="Booking Amount"
+                value={
+                  site.bookingInfo.amount !== undefined ? (
+                    <span className="text-emerald-600 font-bold text-base">₹{site.bookingInfo.amount.toLocaleString()}</span>
+                  ) : undefined
+                }
+              />
+            </ViewSection>
+          )}
+
+          {site.mediaStatus === 'blocked' && site.blockInfo && (
+            <ViewSection title="Block Details">
+              <Row label="Block Reason" value={site.blockInfo.reason} />
+              <Row label="Additional Notes" value={site.blockInfo.notes} />
+              <Row label="Blocked Date" value={formatIST(site.blockInfo.blockedDate)} />
+              <Row label="Blocked By" value={typeof site.blockInfo.blockedBy === 'object' ? site.blockInfo.blockedBy?.name : undefined} />
+            </ViewSection>
+          )}
         </div>
       )}
 
@@ -176,8 +221,8 @@ export default function SiteViewModal({ open, onClose, site }: { open: boolean; 
 function ViewSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="rounded-xl border border-slate-200 p-4">
-      <h4 className="text-sm font-bold uppercase tracking-wide text-slate-600 mb-3 pb-2 border-b border-slate-100">{title}</h4>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4 text-sm">{children}</div>
+      <h4 className="text-xs font-bold uppercase tracking-wide text-slate-600 mb-3 pb-2 border-b border-slate-100">{title}</h4>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3 text-sm">{children}</div>
     </div>
   );
 }
@@ -187,7 +232,7 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
       <p className="text-xs font-medium text-slate-500 mb-0.5">{label}</p>
-      <p className="text-base font-semibold text-slate-900">{value}</p>
+      <p className="text-sm font-semibold text-slate-900">{value}</p>
     </div>
   );
 }

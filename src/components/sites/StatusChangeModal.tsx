@@ -45,17 +45,32 @@ export default function StatusChangeModal({
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (site) setNewStatus(initialStatus || site.mediaStatus);
-    if (open) {
-      setBlockReason('');
-      setBlockNotes('');
+    if (!site || !open) return;
+    setNewStatus(initialStatus || site.mediaStatus);
+
+    if (site.mediaStatus === 'booked' && site.bookingInfo) {
+      const b = site.bookingInfo;
+      setCustomerType(b.customerType || 'client');
+      setClientId(typeof b.client === 'object' ? b.client?._id || '' : b.client || '');
+      setStartDate(b.startDate ? b.startDate.slice(0, 10) : '');
+      setEndDate(b.endDate ? b.endDate.slice(0, 10) : '');
+    } else {
       setCustomerType('client');
       setClientId('');
       setStartDate('');
       setEndDate('');
-      api.get('/clients', { params: { limit: 200 } }).then((res) => setClients(res.data.items));
     }
-  }, [site, open]);
+
+    if (site.mediaStatus === 'blocked' && site.blockInfo) {
+      setBlockReason(site.blockInfo.reason || '');
+      setBlockNotes(site.blockInfo.notes || '');
+    } else {
+      setBlockReason('');
+      setBlockNotes('');
+    }
+
+    api.get('/clients', { params: { limit: 200 } }).then((res) => setClients(res.data.items));
+  }, [site, open, initialStatus]);
 
   const monthlyTotalCost = site?.totalCost || site?.monthlyAmount || 0;
   const durationDays = calcDurationDays(startDate, endDate);

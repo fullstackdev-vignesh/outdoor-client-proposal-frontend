@@ -40,6 +40,8 @@ export default function InventoryPage() {
   const [rowModal, setRowModal] = useState<{ site: Site; status: MediaStatus } | null>(null);
 
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const nextPageRef = useRef(1);
+  const fetchingRef = useRef(false);
   const queryKey = JSON.stringify({ search, filters });
 
   const fetchSummary = useCallback(() => {
@@ -48,24 +50,31 @@ export default function InventoryPage() {
 
   const fetchPage = useCallback(
     (pageNum: number, append: boolean) => {
+      if (fetchingRef.current) return Promise.resolve();
+      fetchingRef.current = true;
       const setter = append ? setLoadingMore : setLoading;
       setter(true);
       return api
         .get('/sites', { params: { page: pageNum, limit: PAGE_SIZE, search, ...filters } })
         .then((res) => {
           setTotal(res.data.total);
+          nextPageRef.current = pageNum + 1;
           setItems((prev) => {
             if (!append) return res.data.items;
             const existingIds = new Set(prev.map((s: Site) => s._id));
             return [...prev, ...res.data.items.filter((s: Site) => !existingIds.has(s._id))];
           });
         })
-        .finally(() => setter(false));
+        .finally(() => {
+          setter(false);
+          fetchingRef.current = false;
+        });
     },
     [search, filters]
   );
 
   useEffect(() => {
+    nextPageRef.current = 1;
     fetchPage(1, false);
     fetchSummary();
     setSelected(new Set());
@@ -77,17 +86,18 @@ export default function InventoryPage() {
     if (!el) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !loading && !loadingMore && items.length < total) {
-          fetchPage(Math.floor(items.length / PAGE_SIZE) + 1, true);
+        if (entries[0].isIntersecting && !fetchingRef.current && items.length < total) {
+          fetchPage(nextPageRef.current, true);
         }
       },
       { threshold: 0.1 }
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [loading, loadingMore, items.length, total, fetchPage]);
+  }, [items.length, total, fetchPage]);
 
   function refresh() {
+    nextPageRef.current = 1;
     fetchPage(1, false);
     fetchSummary();
     setSelected(new Set());

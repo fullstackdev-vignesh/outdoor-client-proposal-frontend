@@ -1,17 +1,68 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import * as XLSX from 'xlsx';
 import { UploadCloud, Download, FileCheck2, ArrowLeft } from 'lucide-react';
 import api from '@/lib/api';
 import { Panel } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
+import { StateSelect } from '@/components/ui/StateCitySelect';
 
-const REQUIRED_FIELDS = ['mediaId', 'mediaName', 'mediaType', 'state', 'city'];
+// Maps every accepted spreadsheet header (case/space-insensitive) to our canonical Site field.
+// Supports both the current Add/Edit Site field names and the older template's legacy names.
+const COLUMN_ALIASES: Record<string, string> = {
+  mediacode: 'mediaId',
+  mediaid: 'mediaId',
+  medianame: 'mediaName',
+  mediatype: 'mediaType',
+  quantity: 'quantity',
+  state: 'state',
+  city: 'city',
+  location: 'location',
+  areaname: 'areaName',
+  locationdetails: 'locationDetails',
+  latitude: 'latitude',
+  longitude: 'longitude',
+  illumination: 'illumination',
+  width: 'width',
+  height: 'height',
+  sizeunit: 'sizeUnit',
+  unit: 'sizeUnit',
+  displaycostpermonth: 'monthlyAmount',
+  monthlyamount: 'monthlyAmount',
+  printingcost: 'printingCost',
+  mountingcost: 'mountingCost',
+  amount: 'amount',
+  gstamount: 'gstAmount',
+  mediaimage: 'image',
+  image: 'image',
+  mediastatus: 'mediaStatus',
+};
+
+// Columns we intentionally ignore: SrNo, Specification, Size, TotalCost (auto-calculated server-side).
+const IGNORED_COLUMNS = new Set(['srno', 'specification', 'size', 'totalcost']);
+
+function normalizeKey(key: string) {
+  return key.toLowerCase().replace(/[\s_-]/g, '');
+}
+
+function mapRow(row: Record<string, any>): Record<string, any> {
+  const mapped: Record<string, any> = {};
+  for (const [rawKey, value] of Object.entries(row)) {
+    const norm = normalizeKey(rawKey);
+    if (IGNORED_COLUMNS.has(norm)) continue;
+    const field = COLUMN_ALIASES[norm];
+    if (field) mapped[field] = value;
+  }
+  return mapped;
+}
+
+const REQUIRED_FIELDS = ['mediaId', 'mediaType', 'city'];
 const SAMPLE_HEADERS = [
-  'mediaId', 'mediaName', 'mediaType', 'state', 'city', 'location',
-  'latitude', 'longitude', 'width', 'height', 'amount', 'gstAmount', 'monthlyAmount', 'mediaStatus',
+  'MediaCode', 'MediaType', 'City', 'AreaName', 'Location', 'Quantity',
+  'Width', 'Height', 'Illumination', 'DisplayCostPerMonth', 'PrintingCost', 'MountingCost',
+  'Latitude', 'Longitude', 'mediaimage',
 ];
 
 interface ValidationError {
@@ -23,7 +74,8 @@ interface ValidationError {
 export default function BulkUploadPage() {
   const router = useRouter();
   const { showToast } = useToast();
-  const [rawRows, setRawRows] = useState<any[]>([]);
+  const [defaultState, setDefaultState] = useState('');
+  const [rawRows, setRawRows] = useState<Record<string, any>[]>([]);
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [duplicates, setDuplicates] = useState<string[]>([]);
   const [importing, setImporting] = useState(false);
@@ -32,9 +84,10 @@ export default function BulkUploadPage() {
   function downloadSample() {
     const ws = XLSX.utils.json_to_sheet([
       {
-        mediaId: 'MEDIA-1001', mediaName: 'Sample Hoarding', mediaType: 'Hoarding', state: 'Maharashtra',
-        city: 'Mumbai', location: 'Highway Junction', latitude: 19.07, longitude: 72.87, width: 20, height: 10,
-        amount: 50000, gstAmount: 9000, monthlyAmount: 50000, mediaStatus: 'available',
+        MediaCode: 'ADINCHN0001', MediaType: 'Unipole', City: 'Chennai', AreaName: 'Gemini Flyover',
+        Location: 'Gemini flyover twds Cathedral rd / Marina Beach (Top)', Quantity: 1, Width: 40, Height: 25,
+        Illumination: 'Front Lit', DisplayCostPerMonth: 600000, PrintingCost: 13000, MountingCost: 5000,
+        Latitude: 13.0536, Longitude: 80.2502, mediaimage: '',
       },
     ]);
     const wb = XLSX.utils.book_new();
@@ -48,12 +101,12 @@ export default function BulkUploadPage() {
       const wb = XLSX.read(e.target?.result, { type: 'binary' });
       const sheet = wb.Sheets[wb.SheetNames[0]];
       const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-      validate(rows);
+      validate(rows.map(mapRow));
     };
     reader.readAsBinaryString(file);
   }
 
-  function validate(rows: any[]) {
+  function validate(rows: Record<string, any>[]) {
     const errs: ValidationError[] = [];
     const seenIds = new Set<string>();
     const dupes: string[] = [];
@@ -65,8 +118,13 @@ export default function BulkUploadPage() {
           errs.push({ row: rowNum, field, error: 'Required' });
         }
       });
+      if (!row.state && !defaultState) {
+        errs.push({ row: rowNum, field: 'state', error: 'Required (select a default State above, or add a State column)' });
+      }
       if (row.latitude && isNaN(Number(row.latitude))) errs.push({ row: rowNum, field: 'latitude', error: 'Invalid' });
       if (row.longitude && isNaN(Number(row.longitude))) errs.push({ row: rowNum, field: 'longitude', error: 'Invalid' });
+      if (row.width !== undefined && row.width !== '' && Number(row.width) <= 0) errs.push({ row: rowNum, field: 'width', error: 'Must be > 0' });
+      if (row.height !== undefined && row.height !== '' && Number(row.height) <= 0) errs.push({ row: rowNum, field: 'height', error: 'Must be > 0' });
       if (row.mediaId) {
         if (seenIds.has(row.mediaId)) {
           errs.push({ row: rowNum, field: 'mediaId', error: 'Duplicate' });
@@ -82,6 +140,11 @@ export default function BulkUploadPage() {
     setImported(null);
   }
 
+  useEffect(() => {
+    if (rawRows.length > 0) validate(rawRows);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultState]);
+
   const invalidRows = new Set(errors.map((e) => e.row));
   const validCount = rawRows.length - invalidRows.size;
 
@@ -92,18 +155,24 @@ export default function BulkUploadPage() {
         .filter((_, idx) => !invalidRows.has(idx + 2))
         .map((r) => ({
           mediaId: r.mediaId,
-          mediaName: r.mediaName,
           mediaType: r.mediaType,
-          state: r.state,
+          quantity: r.quantity ? Number(r.quantity) : undefined,
+          state: r.state || defaultState,
           city: r.city,
           location: r.location,
+          areaName: r.areaName,
+          locationDetails: r.locationDetails,
           latitude: r.latitude ? Number(r.latitude) : undefined,
           longitude: r.longitude ? Number(r.longitude) : undefined,
+          illumination: r.illumination,
           width: r.width ? Number(r.width) : undefined,
           height: r.height ? Number(r.height) : undefined,
           amount: r.amount ? Number(r.amount) : undefined,
           gstAmount: r.gstAmount ? Number(r.gstAmount) : undefined,
           monthlyAmount: r.monthlyAmount ? Number(r.monthlyAmount) : undefined,
+          printingCost: r.printingCost ? Number(r.printingCost) : undefined,
+          mountingCost: r.mountingCost ? Number(r.mountingCost) : undefined,
+          image: r.image || undefined,
           mediaStatus: r.mediaStatus || 'available',
         }));
       const { data } = await api.post('/sites/bulk-import', { records: validRecords });
@@ -126,6 +195,13 @@ export default function BulkUploadPage() {
         <p className="text-sm text-slate-500">Onboard 5,000+ sites at once via Excel</p>
       </div>
 
+      <Panel title="Default State">
+        <p className="text-xs text-slate-500 mb-2">
+          Used for every row unless the sheet itself has a State column.
+        </p>
+        <StateSelect value={defaultState} onChange={setDefaultState} className="w-64 rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+      </Panel>
+
       <Panel>
         <div className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-slate-300 rounded-xl py-10 text-center hover:border-blue-400 transition">
           <UploadCloud className="h-8 w-8 text-slate-400" />
@@ -147,7 +223,7 @@ export default function BulkUploadPage() {
               <Download className="h-4 w-4" /> Download Sample Excel
             </button>
           </div>
-          <p className="text-xs text-slate-400">Columns: {SAMPLE_HEADERS.join(', ')}</p>
+          <p className="text-xs text-slate-400 max-w-xl">Accepted columns: {SAMPLE_HEADERS.join(', ')}</p>
         </div>
       </Panel>
 
