@@ -241,6 +241,12 @@ export default function SitesPage() {
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+        <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 border-b border-slate-100">
+          <h2 className="text-sm font-semibold text-slate-700">Site / Media List</h2>
+          <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+            {total} {total === 1 ? 'Site' : 'Sites'}
+          </span>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500 uppercase">

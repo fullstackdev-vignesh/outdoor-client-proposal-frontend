@@ -25,12 +25,14 @@ export default function StatusChangeModal({
   site,
   onSaved,
   initialStatus,
+  source = 'sites',
 }: {
   open: boolean;
   onClose: () => void;
   site: Site | null;
   onSaved: () => void;
   initialStatus?: MediaStatus;
+  source?: 'sites' | 'inventory';
 }) {
   const { showToast } = useToast();
   const [newStatus, setNewStatus] = useState<MediaStatus>('available');
@@ -81,7 +83,7 @@ export default function StatusChangeModal({
     if (!site) return;
     setSaving(true);
     try {
-      const payload: any = { mediaStatus: newStatus };
+      const payload: any = { mediaStatus: newStatus, source };
       if (newStatus === 'blocked') {
         payload.blockReason = blockReason;
         payload.blockNotes = blockNotes;
