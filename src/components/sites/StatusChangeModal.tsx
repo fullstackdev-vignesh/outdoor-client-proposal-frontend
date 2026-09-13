@@ -6,7 +6,8 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import api from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
-import { formatLocalDate } from '@/lib/date';
+import { todayISO } from '@/lib/date';
+import DatePicker from '@/components/ui/DatePicker';
 import type { Site, Client, MediaStatus } from '@/lib/types';
 
 function calcDurationDays(start: string, end: string) {
@@ -164,7 +165,10 @@ export default function StatusChangeModal({
                   rows={2}
                 />
               </div>
-              <p className="text-xs text-red-500">Blocked Date: {formatLocalDate()}</p>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Blocked Date</label>
+                <DatePicker value={todayISO()} disabled />
+              </div>
             </div>
           )}
 
@@ -203,11 +207,11 @@ export default function StatusChangeModal({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Start Date *</label>
-                  <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputCls} required />
+                  <DatePicker value={startDate} onChange={setStartDate} max={endDate || undefined} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">End Date *</label>
-                  <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={inputCls} required />
+                  <DatePicker value={endDate} onChange={setEndDate} min={startDate || undefined} />
                 </div>
               </div>
               {!validDateRange && <p className="text-xs text-red-500">End Date must be on or after Start Date</p>}

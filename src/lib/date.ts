@@ -27,6 +27,14 @@ export function formatLocalDate(date: Date = new Date()) {
   return `${day}/${month}/${year}`;
 }
 
+// Plain 'YYYY-MM-DD' for today, using local calendar components (no timezone shift).
+export function todayISO(date: Date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 export function formatISTDate(value?: string | Date) {
   if (!value) return '-';
   const d = new Date(value);
