@@ -5,6 +5,7 @@ import Modal from '@/components/ui/Modal';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import api from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
+import { formatLocalDate } from '@/lib/date';
 import type { Site, Client, MediaStatus } from '@/lib/types';
 
 function calcDurationDays(start: string, end: string) {
@@ -112,7 +113,7 @@ export default function BulkStatusModal({
                 <label className="block text-sm font-medium text-slate-700 mb-1">Additional Notes</label>
                 <textarea placeholder="Optional notes" value={blockNotes} onChange={(e) => setBlockNotes(e.target.value)} className={inputCls} rows={2} />
               </div>
-              <p className="text-xs text-red-500">Blocked Date: {new Date().toLocaleDateString()}</p>
+              <p className="text-xs text-red-500">Blocked Date: {formatLocalDate()}</p>
             </div>
           )}
 

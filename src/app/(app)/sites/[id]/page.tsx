@@ -6,6 +6,7 @@ import { ArrowLeft } from 'lucide-react';
 import api from '@/lib/api';
 import { Panel } from '@/components/ui/Card';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { formatISTDate, formatIST } from '@/lib/date';
 import type { Site } from '@/lib/types';
 
 export default function SiteDetailsPage() {
@@ -83,15 +84,15 @@ export default function SiteDetailsPage() {
               value={typeof site.bookingInfo.client === 'object' ? site.bookingInfo.client?.name || '-' : '-'}
             />
             <Info label="Booking Ref" value={site.bookingInfo.bookingRef || '-'} />
-            <Info label="Start Date" value={site.bookingInfo.startDate ? new Date(site.bookingInfo.startDate).toLocaleDateString() : '-'} />
-            <Info label="End Date" value={site.bookingInfo.endDate ? new Date(site.bookingInfo.endDate).toLocaleDateString() : '-'} />
+            <Info label="Start Date" value={formatISTDate(site.bookingInfo.startDate)} />
+            <Info label="End Date" value={formatISTDate(site.bookingInfo.endDate)} />
             <Info label="Amount" value={site.bookingInfo.amount ? `₹${site.bookingInfo.amount.toLocaleString()}` : '-'} />
           </dl>
         )}
         {site.mediaStatus === 'blocked' && site.blockInfo && (
           <dl className="grid grid-cols-2 gap-4 text-sm">
             <Info label="Block Reason" value={site.blockInfo.reason || '-'} />
-            <Info label="Blocked Date" value={site.blockInfo.blockedDate ? new Date(site.blockInfo.blockedDate).toLocaleDateString() : '-'} />
+            <Info label="Blocked Date" value={formatIST(site.blockInfo.blockedDate)} />
             <Info
               label="Blocked By"
               value={typeof site.blockInfo.blockedBy === 'object' ? site.blockInfo.blockedBy?.name || '-' : '-'}

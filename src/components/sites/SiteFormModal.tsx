@@ -66,6 +66,7 @@ export default function SiteFormModal({
   const [form, setForm] = useState<typeof emptyForm>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [imagePreview, setImagePreview] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (site) {
@@ -97,10 +98,17 @@ export default function SiteFormModal({
       setForm(emptyForm);
       setImagePreview('');
     }
+    setErrors({});
   }, [site, open]);
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
+    setErrors((e) => {
+      if (!e[key as string]) return e;
+      const next = { ...e };
+      delete next[key as string];
+      return next;
+    });
   }
 
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -129,35 +137,37 @@ export default function SiteFormModal({
     }
   }
 
-  function validate(): string | null {
-    if (!form.mediaId.trim()) return 'MediaCode is required';
-    if (!form.mediaType.trim()) return 'Media Type is required';
-    if (!form.state.trim()) return 'State is required';
-    if (!form.city.trim()) return 'City is required';
-    if (form.width && Number(form.width) <= 0) return 'Width must be greater than 0';
-    if (form.height && Number(form.height) <= 0) return 'Height must be greater than 0';
-    for (const [label, val] of [
-      ['Amount', form.amount],
-      ['GST Amount', form.gstAmount],
-      ['Monthly Cost', form.monthlyAmount],
-      ['Printing Cost', form.printingCost],
-      ['Mounting Cost', form.mountingCost],
+  function validate(): Record<string, string> {
+    const errs: Record<string, string> = {};
+    if (!form.mediaId.trim()) errs.mediaId = 'MediaCode is required';
+    if (!form.mediaType.trim()) errs.mediaType = 'Media Type is required';
+    if (!form.state.trim()) errs.state = 'State is required';
+    if (!form.city.trim()) errs.city = 'City is required';
+    if (form.width && Number(form.width) <= 0) errs.width = 'Width must be greater than 0';
+    if (form.height && Number(form.height) <= 0) errs.height = 'Height must be greater than 0';
+    for (const [key, label] of [
+      ['amount', 'Amount'],
+      ['monthlyAmount', 'Monthly Cost'],
+      ['printingCost', 'Printing Cost'],
+      ['mountingCost', 'Mounting Cost'],
     ] as const) {
-      if (val && (isNaN(Number(val)) || Number(val) < 0)) return `${label} must be a valid number >= 0`;
+      const val = form[key];
+      if (val && (isNaN(Number(val)) || Number(val) < 0)) errs[key] = `${label} must be a valid number >= 0`;
     }
     if (form.latitude && (isNaN(Number(form.latitude)) || Number(form.latitude) < -90 || Number(form.latitude) > 90)) {
-      return 'Latitude must be between -90 and 90';
+      errs.latitude = 'Latitude must be between -90 and 90';
     }
     if (form.longitude && (isNaN(Number(form.longitude)) || Number(form.longitude) < -180 || Number(form.longitude) > 180)) {
-      return 'Longitude must be between -180 and 180';
+      errs.longitude = 'Longitude must be between -180 and 180';
     }
-    return null;
+    return errs;
   }
 
   async function save(andAddAnother = false) {
-    const validationError = validate();
-    if (validationError) {
-      showToast(validationError, 'error');
+    const validationErrors = validate();
+    setErrors(validationErrors);
+    if (Object.keys(validationErrors).length > 0) {
+      showToast('Please fix the highlighted fields', 'error');
       return;
     }
     setSaving(true);
@@ -200,6 +210,7 @@ export default function SiteFormModal({
   return (
     <Modal open={open} onClose={onClose} title={site ? 'Edit Site' : 'Add Site'} size="xl">
       <form
+        noValidate
         onSubmit={(e) => {
           e.preventDefault();
           save(false);
@@ -207,11 +218,16 @@ export default function SiteFormModal({
         className="space-y-6"
       >
         <Section title="Basic Details">
-          <Field label="MediaCode" required>
-            <input required placeholder="Enter media code" value={form.mediaId} onChange={(e) => update('mediaId', e.target.value)} className={inputCls} />
+          <Field label="MediaCode" required error={errors.mediaId}>
+            <input
+              placeholder="Enter media code"
+              value={form.mediaId}
+              onChange={(e) => update('mediaId', e.target.value)}
+              className={fieldCls(!!errors.mediaId)}
+            />
           </Field>
-          <Field label="Media Type" required>
-            <select value={form.mediaType} onChange={(e) => update('mediaType', e.target.value)} className={inputCls}>
+          <Field label="Media Type" required error={errors.mediaType}>
+            <select value={form.mediaType} onChange={(e) => update('mediaType', e.target.value)} className={fieldCls(!!errors.mediaType)}>
               {MEDIA_TYPES.map((t) => (
                 <option key={t}>{t}</option>
               ))}
@@ -220,15 +236,22 @@ export default function SiteFormModal({
           <Field label="Quantity">
             <input type="number" min={0} placeholder="Enter quantity" value={form.quantity} onChange={(e) => update('quantity', e.target.value)} className={inputCls} />
           </Field>
-          <Field label="State" required>
+          <Field label="State" required error={errors.state}>
             <StateSelect
-              required
               value={form.state}
-              onChange={(state) => setForm((f) => ({ ...f, state, city: '' }))}
+              onChange={(state) => {
+                setForm((f) => ({ ...f, state, city: '' }));
+                setErrors((e) => {
+                  const next = { ...e };
+                  delete next.state;
+                  return next;
+                });
+              }}
+              className={fieldCls(!!errors.state)}
             />
           </Field>
-          <Field label="City" required>
-            <CitySelect required state={form.state} value={form.city} onChange={(city) => update('city', city)} />
+          <Field label="City" required error={errors.city}>
+            <CitySelect state={form.state} value={form.city} onChange={(city) => update('city', city)} className={fieldCls(!!errors.city)} />
           </Field>
           <Field label="Location">
             <input placeholder="Enter location" value={form.location} onChange={(e) => update('location', e.target.value)} className={inputCls} />
@@ -239,11 +262,11 @@ export default function SiteFormModal({
         </Section>
 
         <Section title="Location Details">
-          <Field label="Latitude">
-            <input placeholder="e.g. 13.0827" value={form.latitude} onChange={(e) => update('latitude', e.target.value)} className={inputCls} />
+          <Field label="Latitude" error={errors.latitude}>
+            <input placeholder="e.g. 13.0827" value={form.latitude} onChange={(e) => update('latitude', e.target.value)} className={fieldCls(!!errors.latitude)} />
           </Field>
-          <Field label="Longitude">
-            <input placeholder="e.g. 80.2707" value={form.longitude} onChange={(e) => update('longitude', e.target.value)} className={inputCls} />
+          <Field label="Longitude" error={errors.longitude}>
+            <input placeholder="e.g. 80.2707" value={form.longitude} onChange={(e) => update('longitude', e.target.value)} className={fieldCls(!!errors.longitude)} />
           </Field>
           {form.latitude && form.longitude && (
             <div className="col-span-2 rounded-lg overflow-hidden border border-slate-200 h-40">
@@ -259,11 +282,11 @@ export default function SiteFormModal({
           <Field label="Illumination">
             <input placeholder="e.g. Front Lit, Non Lit" value={form.illumination} onChange={(e) => update('illumination', e.target.value)} className={inputCls} />
           </Field>
-          <Field label="Width">
-            <input type="number" min={0} placeholder="Enter width" value={form.width} onChange={(e) => update('width', e.target.value)} className={inputCls} />
+          <Field label="Width" error={errors.width}>
+            <input type="number" min={0} placeholder="Enter width" value={form.width} onChange={(e) => update('width', e.target.value)} className={fieldCls(!!errors.width)} />
           </Field>
-          <Field label="Height">
-            <input type="number" min={0} placeholder="Enter height" value={form.height} onChange={(e) => update('height', e.target.value)} className={inputCls} />
+          <Field label="Height" error={errors.height}>
+            <input type="number" min={0} placeholder="Enter height" value={form.height} onChange={(e) => update('height', e.target.value)} className={fieldCls(!!errors.height)} />
           </Field>
           <Field label="Auto Size">
             <input disabled value={`${form.width || 0} x ${form.height || 0} = ${calcAutoSize(form.width, form.height)}`} className={`${inputCls} bg-slate-50 text-slate-500`} />
@@ -271,20 +294,17 @@ export default function SiteFormModal({
         </Section>
 
         <Section title="Pricing">
-          <Field label="Display Cost Per Month">
-            <input type="number" min={0} placeholder="Enter display cost per month" value={form.monthlyAmount} onChange={(e) => update('monthlyAmount', e.target.value)} className={inputCls} />
+          <Field label="Display Cost Per Month" error={errors.monthlyAmount}>
+            <input type="number" min={0} placeholder="Enter display cost per month" value={form.monthlyAmount} onChange={(e) => update('monthlyAmount', e.target.value)} className={fieldCls(!!errors.monthlyAmount)} />
           </Field>
-          <Field label="Printing Cost">
-            <input type="number" min={0} placeholder="Enter printing cost" value={form.printingCost} onChange={(e) => update('printingCost', e.target.value)} className={inputCls} />
+          <Field label="Printing Cost" error={errors.printingCost}>
+            <input type="number" min={0} placeholder="Enter printing cost" value={form.printingCost} onChange={(e) => update('printingCost', e.target.value)} className={fieldCls(!!errors.printingCost)} />
           </Field>
-          <Field label="Mounting Cost">
-            <input type="number" min={0} placeholder="Enter mounting cost" value={form.mountingCost} onChange={(e) => update('mountingCost', e.target.value)} className={inputCls} />
+          <Field label="Mounting Cost" error={errors.mountingCost}>
+            <input type="number" min={0} placeholder="Enter mounting cost" value={form.mountingCost} onChange={(e) => update('mountingCost', e.target.value)} className={fieldCls(!!errors.mountingCost)} />
           </Field>
           <Field label="Total Cost">
             <input disabled value={calcTotalCost(form.monthlyAmount, form.printingCost, form.mountingCost)} className={`${inputCls} bg-slate-50 text-slate-500`} />
-          </Field>
-          <Field label="GST Amount">
-            <input type="number" min={0} placeholder="Enter GST amount" value={form.gstAmount} onChange={(e) => update('gstAmount', e.target.value)} className={inputCls} />
           </Field>
         </Section>
 
@@ -370,6 +390,12 @@ export default function SiteFormModal({
 const inputCls =
   'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100';
 
+function fieldCls(hasError: boolean) {
+  return hasError
+    ? 'w-full rounded-lg border border-red-400 px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100'
+    : inputCls;
+}
+
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
@@ -379,13 +405,24 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+function Field({
+  label,
+  required,
+  error,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  error?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div>
       <label className="block text-sm font-medium text-slate-700 mb-1">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
       {children}
+      {error && <p className="mt-1 text-xs font-medium text-red-600">{error}</p>}
     </div>
   );
 }

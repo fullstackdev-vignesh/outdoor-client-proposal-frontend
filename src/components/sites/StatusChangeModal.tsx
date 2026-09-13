@@ -6,6 +6,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import api from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
+import { formatLocalDate } from '@/lib/date';
 import type { Site, Client, MediaStatus } from '@/lib/types';
 
 function calcDurationDays(start: string, end: string) {
@@ -146,7 +147,7 @@ export default function StatusChangeModal({
                   rows={2}
                 />
               </div>
-              <p className="text-xs text-red-500">Blocked Date: {new Date().toLocaleDateString()}</p>
+              <p className="text-xs text-red-500">Blocked Date: {formatLocalDate()}</p>
             </div>
           )}
 

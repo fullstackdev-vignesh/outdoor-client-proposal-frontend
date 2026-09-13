@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Search, Download, X, ImageOff, Building2, CheckCircle2, CalendarCheck, Ban } from 'lucide-react';
+import { Search, Download, X, ImageOff, Building2, CheckCircle2, CalendarCheck, Ban, Save } from 'lucide-react';
 import api, { fileBaseURL } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import StatusBadge from '@/components/ui/StatusBadge';
@@ -138,7 +138,7 @@ export default function InventoryPage() {
   const filtersActive = search || Object.values(filters).some(Boolean);
 
   return (
-    <div className="space-y-4 pb-20">
+    <div className="space-y-4">
       <div>
         <h1 className="text-xl font-bold text-slate-900">Inventory Management</h1>
         <p className="text-sm text-slate-500">Bulk manage media status across all sites</p>
@@ -213,6 +213,41 @@ export default function InventoryPage() {
         </div>
       </div>
 
+      <div className="rounded-xl border border-slate-200 bg-white p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-2 text-sm text-slate-600">
+            <input
+              type="checkbox"
+              checked={items.length > 0 && selected.size === items.length}
+              onChange={toggleSelectAll}
+            />
+            {selected.size > 0 ? (
+              <span className="font-medium text-slate-800">{selected.size} selected</span>
+            ) : (
+              <span>Select all</span>
+            )}
+          </label>
+          <select
+            value={bulkStatus}
+            disabled={selected.size === 0}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-50 disabled:text-slate-400"
+            onChange={(e) => setBulkStatus(e.target.value as MediaStatus | '')}
+          >
+            <option value="">Set Status</option>
+            <option value="available">Available</option>
+            <option value="booked">Booked</option>
+            <option value="blocked">Blocked</option>
+          </select>
+          <button
+            disabled={!bulkStatus || selected.size === 0}
+            onClick={() => setBulkModalOpen(true)}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400"
+          >
+            Apply to Selected
+          </button>
+        </div>
+      </div>
+
       <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -225,22 +260,24 @@ export default function InventoryPage() {
                 <th className="px-4 py-3">MediaCode</th>
                 <th className="px-4 py-3">City / State</th>
                 <th className="px-4 py-3">Active</th>
+                <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Media Status</th>
                 <th className="px-4 py-3">Inventory Updated</th>
                 <th className="px-4 py-3">Site Last Updated</th>
+                <th className="px-4 py-3 text-center">Save</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-10 text-center text-slate-400">
+                  <td colSpan={10} className="px-4 py-10 text-center text-slate-400">
                     Loading inventory...
                   </td>
                 </tr>
               )}
               {!loading && items.length === 0 && (
                 <tr>
-                  <td colSpan={8}>
+                  <td colSpan={10}>
                     <EmptyState title="No sites found" subtitle="Try adjusting your filters." />
                   </td>
                 </tr>
@@ -248,6 +285,7 @@ export default function InventoryPage() {
               {!loading &&
                 items.map((site) => {
                   const pending = rowPending[site._id];
+                  const hasChange = !!pending && pending !== site.mediaStatus;
                   return (
                     <tr key={site._id} className={`hover:bg-slate-50 ${selected.has(site._id) ? 'bg-blue-50/50' : ''}`}>
                       <td className="px-4 py-3">
@@ -272,36 +310,38 @@ export default function InventoryPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <select
-                            value={pending || site.mediaStatus}
-                            onChange={(e) =>
-                              setRowPending((prev) => ({ ...prev, [site._id]: e.target.value as MediaStatus }))
-                            }
-                            className="rounded-lg border border-slate-300 px-2 py-1 text-xs capitalize"
-                          >
-                            {(['available', 'booked', 'blocked'] as MediaStatus[]).map((s) => (
-                              <option key={s} value={s}>
-                                {s}
-                              </option>
-                            ))}
-                          </select>
-                          {pending && pending !== site.mediaStatus && (
-                            <button
-                              onClick={() => setRowModal({ site, status: pending })}
-                              className="rounded-lg bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700"
-                            >
-                              Save
-                            </button>
-                          )}
-                          {!pending && <StatusBadge status={site.mediaStatus} />}
-                        </div>
+                        <select
+                          value={pending || site.mediaStatus}
+                          onChange={(e) => setRowPending((prev) => ({ ...prev, [site._id]: e.target.value as MediaStatus }))}
+                          className="rounded-lg border border-slate-300 px-2 py-1.5 text-xs capitalize w-28"
+                        >
+                          {(['available', 'booked', 'blocked'] as MediaStatus[]).map((s) => (
+                            <option key={s} value={s}>
+                              {s}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusBadge status={site.mediaStatus} />
                       </td>
                       <td className="px-4 py-3 text-xs text-slate-500">
                         {formatIST(site.inventoryUpdatedAt)}
                       </td>
                       <td className="px-4 py-3 text-xs text-slate-500">
                         {formatIST(site.updatedAt)}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          disabled={!hasChange}
+                          onClick={() => hasChange && setRowModal({ site, status: pending })}
+                          title={hasChange ? 'Save status change' : 'Change status to enable'}
+                          className={`inline-flex items-center justify-center rounded-lg p-2 ${
+                            hasChange ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-slate-50 text-slate-300'
+                          }`}
+                        >
+                          <Save className="h-4 w-4" />
+                        </button>
                       </td>
                     </tr>
                   );
@@ -314,31 +354,6 @@ export default function InventoryPage() {
           {!loading && !loadingMore && `Showing ${items.length} of ${total} Sites`}
         </div>
       </div>
-
-      {selected.size > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white shadow-lg">
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-3 md:pl-64">
-            <span className="text-sm font-medium text-slate-700">{selected.size} Sites Selected</span>
-            <select
-              value={bulkStatus}
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              onChange={(e) => setBulkStatus(e.target.value as MediaStatus | '')}
-            >
-              <option value="">Select status</option>
-              <option value="available">Available</option>
-              <option value="booked">Booked</option>
-              <option value="blocked">Blocked</option>
-            </select>
-            <button
-              disabled={!bulkStatus}
-              onClick={() => setBulkModalOpen(true)}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              Apply to Selected
-            </button>
-          </div>
-        </div>
-      )}
 
       <StatusChangeModal
         open={!!rowModal}
