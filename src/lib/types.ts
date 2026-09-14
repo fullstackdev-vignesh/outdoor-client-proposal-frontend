@@ -72,6 +72,39 @@ export interface SiteHistoryEntry {
   changedAt: string;
 }
 
+export interface InventoryHistoryEntry {
+  _id: string;
+  site: string;
+  mediaId: string;
+  mediaType?: string;
+  state?: string;
+  city?: string;
+  image?: string;
+  status: MediaStatus;
+  previousStatus?: MediaStatus | null;
+  isActive?: boolean;
+  effectiveFrom: string;
+  effectiveTo?: string | null;
+  changedAt: string;
+  changedBy?: { _id: string; name: string } | string;
+  source: 'sites' | 'inventory';
+  bookingSnapshot?: {
+    customerType?: 'client' | 'agency';
+    client?: string;
+    customerName?: string;
+    startDate?: string;
+    endDate?: string;
+    durationDays?: number;
+    monthlyTotalCost?: number;
+    amount?: number;
+  };
+  blockSnapshot?: {
+    reason?: string;
+    notes?: string;
+    blockedDate?: string;
+  };
+}
+
 export interface Client {
   _id: string;
   customerType?: 'client' | 'agency';
