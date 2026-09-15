@@ -117,7 +117,7 @@ export default function ProposalsPage() {
                 data?.items.map((p) => (
                   <tr key={p._id} className="hover:bg-slate-50">
                     <td className="px-4 py-3 font-mono text-xs text-slate-500">{p.proposalId}</td>
-                    <td className="px-4 py-3 font-medium text-slate-800">{typeof p.client === 'object' ? p.client.name : ''}</td>
+                    <td className="px-4 py-3 font-medium text-slate-800">{p.client && typeof p.client === 'object' ? p.client.name : ''}</td>
                     <td className="px-4 py-3 text-slate-600">{Array.isArray(p.sites) ? p.sites.length : 0}</td>
                     <td className="px-4 py-3 text-slate-600">{p.variant}</td>
                     <td className="px-4 py-3 text-slate-500">{new Date(p.createdAt).toLocaleDateString()}</td>

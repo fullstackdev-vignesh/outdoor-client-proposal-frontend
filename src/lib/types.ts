@@ -143,7 +143,7 @@ export interface Proposal {
   sites: Site[] | string[];
   pptTemplate?: { _id: string; name: string } | string;
   excelTemplate?: { _id: string; name: string } | string;
-  variant: string;
+  variant?: string;
   totalAmount?: number;
   gstAmount?: number;
   monthlyAmount?: number;
