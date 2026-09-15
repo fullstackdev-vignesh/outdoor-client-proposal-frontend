@@ -7,6 +7,32 @@ import { Building2, ArrowLeft, MailCheck } from 'lucide-react';
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState('');
+
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+  function handleEmailChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setEmail(e.target.value);
+    setError('');
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+
+    const trimmed = email.trim();
+    if (!trimmed) {
+      setError('Email address is required.');
+      return;
+    }
+
+    if (!emailRegex.test(trimmed)) {
+      setError('Please enter a valid email address (e.g. name@example.com).');
+      return;
+    }
+
+    setSent(true);
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-slate-100 px-4">
@@ -31,28 +57,40 @@ export default function ForgotPasswordPage() {
             <>
               <h2 className="text-lg font-semibold text-slate-900 mb-1">Reset your password</h2>
               <p className="text-sm text-slate-500 mb-6">Enter your email and we&apos;ll send you a reset link.</p>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  setSent(true);
-                }}
-                className="space-y-4"
-              >
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@outdoor.com"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                />
-                <button type="submit" className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Email Address <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={email}
+                    onChange={handleEmailChange}
+                    placeholder="you@outdoor.com"
+                    className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 transition ${
+                      error
+                        ? 'border-red-500 focus:border-red-500 focus:ring-red-100 bg-red-50/20'
+                        : 'border-slate-300 focus:border-blue-500 focus:ring-blue-100'
+                    }`}
+                  />
+                </div>
+
+                {error && (
+                  <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700 font-medium">
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition cursor-pointer"
+                >
                   Send Reset Link
                 </button>
               </form>
             </>
           )}
-          <Link href="/login" className="mt-6 flex items-center justify-center gap-1.5 text-sm text-blue-600 hover:underline">
+          <Link href="/login" className="mt-6 flex items-center justify-center gap-1.5 text-sm text-blue-600 hover:underline font-medium">
             <ArrowLeft className="h-3.5 w-3.5" /> Back to login
           </Link>
         </div>

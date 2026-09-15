@@ -17,7 +17,7 @@ export interface RegisterData {
 interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
-  login: (email: string, password: string, role: Role) => Promise<void>;
+  login: (identifier: string, password: string, role: Role) => Promise<void>;
   register: (data: RegisterData) => Promise<any>;
   logout: () => void;
 }
@@ -35,8 +35,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
-  async function login(email: string, password: string, role: Role) {
-    const { data } = await api.post('/auth/login', { email, password, role });
+  async function login(identifier: string, password: string, role: Role) {
+    const { data } = await api.post('/auth/login', { email: identifier, identifier, phone: identifier, password, role });
     localStorage.setItem('outdoor_token', data.token);
     localStorage.setItem('outdoor_user', JSON.stringify(data.user));
     setUser(data.user);

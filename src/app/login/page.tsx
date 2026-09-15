@@ -8,19 +8,83 @@ import type { Role } from '@/lib/types';
 
 export default function LoginPage() {
   const { login } = useAuth();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<Role>('admin');
   const [error, setError] = useState('');
+  const [identifierError, setIdentifierError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  const phoneDigitsRegex = /^\d+$/;
+
+  function validateInput(val: string): string {
+    const trimmed = val.trim();
+    if (!trimmed) {
+      return 'Email or Phone Number is required.';
+    }
+
+    if (phoneDigitsRegex.test(trimmed)) {
+      if (trimmed.length !== 10) {
+        return 'Mobile number must be exactly 10 digits.';
+      }
+      return '';
+    }
+
+    if (trimmed.includes('@') || /[a-zA-Z]/.test(trimmed)) {
+      if (!emailRegex.test(trimmed)) {
+        return 'Please enter a valid email address (e.g. name@example.com).';
+      }
+      return '';
+    }
+
+    if (trimmed.length < 10 && !trimmed.includes('@')) {
+      return 'Mobile number must be 10 digits or enter a valid email address.';
+    }
+
+    return '';
+  }
+
+  function handleIdentifierChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const val = e.target.value;
+    if (/^\d+$/.test(val) && val.length > 10) {
+      return;
+    }
+    setIdentifier(val);
+    setError('');
+    setIdentifierError('');
+  }
+
+  function handlePasswordChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setPassword(e.target.value);
+    setError('');
+    setPasswordError('');
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
+    setIdentifierError('');
+    setPasswordError('');
+
+    const idErr = validateInput(identifier);
+    let passErr = '';
+    if (!password) {
+      passErr = 'Password is required.';
+    }
+
+    if (idErr || passErr) {
+      setIdentifierError(idErr);
+      setPasswordError(passErr);
+      setError(idErr || passErr);
+      return;
+    }
+
     setSubmitting(true);
     try {
-      await login(email, password, role);
+      await login(identifier.trim(), password, role);
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Login failed. Please check your credentials.');
     } finally {
@@ -45,14 +109,16 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Role <span className="text-red-500">*</span>
+              </label>
               <div className="grid grid-cols-4 gap-1.5">
                 {(['admin', 'tl', 'user', 'bd'] as Role[]).map((r) => (
                   <button
                     type="button"
                     key={r}
                     onClick={() => setRole(r)}
-                    className={`rounded-lg border px-2 py-2 text-xs font-medium uppercase transition ${
+                    className={`rounded-lg border px-2 py-2 text-xs font-semibold uppercase transition cursor-pointer ${
                       role === r
                         ? 'bg-blue-600 text-white border-blue-600'
                         : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'
@@ -65,27 +131,40 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Email or Phone Number <span className="text-red-500">*</span>
+              </label>
               <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@outdoor.com"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                type="text"
+                value={identifier}
+                onChange={handleIdentifierChange}
+                placeholder="you@outdoor.com or Phone Number"
+                className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 transition ${
+                  identifierError || (error && !identifier)
+                    ? 'border-red-500 focus:border-red-500 focus:ring-red-100 bg-red-50/20'
+                    : 'border-slate-300 focus:border-blue-500 focus:ring-blue-100'
+                }`}
               />
+              {identifierError && (
+                <p className="mt-1 text-xs text-red-600 font-medium">{identifierError}</p>
+              )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Password <span className="text-red-500">*</span>
+              </label>
               <div className="relative flex items-center">
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  required
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={handlePasswordChange}
                   placeholder="••••••••"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 pr-10"
+                  className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 pr-10 transition ${
+                    passwordError
+                      ? 'border-red-500 focus:border-red-500 focus:ring-red-100 bg-red-50/20'
+                      : 'border-slate-300 focus:border-blue-500 focus:ring-blue-100'
+                  }`}
                 />
                 <button
                   type="button"
@@ -96,17 +175,20 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff className="h-5 w-5 text-slate-500" /> : <Eye className="h-5 w-5 text-slate-500" />}
                 </button>
               </div>
+              {passwordError && (
+                <p className="mt-1 text-xs text-red-600 font-medium">{passwordError}</p>
+              )}
             </div>
 
             {error && (
-              <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
+              <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700 font-medium">
                 {error}
               </div>
             )}
 
             <div className="flex items-center justify-between text-sm">
               <span />
-              <Link href="/forgot-password" className="text-blue-600 hover:underline">
+              <Link href="/forgot-password" className="text-blue-600 hover:underline font-medium">
                 Forgot Password?
               </Link>
             </div>
@@ -114,7 +196,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 transition"
+              className="w-full flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 transition cursor-pointer"
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               Login
