@@ -32,6 +32,7 @@ export default function TemplateManager({
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Template | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Template | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [form, setForm] = useState({ name: '', description: '', version: '1.0', variant: 'Standard', fileUrl: '', status: 'active' });
 
   const fetchItems = useCallback(() => {
@@ -56,21 +57,33 @@ export default function TemplateManager({
       name: item?.name || '',
       description: item?.description || '',
       version: item?.version || '1.0',
-      variant: 'Standard',
-      fileUrl: item?.name ? `/${item.name}.file` : '',
+      variant: item?.variant || 'Standard',
+      fileUrl: item?.fileUrl || '',
       status: item?.status || 'active',
     });
+    setSelectedFile(null);
     setFormOpen(true);
   }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     try {
+      const data = new FormData();
+      data.append('name', form.name);
+      data.append('description', form.description);
+      data.append('version', form.version);
+      if (showVariant) {
+        data.append('variant', form.variant);
+      }
+      data.append('status', form.status);
+      if (selectedFile) {
+        data.append('file', selectedFile);
+      }
       if (editing) {
-        await api.put(`${endpoint}/${editing._id}`, form);
+        await api.put(`${endpoint}/${editing._id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } });
         showToast('Template updated successfully');
       } else {
-        await api.post(endpoint, form);
+        await api.post(endpoint, data, { headers: { 'Content-Type': 'multipart/form-data' } });
         showToast('Template uploaded successfully');
       }
       fetchItems();
@@ -169,13 +182,13 @@ export default function TemplateManager({
                     <td className="px-4 py-3">
                       {canManage && (
                         <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => toggleStatus(t)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-blue-600">
+                          <button onClick={() => toggleStatus(t)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-blue-600" title="Toggle Status">
                             <Power className="h-4 w-4" />
                           </button>
-                          <button onClick={() => openForm(t)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-blue-600">
+                          <button onClick={() => openForm(t)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-blue-600" title="Edit">
                             <Pencil className="h-4 w-4" />
                           </button>
-                          <button onClick={() => setDeleteTarget(t)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-red-600">
+                          <button onClick={() => setDeleteTarget(t)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-red-600" title="Delete">
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
@@ -211,14 +224,21 @@ export default function TemplateManager({
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">File</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">File (.pptx / .xlsx)</label>
             <label className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 py-6 text-sm text-slate-500 cursor-pointer hover:border-blue-400">
               <UploadCloud className="h-4 w-4" />
-              {form.fileUrl ? form.fileUrl : 'Click to select file'}
+              {selectedFile ? selectedFile.name : form.fileUrl ? form.fileUrl : 'Click to select file'}
               <input
                 type="file"
                 className="hidden"
-                onChange={(e) => e.target.files?.[0] && setForm((f) => ({ ...f, fileUrl: `/uploads/${e.target.files![0].name}` }))}
+                accept=".pptx,.xlsx,.xls"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) {
+                    setSelectedFile(f);
+                    setForm((prev) => ({ ...prev, fileUrl: f.name }));
+                  }
+                }}
               />
             </label>
           </div>
@@ -242,7 +262,7 @@ export default function TemplateManager({
 
       <ConfirmDialog
         open={!!deleteTarget}
-        title="Delete Template"
+        title="Delete Template Manager"
         message={`Delete template "${deleteTarget?.name}"?`}
         confirmLabel="Delete"
         danger
