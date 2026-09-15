@@ -7,6 +7,7 @@ import { useToast } from '@/components/ui/Toast';
 import EmptyState from '@/components/ui/EmptyState';
 import { StatCard } from '@/components/ui/Card';
 import { StateSelect, CitySelect } from '@/components/ui/StateCitySelect';
+import { SiteOwnerSelect } from '@/components/ui/SiteOwnerSelect';
 import StatusChangeModal from '@/components/sites/StatusChangeModal';
 import SiteViewModal from '@/components/sites/SiteViewModal';
 import BulkStatusModal from '@/components/inventory/BulkStatusModal';
@@ -16,7 +17,7 @@ import { formatIST } from '@/lib/date';
 import type { Site, MediaStatus } from '@/lib/types';
 
 const PAGE_SIZE = 20;
-const emptyFilters = { state: '', city: '', mediaStatus: '', isActive: '' };
+const emptyFilters = { state: '', city: '', mediaStatus: '', isActive: '', siteOwner: '' };
 
 function resolveImageUrl(image?: string) {
   if (!image) return '';
@@ -50,7 +51,7 @@ export default function InventoryLiveTab() {
 
   const fetchSummary = useCallback(() => {
     api.get('/sites/summary', { params: { search, ...filters, mediaStatus: '' } }).then((res) => setSummary(res.data));
-  }, [search, filters.state, filters.city, filters.isActive]);
+  }, [search, filters.state, filters.city, filters.isActive, filters.siteOwner]);
 
   const fetchPage = useCallback(
     (pageNum: number, append: boolean) => {
@@ -248,6 +249,11 @@ export default function InventoryLiveTab() {
             onChange={(city) => setFilters((f) => ({ ...f, city }))}
             className="rounded-lg border border-slate-300 px-3 py-2 text-sm w-40"
           />
+          <SiteOwnerSelect
+            value={filters.siteOwner}
+            onChange={(siteOwner) => setFilters((f) => ({ ...f, siteOwner }))}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm w-44"
+          />
           {filtersActive && (
             <button
               onClick={() => {
@@ -322,6 +328,7 @@ export default function InventoryLiveTab() {
                 <th className="px-4 py-3">Image</th>
                 <th className="px-4 py-3">MediaCode</th>
                 <th className="px-4 py-3">City / State</th>
+                <th className="px-4 py-3">Site Owner</th>
                 <th className="px-4 py-3">Active</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Media Status</th>
@@ -333,14 +340,14 @@ export default function InventoryLiveTab() {
             <tbody className="divide-y divide-slate-100">
               {loading && (
                 <tr>
-                  <td colSpan={11} className="px-4 py-10 text-center text-slate-400">
+                  <td colSpan={12} className="px-4 py-10 text-center text-slate-400">
                     Loading inventory...
                   </td>
                 </tr>
               )}
               {!loading && items.length === 0 && (
                 <tr>
-                  <td colSpan={11}>
+                  <td colSpan={12}>
                     <EmptyState title="No sites found" subtitle="Try adjusting your filters." />
                   </td>
                 </tr>
@@ -356,10 +363,10 @@ export default function InventoryLiveTab() {
                       </td>
                       <td className="px-4 py-3 text-slate-400">{index + 1}</td>
                       <td className="px-4 py-3">
-                        {site.image ? (
+                        {site.mediaImage ? (
                           <button type="button" onClick={() => setPreviewSite(site)}>
                             <img
-                              src={resolveImageUrl(site.image)}
+                              src={resolveImageUrl(site.mediaImage)}
                               alt=""
                               className="h-10 w-14 rounded object-cover border border-slate-200 hover:opacity-80 cursor-zoom-in"
                             />
@@ -374,6 +381,7 @@ export default function InventoryLiveTab() {
                       <td className="px-4 py-3 text-slate-600">
                         {site.city}, {site.state}
                       </td>
+                      <td className="px-4 py-3 text-slate-600">{site.siteOwner || '-'}</td>
                       <td className="px-4 py-3">
                         <span className={`text-xs font-medium ${site.isActive ? 'text-emerald-600' : 'text-slate-400'}`}>
                           {site.isActive ? 'Active' : 'Inactive'}
@@ -445,7 +453,7 @@ export default function InventoryLiveTab() {
       <MediaPreviewModal
         open={!!previewSite}
         onClose={() => setPreviewSite(null)}
-        image={previewSite?.image}
+        image={previewSite?.mediaImage}
         mediaCode={previewSite?.mediaCode || previewSite?.mediaId}
         mediaType={previewSite?.mediaType}
         location={previewSite ? [previewSite.location, previewSite.areaName, previewSite.city, previewSite.state].filter(Boolean).join(', ') : undefined}

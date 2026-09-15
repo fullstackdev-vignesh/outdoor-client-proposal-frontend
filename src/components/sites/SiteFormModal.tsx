@@ -11,6 +11,7 @@ import { todayISO } from '@/lib/date';
 import DatePicker from '@/components/ui/DatePicker';
 
 const MEDIA_TYPES = ['Hoarding', 'Digital Hoarding', 'Unipole', 'Gantry', 'Bus Shelter', 'Bridge Panel'];
+const ILLUMINATION_OPTIONS = ['Front Lit', 'Not Lit'];
 
 const emptyForm = {
   mediaId: '',
@@ -20,10 +21,11 @@ const emptyForm = {
   city: '',
   location: '',
   areaName: '',
+  siteOwner: '',
   locationDetails: '',
   latitude: '',
   longitude: '',
-  illumination: '',
+  illumination: 'Front Lit',
   width: '',
   height: '',
   sizeUnit: 'ft',
@@ -32,7 +34,7 @@ const emptyForm = {
   monthlyAmount: '',
   printingCost: '',
   mountingCost: '',
-  image: '',
+  mediaImage: '',
   mediaStatus: 'available' as MediaStatus,
 };
 
@@ -78,6 +80,7 @@ export default function SiteFormModal({
   const [form, setForm] = useState<typeof emptyForm>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [imagePreview, setImagePreview] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Booking Details (inline, shown when Media Status = Booked)
@@ -106,10 +109,11 @@ export default function SiteFormModal({
         city: site.city,
         location: site.location || '',
         areaName: site.areaName || '',
+        siteOwner: site.siteOwner || '',
         locationDetails: site.locationDetails || '',
         latitude: site.latitude?.toString() || '',
         longitude: site.longitude?.toString() || '',
-        illumination: site.illumination || '',
+        illumination: site.illumination || 'Front Lit',
         width: site.width?.toString() || '',
         height: site.height?.toString() || '',
         sizeUnit: site.sizeUnit || 'ft',
@@ -118,10 +122,11 @@ export default function SiteFormModal({
         monthlyAmount: site.monthlyAmount?.toString() || '',
         printingCost: site.printingCost?.toString() || '',
         mountingCost: site.mountingCost?.toString() || '',
-        image: site.image || '',
+        mediaImage: site.mediaImage || '',
         mediaStatus: site.mediaStatus,
       });
-      setImagePreview(resolveImageUrl(site.image));
+      setImageFile(null);
+      setImagePreview(resolveImageUrl(site.mediaImage));
 
       if (site.mediaStatus === 'booked' && site.bookingInfo) {
         const b = site.bookingInfo;
@@ -146,6 +151,7 @@ export default function SiteFormModal({
     } else {
       setForm(emptyForm);
       setImagePreview('');
+      setImageFile(null);
       setCustomerType('client');
       setClientId('');
       setStartDate('');
@@ -175,9 +181,7 @@ export default function SiteFormModal({
     });
   }
 
-  const [uploadingImage, setUploadingImage] = useState(false);
-
-  async function handleImageFile(file: File) {
+  function handleImageFile(file: File) {
     if (!/^image\/(jpeg|png|webp|gif)$/.test(file.type)) {
       showToast('Only JPG, PNG, WEBP or GIF images are allowed', 'error');
       return;
@@ -186,19 +190,11 @@ export default function SiteFormModal({
       showToast('Image must be 5MB or smaller', 'error');
       return;
     }
+    // Local preview only — the file itself is sent with the Save request and uploaded
+    // server-side, so no separate upload API call happens on selection.
+    setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
-    setUploadingImage(true);
-    try {
-      const fd = new FormData();
-      fd.append('image', file);
-      const res = await api.post('/sites/upload-image', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-      update('image', res.data.url);
-    } catch (err: any) {
-      showToast(err?.response?.data?.message || 'Image upload failed', 'error');
-      setImagePreview('');
-    } finally {
-      setUploadingImage(false);
-    }
+    clearError('mediaImage');
   }
 
   const monthlyTotalCost = calcTotalCost(form.monthlyAmount, form.printingCost, form.mountingCost);
@@ -241,7 +237,7 @@ export default function SiteFormModal({
       else if (isNaN(Number(val)) || Number(val) < 0) errs[key] = `${label} must be a valid number >= 0`;
     }
 
-    if (!form.image) errs.image = 'Media Image is required';
+    if (!form.mediaImage && !imageFile) errs.mediaImage = 'Media Image is required';
 
     if (form.mediaStatus === 'booked') {
       if (!clientId) errs.clientId = `Select a ${customerType === 'agency' ? 'agency' : 'client'}`;
@@ -271,37 +267,38 @@ export default function SiteFormModal({
     }
     setSaving(true);
     try {
-      const payload: any = {
-        ...form,
-        mediaCode: form.mediaId,
-        quantity: form.quantity ? Number(form.quantity) : undefined,
-        latitude: form.latitude ? Number(form.latitude) : undefined,
-        longitude: form.longitude ? Number(form.longitude) : undefined,
-        width: form.width ? Number(form.width) : undefined,
-        height: form.height ? Number(form.height) : undefined,
-        amount: form.amount ? Number(form.amount) : undefined,
-        gstAmount: form.gstAmount ? Number(form.gstAmount) : undefined,
-        monthlyAmount: form.monthlyAmount ? Number(form.monthlyAmount) : undefined,
-        printingCost: form.printingCost ? Number(form.printingCost) : undefined,
-        mountingCost: form.mountingCost ? Number(form.mountingCost) : undefined,
-      };
+      // Single multipart request: site fields + the newly selected image file (if any).
+      // The backend uploads it and stores the returned URL — no separate upload call.
+      const fd = new FormData();
+      const numericFields = new Set(['quantity', 'latitude', 'longitude', 'width', 'height', 'amount', 'gstAmount', 'monthlyAmount', 'printingCost', 'mountingCost']);
+      (Object.keys(form) as (keyof typeof form)[]).forEach((key) => {
+        if (key === 'mediaImage') return; // never send the existing URL as a field; only a new file goes up
+        const value = form[key];
+        if (numericFields.has(key) && value === '') return;
+        fd.append(key, String(value));
+      });
       if (form.mediaStatus === 'booked') {
-        payload.bookingInfo = { customerType, client: clientId, startDate, endDate };
+        fd.append('bookingInfo', JSON.stringify({ customerType, client: clientId, startDate, endDate }));
       } else if (form.mediaStatus === 'blocked') {
-        payload.blockReason = blockReason;
-        payload.blockNotes = blockNotes;
+        fd.append('blockReason', blockReason);
+        fd.append('blockNotes', blockNotes);
       }
+      if (imageFile) {
+        fd.append('mediaImage', imageFile);
+      }
+
       if (site) {
-        await api.put(`/sites/${site._id}`, payload);
+        await api.put(`/sites/${site._id}`, fd);
         showToast('Site updated successfully');
       } else {
-        await api.post('/sites', payload);
+        await api.post('/sites', fd);
         showToast('Site added successfully');
       }
       onSaved();
       if (andAddAnother) {
         setForm(emptyForm);
         setImagePreview('');
+        setImageFile(null);
         setCustomerType('client');
         setClientId('');
         setStartDate('');
@@ -392,6 +389,15 @@ export default function SiteFormModal({
               className={fieldCls(!!errors.areaName)}
             />
           </Field>
+          <Field label="Site Owner">
+            <input
+              id="site-field-siteOwner"
+              placeholder="ex: Adinn"
+              value={form.siteOwner}
+              onChange={(e) => update('siteOwner', e.target.value)}
+              className={fieldCls(false)}
+            />
+          </Field>
         </Section>
 
         <Section title="Location Details">
@@ -425,13 +431,18 @@ export default function SiteFormModal({
 
         <Section title="Media Size">
           <Field label="Illumination" required error={errors.illumination}>
-            <input
+            <select
               id="site-field-illumination"
-              placeholder="e.g. Front Lit, Non Lit"
               value={form.illumination}
               onChange={(e) => update('illumination', e.target.value)}
               className={fieldCls(!!errors.illumination)}
-            />
+            >
+              {ILLUMINATION_OPTIONS.map((o) => (
+                <option key={o} value={o}>
+                  {o}
+                </option>
+              ))}
+            </select>
           </Field>
           <Field label="Width" required error={errors.width}>
             <input
@@ -500,7 +511,7 @@ export default function SiteFormModal({
         </Section>
 
         <Section title="Media Image">
-          <div className="col-span-2" id="site-field-image">
+          <div className="col-span-2" id="site-field-mediaImage">
             {imagePreview ? (
               <div className="relative w-48">
                 <img
@@ -513,7 +524,8 @@ export default function SiteFormModal({
                   type="button"
                   onClick={() => {
                     setImagePreview('');
-                    update('image', '');
+                    setImageFile(null);
+                    update('mediaImage', '');
                   }}
                   className="absolute -top-2 -right-2 bg-white border border-slate-200 rounded-full p-1 shadow"
                 >
@@ -523,7 +535,7 @@ export default function SiteFormModal({
             ) : (
               <label
                 className={`flex flex-col items-center justify-center w-48 h-32 rounded-lg border-2 border-dashed cursor-pointer ${
-                  errors.image ? 'border-red-400 text-red-400 hover:border-red-500' : 'border-slate-300 text-slate-400 hover:border-blue-400 hover:text-blue-500'
+                  errors.mediaImage ? 'border-red-400 text-red-400 hover:border-red-500' : 'border-slate-300 text-slate-400 hover:border-blue-400 hover:text-blue-500'
                 }`}
               >
                 <ImagePlus className="h-6 w-6 mb-1" />
@@ -536,7 +548,7 @@ export default function SiteFormModal({
                 />
               </label>
             )}
-            {errors.image && <p className="mt-1 text-xs font-medium text-red-600">{errors.image}</p>}
+            {errors.mediaImage && <p className="mt-1 text-xs font-medium text-red-600">{errors.mediaImage}</p>}
           </div>
         </Section>
 
@@ -688,8 +700,8 @@ export default function SiteFormModal({
               Save & Add Another
             </button>
           )}
-          <button type="submit" disabled={saving || uploadingImage} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60">
-            {uploadingImage ? 'Uploading image...' : saving ? 'Saving...' : 'Save'}
+          <button type="submit" disabled={saving} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60">
+            {saving ? 'Saving...' : 'Save'}
           </button>
         </div>
       </form>

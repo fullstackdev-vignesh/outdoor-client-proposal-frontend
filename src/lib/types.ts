@@ -40,6 +40,7 @@ export interface Site {
   location?: string;
   areaName?: string;
   locationDetails?: string;
+  siteOwner?: string;
   latitude?: number;
   longitude?: number;
   illumination?: string;
@@ -53,7 +54,7 @@ export interface Site {
   printingCost?: number;
   mountingCost?: number;
   totalCost?: number;
-  image?: string;
+  mediaImage?: string;
   isActive: boolean;
   mediaStatus: MediaStatus;
   bookingInfo?: BookingInfo;
@@ -79,7 +80,8 @@ export interface InventoryHistoryEntry {
   mediaType?: string;
   state?: string;
   city?: string;
-  image?: string;
+  mediaImage?: string;
+  siteOwner?: string;
   status: MediaStatus;
   previousStatus?: MediaStatus | null;
   isActive?: boolean;

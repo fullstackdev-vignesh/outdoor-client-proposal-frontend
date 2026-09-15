@@ -7,6 +7,7 @@ import { useToast } from '@/components/ui/Toast';
 import StatusBadge from '@/components/ui/StatusBadge';
 import EmptyState from '@/components/ui/EmptyState';
 import { StateSelect, CitySelect } from '@/components/ui/StateCitySelect';
+import { SiteOwnerSelect } from '@/components/ui/SiteOwnerSelect';
 import DatePicker from '@/components/ui/DatePicker';
 import SiteTimelineModal from '@/components/inventory/SiteTimelineModal';
 import MediaPreviewModal from '@/components/inventory/MediaPreviewModal';
@@ -14,7 +15,7 @@ import { formatIST, formatISTDate, todayISO } from '@/lib/date';
 import type { InventoryHistoryEntry, MediaStatus } from '@/lib/types';
 
 const PAGE_SIZE = 20;
-const emptyFilters = { state: '', city: '', mediaStatus: '', isActive: '', from: '', to: '' };
+const emptyFilters = { state: '', city: '', mediaStatus: '', isActive: '', from: '', to: '', siteOwner: '' };
 
 function resolveImageUrl(image?: string) {
   if (!image) return '';
@@ -43,7 +44,7 @@ export default function InventoryTimelineTab() {
 
   const fetchSummary = useCallback(() => {
     api.get('/sites/timeline/summary', { params: { search, ...filters, mediaStatus: '' } }).then((res) => setSummary(res.data));
-  }, [search, filters.state, filters.city, filters.isActive, filters.from, filters.to]);
+  }, [search, filters.state, filters.city, filters.isActive, filters.from, filters.to, filters.siteOwner]);
 
   const fetchPage = useCallback(
     (pageNum: number, append: boolean) => {
@@ -203,6 +204,11 @@ export default function InventoryTimelineTab() {
           </select>
           <StateSelect value={filters.state} onChange={(state) => setFilters((f) => ({ ...f, state, city: '' }))} className="rounded-lg border border-slate-300 px-3 py-2 text-sm w-36" />
           <CitySelect state={filters.state} value={filters.city} onChange={(city) => setFilters((f) => ({ ...f, city }))} className="rounded-lg border border-slate-300 px-3 py-2 text-sm w-36" />
+          <SiteOwnerSelect
+            value={filters.siteOwner}
+            onChange={(siteOwner) => setFilters((f) => ({ ...f, siteOwner }))}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm w-44"
+          />
           {filtersActive && (
             <button
               onClick={() => {
@@ -240,6 +246,7 @@ export default function InventoryTimelineTab() {
                 <th className="px-4 py-3">MediaCode</th>
                 <th className="px-4 py-3">Media Type</th>
                 <th className="px-4 py-3">City / State</th>
+                <th className="px-4 py-3">Site Owner</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">From Date</th>
                 <th className="px-4 py-3">To Date</th>
@@ -254,14 +261,14 @@ export default function InventoryTimelineTab() {
             <tbody className="divide-y divide-slate-100">
               {loading && (
                 <tr>
-                  <td colSpan={14} className="px-4 py-10 text-center text-slate-400">
+                  <td colSpan={15} className="px-4 py-10 text-center text-slate-400">
                     Loading timeline...
                   </td>
                 </tr>
               )}
               {!loading && items.length === 0 && (
                 <tr>
-                  <td colSpan={14}>
+                  <td colSpan={15}>
                     <EmptyState title="No history found" subtitle="Try adjusting your filters or date range." />
                   </td>
                 </tr>
@@ -273,10 +280,10 @@ export default function InventoryTimelineTab() {
                     <tr key={h._id} className="hover:bg-slate-50">
                       <td className="px-4 py-3 text-slate-400">{index + 1}</td>
                       <td className="px-4 py-3">
-                        {h.image ? (
+                        {h.mediaImage ? (
                           <button type="button" onClick={() => setPreviewEntry(h)}>
                             <img
-                              src={resolveImageUrl(h.image)}
+                              src={resolveImageUrl(h.mediaImage)}
                               alt=""
                               className="h-10 w-14 rounded object-cover border border-slate-200 hover:opacity-80 cursor-zoom-in"
                             />
@@ -292,6 +299,7 @@ export default function InventoryTimelineTab() {
                       <td className="px-4 py-3 text-slate-600">
                         {h.city}, {h.state}
                       </td>
+                      <td className="px-4 py-3 text-slate-600">{h.siteOwner || '-'}</td>
                       <td className="px-4 py-3">
                         <StatusBadge status={h.status} />
                       </td>
@@ -348,7 +356,7 @@ export default function InventoryTimelineTab() {
       <MediaPreviewModal
         open={!!previewEntry}
         onClose={() => setPreviewEntry(null)}
-        image={previewEntry?.image}
+        image={previewEntry?.mediaImage}
         mediaCode={previewEntry?.mediaId}
         mediaType={previewEntry?.mediaType}
         location={previewEntry ? [previewEntry.city, previewEntry.state].filter(Boolean).join(', ') : undefined}

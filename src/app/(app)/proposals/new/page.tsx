@@ -8,6 +8,7 @@ import { useToast } from '@/components/ui/Toast';
 import { Panel } from '@/components/ui/Card';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { StateSelect, CitySelect } from '@/components/ui/StateCitySelect';
+import { SiteOwnerSelect } from '@/components/ui/SiteOwnerSelect';
 import MediaPreviewModal from '@/components/inventory/MediaPreviewModal';
 import type { Client, MediaStatus, Site, Template } from '@/lib/types';
 
@@ -45,6 +46,7 @@ export default function NewProposalPage() {
   const [siteState, setSiteState] = useState('');
   const [siteCity, setSiteCity] = useState('');
   const [siteStatus, setSiteStatus] = useState<'' | MediaStatus>('');
+  const [siteOwner, setSiteOwner] = useState('');
   const [sites, setSites] = useState<Site[]>([]);
   const [siteTotal, setSiteTotal] = useState(0);
   const [siteLoading, setSiteLoading] = useState(false);
@@ -56,7 +58,7 @@ export default function NewProposalPage() {
   const fetchingRef = useRef(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  const siteQueryKey = JSON.stringify({ siteSearch, siteState, siteCity, siteStatus });
+  const siteQueryKey = JSON.stringify({ siteSearch, siteState, siteCity, siteStatus, siteOwner });
 
   const fetchSitePage = useCallback(
     (pageNum: number, append: boolean) => {
@@ -72,6 +74,7 @@ export default function NewProposalPage() {
             state: siteState || undefined,
             city: siteCity || undefined,
             mediaStatus: siteStatus || undefined,
+            siteOwner: siteOwner || undefined,
           },
         })
         .then((res) => {
@@ -88,7 +91,7 @@ export default function NewProposalPage() {
           fetchingRef.current = false;
         });
     },
-    [siteSearch, siteState, siteCity, siteStatus]
+    [siteSearch, siteState, siteCity, siteStatus, siteOwner]
   );
 
   useEffect(() => {
@@ -128,6 +131,7 @@ export default function NewProposalPage() {
     setSiteState('');
     setSiteCity('');
     setSiteStatus('');
+    setSiteOwner('');
   }
 
   // Step 3 & 4: Templates
@@ -306,6 +310,7 @@ export default function NewProposalPage() {
                 <option value="booked">Booked</option>
                 <option value="blocked">Blocked</option>
               </select>
+              <SiteOwnerSelect value={siteOwner} onChange={setSiteOwner} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
               <button onClick={clearSiteFilters} className="text-xs font-medium text-blue-600 hover:underline">
                 Clear Filters
               </button>
@@ -316,7 +321,7 @@ export default function NewProposalPage() {
               {!siteLoading &&
                 sites.map((s) => {
                   const disabled = s.mediaStatus !== 'available' && !selectedSites.has(s._id);
-                  const src = resolveImageUrl(s.image);
+                  const src = resolveImageUrl(s.mediaImage);
                   return (
                     <div key={s._id} className={`flex items-center gap-3 px-3 py-2 text-sm ${disabled ? 'opacity-50' : 'hover:bg-slate-50'}`}>
                       <input
@@ -340,7 +345,7 @@ export default function NewProposalPage() {
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-slate-800 truncate">{s.mediaId}</p>
                         <p className="text-xs text-slate-400 truncate">
-                          {s.mediaType} · {s.city}, {s.state} {s.areaName ? `· ${s.areaName}` : ''}
+                          {s.mediaType} · {s.city}, {s.state} {s.areaName ? `· ${s.areaName}` : ''} {s.siteOwner ? `· Owner: ${s.siteOwner}` : ''}
                         </p>
                       </div>
                       <span className="text-xs font-semibold text-slate-600 shrink-0">₹{(s.totalCost ?? s.amount ?? 0).toLocaleString()}</span>
@@ -519,7 +524,7 @@ export default function NewProposalPage() {
       <MediaPreviewModal
         open={!!previewSite}
         onClose={() => setPreviewSite(null)}
-        image={previewSite?.image}
+        image={previewSite?.mediaImage}
         mediaCode={previewSite?.mediaId}
         mediaType={previewSite?.mediaType}
         location={previewSite ? `${previewSite.location || previewSite.areaName || ''} ${previewSite.city}, ${previewSite.state}` : ''}
