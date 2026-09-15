@@ -14,6 +14,7 @@ import SiteFormModal from '@/components/sites/SiteFormModal';
 import StatusChangeModal from '@/components/sites/StatusChangeModal';
 import SiteViewModal from '@/components/sites/SiteViewModal';
 import { StateSelect, CitySelect } from '@/components/ui/StateCitySelect';
+import { SiteOwnerSelect } from '@/components/ui/SiteOwnerSelect';
 import { formatIST } from '@/lib/date';
 import type { Site } from '@/lib/types';
 
@@ -24,7 +25,7 @@ function resolveImageUrl(image?: string) {
   return /^(https?:|data:|blob:)/.test(image) ? image : `${fileBaseURL}${image}`;
 }
 
-const emptyFilters = { mediaType: '', state: '', city: '', mediaStatus: '', isActive: '' };
+const emptyFilters = { mediaType: '', state: '', city: '', mediaStatus: '', isActive: '', siteOwner: '' };
 
 export default function SitesPage() {
   const { user } = useAuth();
@@ -220,6 +221,11 @@ export default function SitesPage() {
             onChange={(city) => setFilters((f) => ({ ...f, city }))}
             className="rounded-lg border border-slate-300 px-3 py-2 text-sm w-40"
           />
+          <SiteOwnerSelect
+            value={filters.siteOwner}
+            onChange={(siteOwner) => setFilters((f) => ({ ...f, siteOwner }))}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm w-44"
+          />
           {filtersActive && (
             <button
               onClick={() => {
@@ -256,6 +262,7 @@ export default function SitesPage() {
                 <th className="px-4 py-3">MediaCode</th>
                 <th className="px-4 py-3">Type</th>
                 <th className="px-4 py-3">City / State</th>
+                <th className="px-4 py-3">Site Owner</th>
                 <th className="px-4 py-3">Size</th>
                 <th className="px-4 py-3">Total Cost</th>
                 <th className="px-4 py-3">Status</th>
@@ -268,14 +275,14 @@ export default function SitesPage() {
             <tbody className="divide-y divide-slate-100">
               {loading && (
                 <tr>
-                  <td colSpan={12} className="px-4 py-10 text-center text-slate-400">
+                  <td colSpan={13} className="px-4 py-10 text-center text-slate-400">
                     Loading sites...
                   </td>
                 </tr>
               )}
               {!loading && items.length === 0 && (
                 <tr>
-                  <td colSpan={12}>
+                  <td colSpan={13}>
                     <EmptyState title="No sites found" subtitle="Try adjusting your filters or add a new site." />
                   </td>
                 </tr>
@@ -285,10 +292,10 @@ export default function SitesPage() {
                   <tr key={site._id} className="hover:bg-slate-50">
                     <td className="px-4 py-3 text-slate-400">{index + 1}</td>
                     <td className="px-4 py-3">
-                      {site.image ? (
-                        <button type="button" onClick={() => setPreviewImage(resolveImageUrl(site.image))} className="block">
+                      {site.mediaImage ? (
+                        <button type="button" onClick={() => setPreviewImage(resolveImageUrl(site.mediaImage))} className="block">
                           <img
-                            src={resolveImageUrl(site.image)}
+                            src={resolveImageUrl(site.mediaImage)}
                             alt=""
                             className="h-10 w-14 rounded object-cover border border-slate-200 hover:opacity-80 cursor-zoom-in"
                           />
@@ -304,6 +311,7 @@ export default function SitesPage() {
                     <td className="px-4 py-3 text-slate-600">
                       {site.city}, {site.state}
                     </td>
+                    <td className="px-4 py-3 text-slate-600">{site.siteOwner || '-'}</td>
                     <td className="px-4 py-3 text-slate-600">
                       {site.width && site.height ? `${site.width}x${site.height} ${site.sizeUnit}` : '-'}
                     </td>

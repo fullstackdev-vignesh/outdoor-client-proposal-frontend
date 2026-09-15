@@ -36,7 +36,7 @@ export default function SiteDetailsPage() {
         <StatusBadge status={site.mediaStatus} />
       </div>
 
-      {site.image && <img src={site.image} alt={site.mediaName} className="w-full max-w-lg rounded-xl border border-slate-200" />}
+      {site.mediaImage && <img src={site.mediaImage} alt={site.mediaName} className="w-full max-w-lg rounded-xl border border-slate-200" />}
 
       <Panel title="Basic Information">
         <dl className="grid grid-cols-2 gap-4 text-sm">

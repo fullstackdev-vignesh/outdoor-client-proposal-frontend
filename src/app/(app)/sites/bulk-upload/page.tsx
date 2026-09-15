@@ -35,8 +35,9 @@ const COLUMN_ALIASES: Record<string, string> = {
   mountingcost: 'mountingCost',
   amount: 'amount',
   gstamount: 'gstAmount',
-  mediaimage: 'image',
-  image: 'image',
+  mediaimage: 'mediaImage',
+  image: 'mediaImage',
+  siteowner: 'siteOwner',
   mediastatus: 'mediaStatus',
 };
 
@@ -62,7 +63,7 @@ const REQUIRED_FIELDS = ['mediaId', 'mediaType', 'city'];
 const SAMPLE_HEADERS = [
   'MediaCode', 'MediaType', 'City', 'AreaName', 'Location', 'Quantity',
   'Width', 'Height', 'Illumination', 'DisplayCostPerMonth', 'PrintingCost', 'MountingCost',
-  'Latitude', 'Longitude', 'mediaimage',
+  'Latitude', 'Longitude', 'SiteOwner', 'MediaImage',
 ];
 
 interface ValidationError {
@@ -87,7 +88,7 @@ export default function BulkUploadPage() {
         MediaCode: 'ADINCHN0001', MediaType: 'Unipole', City: 'Chennai', AreaName: 'Gemini Flyover',
         Location: 'Gemini flyover twds Cathedral rd / Marina Beach (Top)', Quantity: 1, Width: 40, Height: 25,
         Illumination: 'Front Lit', DisplayCostPerMonth: 600000, PrintingCost: 13000, MountingCost: 5000,
-        Latitude: 13.0536, Longitude: 80.2502, mediaimage: '',
+        Latitude: 13.0536, Longitude: 80.2502, SiteOwner: '', MediaImage: '',
       },
     ]);
     const wb = XLSX.utils.book_new();
@@ -172,7 +173,8 @@ export default function BulkUploadPage() {
           monthlyAmount: r.monthlyAmount ? Number(r.monthlyAmount) : undefined,
           printingCost: r.printingCost ? Number(r.printingCost) : undefined,
           mountingCost: r.mountingCost ? Number(r.mountingCost) : undefined,
-          image: r.image || undefined,
+          siteOwner: r.siteOwner || undefined,
+          mediaImage: r.mediaImage || undefined,
           mediaStatus: r.mediaStatus || 'available',
         }));
       const { data } = await api.post('/sites/bulk-import', { records: validRecords });

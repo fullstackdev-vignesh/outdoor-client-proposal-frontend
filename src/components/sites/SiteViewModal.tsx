@@ -87,9 +87,9 @@ export default function SiteViewModal({ open, onClose, site: siteProp }: { open:
       {tab === 'view' && (
         <div className="space-y-5">
           <div className="flex flex-col sm:flex-row gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
-            {site.image ? (
+            {site.mediaImage ? (
               <img
-                src={resolveImageUrl(site.image)}
+                src={resolveImageUrl(site.mediaImage)}
                 alt={site.mediaId}
                 className="w-full sm:w-48 h-36 object-cover rounded-lg border border-slate-200 bg-white flex-shrink-0"
               />

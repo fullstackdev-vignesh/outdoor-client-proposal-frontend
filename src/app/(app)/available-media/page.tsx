@@ -110,8 +110,8 @@ export default function AvailableMediaPage() {
             }`}
           >
             <div className="h-32 bg-slate-100 flex items-center justify-center overflow-hidden">
-              {site.image ? (
-                <img src={site.image} alt={site.mediaName} className="w-full h-full object-cover" />
+              {site.mediaImage ? (
+                <img src={site.mediaImage} alt={site.mediaName} className="w-full h-full object-cover" />
               ) : (
                 <span className="text-xs text-slate-400">No image</span>
               )}
