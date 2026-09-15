@@ -7,7 +7,7 @@ import { Search, Plus, Upload, Download, Eye, Pencil, Trash2, RefreshCcw, X, Ima
 import api, { fileBaseURL } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useToast } from '@/components/ui/Toast';
-import StatusBadge from '@/components/ui/StatusBadge';
+import BookingStatusSummary from '@/components/ui/BookingStatusSummary';
 import EmptyState from '@/components/ui/EmptyState';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import SiteFormModal from '@/components/sites/SiteFormModal';
@@ -324,7 +324,7 @@ export default function SitesPage() {
                         onClick={() => setStatusSite(site)}
                         className="disabled:cursor-default"
                       >
-                        <StatusBadge status={site.mediaStatus} />
+                        <BookingStatusSummary site={site} />
                       </button>
                     </td>
                     <td className="px-4 py-3">

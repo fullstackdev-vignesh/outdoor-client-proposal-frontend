@@ -10,6 +10,7 @@ export interface AuthUser {
 }
 
 export interface BookingInfo {
+  bookingId?: string;
   customerType?: 'client' | 'agency';
   client?: { _id: string; name: string } | string;
   bookingRef?: string;
@@ -19,6 +20,23 @@ export interface BookingInfo {
   monthlyTotalCost?: number;
   amount?: number;
   bookedBy?: string;
+}
+
+export type BookingStatus = 'upcoming' | 'active' | 'completed' | 'cancelled';
+
+export interface BookingRecord {
+  bookingId: string;
+  customerType: 'client' | 'agency';
+  client: { _id: string; name: string } | string;
+  customerName?: string;
+  startDate: string;
+  endDate: string;
+  durationDays?: number;
+  monthlyTotalCost?: number;
+  amount?: number;
+  status: BookingStatus;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface BlockInfo {
@@ -58,6 +76,7 @@ export interface Site {
   isActive: boolean;
   mediaStatus: MediaStatus;
   bookingInfo?: BookingInfo;
+  bookings?: BookingRecord[];
   blockInfo?: BlockInfo;
   createdAt: string;
   updatedAt?: string;

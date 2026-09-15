@@ -34,11 +34,30 @@ function label(field: string) {
     printingCost: 'Printing Cost',
     mountingCost: 'Mounting Cost',
     totalCost: 'Total Cost',
-    image: 'Media Image',
+    mediaImage: 'Media Image',
     isActive: 'Active Status',
     mediaStatus: 'Media Status',
+    siteOwner: 'Site Owner',
+    'blockInfo.reason': 'Block Reason',
+    'blockInfo.notes': 'Block Notes',
   };
   return map[field] || field;
+}
+
+// Rows written by the SAME save operation all share the exact same `changedAt` — group them
+// into one card per save so the UI shows "one edit = one event" instead of a flat list of
+// unrelated field changes.
+function groupHistory(history: SiteHistoryEntry[]) {
+  const groups: { changedAt: string; changedBy?: SiteHistoryEntry['changedBy']; entries: SiteHistoryEntry[] }[] = [];
+  for (const h of history) {
+    const last = groups[groups.length - 1];
+    if (last && last.changedAt === h.changedAt) {
+      last.entries.push(h);
+    } else {
+      groups.push({ changedAt: h.changedAt, changedBy: h.changedBy, entries: [h] });
+    }
+  }
+  return groups;
 }
 
 export default function SiteViewModal({ open, onClose, site: siteProp }: { open: boolean; onClose: () => void; site: Site | null }) {
@@ -174,6 +193,38 @@ export default function SiteViewModal({ open, onClose, site: siteProp }: { open:
             </ViewSection>
           )}
 
+          {site.mediaStatus === 'available' &&
+            site.bookings?.find((b) => b.status === 'upcoming') &&
+            (() => {
+              const upcoming = site.bookings!.filter((b) => b.status === 'upcoming').sort((a, b) => a.startDate.localeCompare(b.startDate))[0];
+              return (
+                <p className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                  Upcoming Booking: {formatISTDate(upcoming.startDate)}
+                </p>
+              );
+            })()}
+
+          {site.bookings && site.bookings.length > 0 && (
+            <ViewSection title="All Bookings">
+              <div className="col-span-2 sm:col-span-3 space-y-2">
+                {site.bookings.map((b) => (
+                  <div key={b.bookingId} className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-100 px-3 py-2 text-xs">
+                    <span className={`font-semibold capitalize px-2 py-0.5 rounded-full ${
+                      b.status === 'active' ? 'bg-blue-100 text-blue-700' :
+                      b.status === 'upcoming' ? 'bg-amber-100 text-amber-700' :
+                      b.status === 'cancelled' ? 'bg-slate-200 text-slate-500' : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      {b.status}
+                    </span>
+                    <span className="text-slate-700">{typeof b.client === 'object' ? b.client?.name : b.customerName || '-'}</span>
+                    <span className="text-slate-400">{formatISTDate(b.startDate)} → {formatISTDate(b.endDate)}</span>
+                    {b.amount != null && <span className="text-slate-500 ml-auto">₹{b.amount.toLocaleString()}</span>}
+                  </div>
+                ))}
+              </div>
+            </ViewSection>
+          )}
+
           {site.mediaStatus === 'blocked' && site.blockInfo && (
             <ViewSection title="Block Details">
               <Row label="Block Reason" value={site.blockInfo.reason} />
@@ -186,29 +237,32 @@ export default function SiteViewModal({ open, onClose, site: siteProp }: { open:
       )}
 
       {tab === 'history' && (
-        <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+        <div className="space-y-3 max-h-[60vh] overflow-y-auto">
           {loadingHistory && <p className="text-sm text-slate-400 text-center py-6">Loading history...</p>}
           {!loadingHistory && history.length === 0 && <p className="text-sm text-slate-400 text-center py-6">No edit history yet.</p>}
           {!loadingHistory &&
-            history.map((h) => {
-              const changedByName = typeof h.changedBy === 'object' ? h.changedBy?.name : undefined;
+            groupHistory(history).map((group) => {
+              const changedByName = typeof group.changedBy === 'object' ? group.changedBy?.name : undefined;
               return (
-                <div key={h._id} className="rounded-lg border border-slate-200 p-3 text-sm">
-                  <p className="font-semibold text-slate-800 mb-1">{label(h.field)}</p>
-                  <div className="flex flex-wrap gap-4">
-                    <p>
-                      <span className="text-xs text-slate-400">OLD: </span>
-                      <span className="text-red-600 font-medium">{String(h.oldValue ?? '-')}</span>
-                    </p>
-                    <p>
-                      <span className="text-xs text-slate-400">NEW: </span>
-                      <span className="text-emerald-600 font-medium">{String(h.newValue ?? '-')}</span>
-                    </p>
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1">
-                    {formatIST(h.changedAt)}
+                <div key={group.changedAt} className="rounded-lg border border-slate-200 p-3 text-sm space-y-3">
+                  <p className="text-xs font-medium text-slate-500 pb-2 border-b border-slate-100">
+                    Edited {formatIST(group.changedAt)}
                     {changedByName ? ` · by ${changedByName}` : ''}
                   </p>
+                  {group.entries.map((h) => (
+                    <div key={h._id}>
+                      <p className="font-semibold text-slate-800 mb-0.5">{label(h.field)}</p>
+                      {h.oldValue == null || h.oldValue === '' ? (
+                        <p className="text-emerald-600 font-medium">{String(h.newValue ?? '-')}</p>
+                      ) : (
+                        <p>
+                          <span className="text-red-500 line-through">{String(h.oldValue)}</span>
+                          <span className="text-slate-400 mx-1.5">→</span>
+                          <span className="text-emerald-600 font-medium">{String(h.newValue ?? '-')}</span>
+                        </p>
+                      )}
+                    </div>
+                  ))}
                 </div>
               );
             })}

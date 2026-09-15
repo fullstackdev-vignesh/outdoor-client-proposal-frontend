@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Modal from '@/components/ui/Modal';
-import StatusBadge from '@/components/ui/StatusBadge';
+import BookingStatusSummary from '@/components/ui/BookingStatusSummary';
 import { formatISTDate, formatIST } from '@/lib/date';
 import type { Site } from '@/lib/types';
 
@@ -10,7 +10,7 @@ export default function StatusDetailsPopover({ site, onViewFullDetails }: { site
   const [open, setOpen] = useState(false);
 
   if (site.mediaStatus !== 'booked' && site.mediaStatus !== 'blocked') {
-    return <StatusBadge status={site.mediaStatus} />;
+    return <BookingStatusSummary site={site} />;
   }
 
   const b = site.bookingInfo;
@@ -20,7 +20,7 @@ export default function StatusDetailsPopover({ site, onViewFullDetails }: { site
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} className="inline-flex">
-        <StatusBadge status={site.mediaStatus} />
+        <BookingStatusSummary site={site} />
       </button>
 
       <Modal open={open} onClose={() => setOpen(false)} title={site.mediaStatus === 'booked' ? 'Booking Details' : 'Block Details'} size="sm">
