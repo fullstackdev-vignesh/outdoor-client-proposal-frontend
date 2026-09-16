@@ -8,7 +8,9 @@ import api, { fileBaseURL } from '@/lib/api';
 import type { BookingRecord, Site, Client, MediaStatus } from '@/lib/types';
 import { useToast } from '@/components/ui/Toast';
 import { todayISO } from '@/lib/date';
+import { formatINR, parseINRInput } from '@/lib/currency';
 import DatePicker from '@/components/ui/DatePicker';
+import MediaPreviewModal from '@/components/inventory/MediaPreviewModal';
 
 const MEDIA_TYPES = ['Hoarding', 'Digital Hoarding', 'Unipole', 'Gantry', 'Bus Shelter', 'Bridge Panel'];
 const ILLUMINATION_OPTIONS = ['Front Lit', 'Not Lit'];
@@ -120,6 +122,8 @@ export default function SiteFormModal({
   const [imagePreview, setImagePreview] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [focusedPriceField, setFocusedPriceField] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   // Booking Details (inline, shown when Media Status = Booked) — one site can have several
   // non-overlapping booking orders; "+ Add Booking" appends another inline card below.
@@ -226,6 +230,18 @@ export default function SiteFormModal({
   }
 
   const monthlyTotalCost = calcTotalCost(form.monthlyAmount, form.printingCost, form.mountingCost);
+
+  // Shows plain digits while the user is actively typing in a price field (so commas/₹
+  // never fight the cursor), and the formatted ₹ / Indian-grouped value once they blur out.
+  function priceDisplayValue(key: 'monthlyAmount' | 'printingCost' | 'mountingCost') {
+    const raw = form[key];
+    if (focusedPriceField === key) return raw;
+    return raw ? formatINR(raw) : '';
+  }
+
+  function updatePriceField(key: 'monthlyAmount' | 'printingCost' | 'mountingCost', rawInput: string) {
+    update(key, parseINRInput(rawInput));
+  }
 
   function addBookingRow() {
     setBookingRows((rows) => [...rows, newBookingRow()]);
@@ -543,38 +559,44 @@ export default function SiteFormModal({
           <Field label="Display Cost Per Month" required error={errors.monthlyAmount}>
             <input
               id="site-field-monthlyAmount"
-              type="number"
-              min={0}
+              type="text"
+              inputMode="decimal"
               placeholder="Enter display cost per month"
-              value={form.monthlyAmount}
-              onChange={(e) => update('monthlyAmount', e.target.value)}
+              value={priceDisplayValue('monthlyAmount')}
+              onFocus={() => setFocusedPriceField('monthlyAmount')}
+              onBlur={() => setFocusedPriceField(null)}
+              onChange={(e) => updatePriceField('monthlyAmount', e.target.value)}
               className={fieldCls(!!errors.monthlyAmount)}
             />
           </Field>
           <Field label="Printing Cost" required error={errors.printingCost}>
             <input
               id="site-field-printingCost"
-              type="number"
-              min={0}
+              type="text"
+              inputMode="decimal"
               placeholder="Enter printing cost"
-              value={form.printingCost}
-              onChange={(e) => update('printingCost', e.target.value)}
+              value={priceDisplayValue('printingCost')}
+              onFocus={() => setFocusedPriceField('printingCost')}
+              onBlur={() => setFocusedPriceField(null)}
+              onChange={(e) => updatePriceField('printingCost', e.target.value)}
               className={fieldCls(!!errors.printingCost)}
             />
           </Field>
           <Field label="Mounting Cost" required error={errors.mountingCost}>
             <input
               id="site-field-mountingCost"
-              type="number"
-              min={0}
+              type="text"
+              inputMode="decimal"
               placeholder="Enter mounting cost"
-              value={form.mountingCost}
-              onChange={(e) => update('mountingCost', e.target.value)}
+              value={priceDisplayValue('mountingCost')}
+              onFocus={() => setFocusedPriceField('mountingCost')}
+              onBlur={() => setFocusedPriceField(null)}
+              onChange={(e) => updatePriceField('mountingCost', e.target.value)}
               className={fieldCls(!!errors.mountingCost)}
             />
           </Field>
           <Field label="Total Cost">
-            <input disabled value={monthlyTotalCost} className={`${inputCls} bg-slate-50 text-slate-500`} />
+            <input disabled value={formatINR(monthlyTotalCost)} className={`${inputCls} bg-slate-50 text-slate-500`} />
           </Field>
         </Section>
 
@@ -585,12 +607,14 @@ export default function SiteFormModal({
                 <img
                   src={imagePreview}
                   alt="Media preview"
-                  className="w-48 h-32 object-cover rounded-lg border border-slate-200 bg-slate-50"
+                  className="w-48 h-32 object-cover rounded-lg border border-slate-200 bg-slate-50 cursor-pointer"
                   onError={() => setImagePreview('')}
+                  onClick={() => imagePreview && setPreviewOpen(true)}
                 />
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setImagePreview('');
                     setImageFile(null);
                     update('mediaImage', '');
@@ -710,7 +734,18 @@ export default function SiteFormModal({
                       <label className="block text-sm font-medium text-slate-700 mb-1">Start Date *</label>
                       <DatePicker
                         value={row.startDate}
-                        onChange={(v) => updateBookingRow(index, { startDate: v })}
+                        onChange={(v) =>
+                          updateBookingRow(index, {
+                            startDate: v,
+                            // Only clear End Date if it's no longer valid against the new
+                            // Start Date — leave a still-valid End Date untouched.
+                            ...(row.endDate && row.endDate < v ? { endDate: '' } : {}),
+                          })
+                        }
+                        // Only new bookings are floored at today — an existing row (has a
+                        // bookingId, i.e. it was already saved) keeps its own historical
+                        // start date editable so opening an old/active booking never breaks.
+                        min={row.bookingId ? undefined : todayISO()}
                         max={row.endDate || undefined}
                         error={!!errors[`booking-${index}`]}
                         disabled={readOnly}
@@ -729,9 +764,9 @@ export default function SiteFormModal({
                   </div>
                   {errors[`booking-${index}`] && <p className="text-xs font-medium text-red-600">{errors[`booking-${index}`]}</p>}
                   <div className="rounded-lg bg-white border border-blue-200 p-3 text-sm space-y-1">
-                    <p className="text-slate-600">Monthly Cost: <span className="font-semibold text-slate-800">₹{monthlyTotalCost.toLocaleString()}</span></p>
+                    <p className="text-slate-600">Monthly Cost: <span className="font-semibold text-slate-800">{formatINR(monthlyTotalCost)}</span></p>
                     <p className="text-slate-600">Duration: <span className="font-semibold text-slate-800">{durationDays} Days</span></p>
-                    <p className="text-slate-600">Booking Amount: <span className="font-semibold text-emerald-600">₹{bookingAmount.toLocaleString()}</span></p>
+                    <p className="text-slate-600">Booking Amount: <span className="font-semibold text-emerald-600">{formatINR(bookingAmount)}</span></p>
                   </div>
                 </div>
               );
@@ -797,6 +832,15 @@ export default function SiteFormModal({
           </button>
         </div>
       </form>
+
+      <MediaPreviewModal
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        image={imagePreview}
+        mediaCode={form.mediaId}
+        mediaType={form.mediaType}
+        location={form.location}
+      />
     </Modal>
   );
 }

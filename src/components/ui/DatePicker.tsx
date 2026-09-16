@@ -124,7 +124,10 @@ export default function DatePicker({
       const openUp = rect.top >= POPUP_HEIGHT;
       setPos({ top: openUp ? rect.top : rect.bottom, left: rect.left, width: rect.width, openUp });
     }
-    const p = parseISO(value);
+    // Open on the selected value's month if there is one; otherwise default to minDate's
+    // month (e.g. an End Date picker with no value yet should open on the Start Date's
+    // month, not today's) and only fall back to today when there's no min either.
+    const p = parseISO(value) ?? minYMD;
     setViewY(p?.y ?? todayYMD.y);
     setViewM(p?.m ?? todayYMD.m);
     setOpen(true);
@@ -148,6 +151,16 @@ export default function DatePicker({
   function isDisabled(ymd: YMD) {
     if (minYMD && compareYMD(ymd, minYMD) < 0) return true;
     if (maxYMD && compareYMD(ymd, maxYMD) > 0) return true;
+    return false;
+  }
+
+  // The previous month is entirely before minDate once the CURRENT view is already at (or
+  // before) minDate's own month/year — there is never a valid day to navigate back to.
+  const prevMonthFullyBeforeMin = !!minYMD && compareYMD({ y: viewY, m: viewM, d: 1 }, { y: minYMD.y, m: minYMD.m, d: 1 }) <= 0;
+
+  function isMonthDisabled(monthIdx1: number) {
+    if (minYMD && viewY === minYMD.y && monthIdx1 < minYMD.m) return true;
+    if (maxYMD && viewY === maxYMD.y && monthIdx1 > maxYMD.m) return true;
     return false;
   }
 
@@ -234,8 +247,11 @@ export default function DatePicker({
           <div className="flex items-center gap-1.5 mb-2">
             <button
               type="button"
+              disabled={prevMonthFullyBeforeMin}
               onClick={() => changeMonth(-1)}
-              className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100"
+              className={`rounded-lg p-1.5 ${
+                prevMonthFullyBeforeMin ? 'text-slate-200 cursor-not-allowed' : 'text-slate-500 hover:bg-slate-100'
+              }`}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -253,21 +269,27 @@ export default function DatePicker({
               </button>
               {monthMenuOpen && (
                 <div className="absolute left-0 top-full mt-1 max-h-56 w-40 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg z-10">
-                  {MONTHS_FULL.map((label, idx) => (
-                    <button
-                      key={label}
-                      type="button"
-                      onClick={() => {
-                        setViewM(idx + 1);
-                        setMonthMenuOpen(false);
-                      }}
-                      className={`block w-full px-3 py-1.5 text-left text-sm hover:bg-blue-50 ${
-                        idx + 1 === viewM ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
+                  {MONTHS_FULL.map((label, idx) => {
+                    const dis = isMonthDisabled(idx + 1);
+                    return (
+                      <button
+                        key={label}
+                        type="button"
+                        disabled={dis}
+                        onClick={() => {
+                          setViewM(idx + 1);
+                          setMonthMenuOpen(false);
+                        }}
+                        className={`block w-full px-3 py-1.5 text-left text-sm ${
+                          dis
+                            ? 'text-slate-300 cursor-not-allowed'
+                            : `hover:bg-blue-50 ${idx + 1 === viewM ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700'}`
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
