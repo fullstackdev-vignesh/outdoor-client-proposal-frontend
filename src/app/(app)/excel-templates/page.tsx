@@ -6,6 +6,7 @@ export default function ExcelTemplatesPage() {
       title="Excel Templates"
       subtitle="Manage Excel formats used for client-specific proposal exports"
       endpoint="/excel-templates"
+      simpleCreateFields
     />
   );
 }

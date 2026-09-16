@@ -95,15 +95,70 @@ describe('TemplateManager - PPT Master Upload Template popup', () => {
   });
 });
 
-describe('TemplateManager - Excel Templates modal stays unaffected', () => {
-  it('still shows Version and File Upload for Excel (no simpleCreateFields)', async () => {
-    const { container } = render(<TemplateManager title="Excel Templates" subtitle="sub" endpoint="/excel-templates" />);
+async function openExcelUploadModal() {
+  const utils = render(<TemplateManager title="Excel Templates" subtitle="sub" endpoint="/excel-templates" simpleCreateFields />);
+  await waitFor(() => expect(apiGet).toHaveBeenCalled());
+  await userEvent.click(screen.getByRole('button', { name: /upload template/i }));
+  const form = utils.container.querySelector('form') as HTMLFormElement;
+  return { ...utils, form };
+}
+
+describe('TemplateManager - Excel Templates Upload Template popup', () => {
+  it('shows only Template Name, Description and Status fields', async () => {
+    const { form } = await openExcelUploadModal();
+    const scope = within(form);
+    expect(scope.getByText(/template name/i)).toBeInTheDocument();
+    expect(scope.getByText(/^description$/i)).toBeInTheDocument();
+    expect(scope.getByText(/^status$/i)).toBeInTheDocument();
+  });
+
+  it('does not show Version or File Upload fields', async () => {
+    const { form } = await openExcelUploadModal();
+    const scope = within(form);
+    expect(scope.queryByText(/^version$/i)).not.toBeInTheDocument();
+    expect(scope.queryByText(/file \(\.pptx/i)).not.toBeInTheDocument();
+    expect(scope.queryByText(/click to select file/i)).not.toBeInTheDocument();
+  });
+
+  it('requires Template Name before submit', async () => {
+    const { container } = await openExcelUploadModal();
+    const nameInput = container.querySelector('form input') as HTMLInputElement;
+    expect(nameInput).toBeRequired();
+  });
+
+  it('submits with only name, description and status in the payload', async () => {
+    const { container } = await openExcelUploadModal();
+    const user = userEvent.setup();
+    const nameInput = container.querySelector('form input') as HTMLInputElement;
+    const descriptionInput = container.querySelector('form textarea') as HTMLTextAreaElement;
+
+    await user.type(nameInput, 'New Excel Template');
+    await user.type(descriptionInput, 'A test description');
+    await user.click(screen.getByRole('button', { name: /^save$/i }));
+
+    await waitFor(() => expect(apiPost).toHaveBeenCalledTimes(1));
+    const [endpoint, formData] = apiPost.mock.calls[0];
+    expect(endpoint).toBe('/excel-templates');
+    expect(formData.get('name')).toBe('New Excel Template');
+    expect(formData.get('description')).toBe('A test description');
+    expect(formData.get('status')).toBe('active');
+    expect(formData.get('version')).toBeNull();
+    expect(formData.get('file')).toBeNull();
+  });
+});
+
+describe('TemplateManager - Edit flow keeps existing fields (regression safety)', () => {
+  it('still shows Version and File Upload when editing an existing Excel template', async () => {
+    apiGet.mockResolvedValueOnce({
+      data: [{ _id: 't1', name: 'Existing', description: 'desc', version: '2.0', fileUrl: '/uploads/old.xlsx', status: 'active', usedCount: 0, createdAt: new Date().toISOString() }],
+    });
+    const { container } = render(<TemplateManager title="Excel Templates" subtitle="sub" endpoint="/excel-templates" simpleCreateFields />);
     await waitFor(() => expect(apiGet).toHaveBeenCalled());
-    await userEvent.click(screen.getByRole('button', { name: /upload template/i }));
+    await userEvent.click(screen.getByTitle('Edit'));
     const form = container.querySelector('form') as HTMLFormElement;
     const scope = within(form);
+    expect(screen.getByRole('heading', { name: /edit template/i })).toBeInTheDocument();
     expect(scope.getByText(/^version$/i)).toBeInTheDocument();
     expect(scope.getByText(/file \(\.pptx/i)).toBeInTheDocument();
-    expect(scope.queryByText(/template variant/i)).not.toBeInTheDocument();
   });
 });
