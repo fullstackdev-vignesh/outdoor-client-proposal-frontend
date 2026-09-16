@@ -8,6 +8,12 @@ import { Panel } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
 import StatusBadge from '@/components/ui/StatusBadge';
 
+function getFileUrl(url?: string) {
+  if (!url) return '#';
+  if (/^https?:\/\//i.test(url)) return url;
+  return `${fileBaseURL}${url}`;
+}
+
 export default function ProposalDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -27,8 +33,9 @@ export default function ProposalDetailsPage() {
       await api.post(`/proposals/${id}/generate-${type}`);
       showToast(`${type === 'ppt' ? 'PPT' : 'Excel'} generated successfully`);
       refresh();
-    } catch {
-      showToast('Generation failed', 'error');
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || `Failed to generate ${type === 'ppt' ? 'PPT' : 'Excel'}`;
+      showToast(msg, 'error');
     } finally {
       setGenerating(null);
     }
@@ -84,7 +91,7 @@ export default function ProposalDetailsPage() {
             className="flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
           >
             <Presentation className="h-4 w-4 text-blue-600" />
-            {generating === 'ppt' ? 'Generating...' : 'Generate PPT'}
+            {generating === 'ppt' ? 'Generating...' : 'Generate PPT / Refresh'}
           </button>
           <button
             onClick={() => generate('excel')}
@@ -92,24 +99,24 @@ export default function ProposalDetailsPage() {
             className="flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
           >
             <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
-            {generating === 'excel' ? 'Generating...' : 'Generate Excel'}
+            {generating === 'excel' ? 'Generating...' : 'Generate Excel / Refresh'}
           </button>
           {proposal.generatedPptUrl && (
             <a
-              href={`${fileBaseURL}${proposal.generatedPptUrl}`}
+              href={getFileUrl(proposal.generatedPptUrl)}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs text-emerald-600 hover:underline"
+              className="flex items-center gap-1.5 text-xs text-emerald-600 hover:underline font-medium"
             >
               <Download className="h-3.5 w-3.5" /> Download PPT
             </a>
           )}
           {proposal.generatedExcelUrl && (
             <a
-              href={`${fileBaseURL}${proposal.generatedExcelUrl}`}
+              href={getFileUrl(proposal.generatedExcelUrl)}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs text-emerald-600 hover:underline"
+              className="flex items-center gap-1.5 text-xs text-emerald-600 hover:underline font-medium"
             >
               <Download className="h-3.5 w-3.5" /> Download Excel
             </a>
