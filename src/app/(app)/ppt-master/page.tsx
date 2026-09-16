@@ -7,6 +7,7 @@ export default function PPTMasterPage() {
       subtitle="Manage reusable PPT templates used for proposal generation"
       endpoint="/ppt-templates"
       showVariant
+      simpleCreateFields
     />
   );
 }

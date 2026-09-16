@@ -16,11 +16,14 @@ export default function TemplateManager({
   subtitle,
   endpoint,
   showVariant,
+  simpleCreateFields,
 }: {
   title: string;
   subtitle: string;
   endpoint: string;
   showVariant?: boolean;
+  /** When creating (not editing), show only Template Name, Description and Status. */
+  simpleCreateFields?: boolean;
 }) {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -34,6 +37,7 @@ export default function TemplateManager({
   const [deleteTarget, setDeleteTarget] = useState<Template | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [form, setForm] = useState({ name: '', description: '', version: '1.0', variant: 'Standard', fileUrl: '', status: 'active' });
+  const isSimpleCreate = !!simpleCreateFields && !editing;
 
   const fetchItems = useCallback(() => {
     setLoading(true);
@@ -71,12 +75,14 @@ export default function TemplateManager({
       const data = new FormData();
       data.append('name', form.name);
       data.append('description', form.description);
-      data.append('version', form.version);
-      if (showVariant) {
-        data.append('variant', form.variant);
+      if (!isSimpleCreate) {
+        data.append('version', form.version);
+        if (showVariant) {
+          data.append('variant', form.variant);
+        }
       }
       data.append('status', form.status);
-      if (selectedFile) {
+      if (!isSimpleCreate && selectedFile) {
         data.append('file', selectedFile);
       }
       if (editing) {
@@ -211,37 +217,41 @@ export default function TemplateManager({
             <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
             <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} className={inputCls} rows={2} />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Version</label>
-              <input value={form.version} onChange={(e) => setForm((f) => ({ ...f, version: e.target.value }))} className={inputCls} />
-            </div>
-            {showVariant && (
+          {!isSimpleCreate && (
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Template Variant</label>
-                <input value={form.variant} onChange={(e) => setForm((f) => ({ ...f, variant: e.target.value }))} className={inputCls} />
+                <label className="block text-sm font-medium text-slate-700 mb-1">Version</label>
+                <input value={form.version} onChange={(e) => setForm((f) => ({ ...f, version: e.target.value }))} className={inputCls} />
               </div>
-            )}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">File (.pptx / .xlsx)</label>
-            <label className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 py-6 text-sm text-slate-500 cursor-pointer hover:border-blue-400">
-              <UploadCloud className="h-4 w-4" />
-              {selectedFile ? selectedFile.name : form.fileUrl ? form.fileUrl : 'Click to select file'}
-              <input
-                type="file"
-                className="hidden"
-                accept=".pptx,.xlsx,.xls"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) {
-                    setSelectedFile(f);
-                    setForm((prev) => ({ ...prev, fileUrl: f.name }));
-                  }
-                }}
-              />
-            </label>
-          </div>
+              {showVariant && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Template Variant</label>
+                  <input value={form.variant} onChange={(e) => setForm((f) => ({ ...f, variant: e.target.value }))} className={inputCls} />
+                </div>
+              )}
+            </div>
+          )}
+          {!isSimpleCreate && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">File (.pptx / .xlsx)</label>
+              <label className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 py-6 text-sm text-slate-500 cursor-pointer hover:border-blue-400">
+                <UploadCloud className="h-4 w-4" />
+                {selectedFile ? selectedFile.name : form.fileUrl ? form.fileUrl : 'Click to select file'}
+                <input
+                  type="file"
+                  className="hidden"
+                  accept=".pptx,.xlsx,.xls"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) {
+                      setSelectedFile(f);
+                      setForm((prev) => ({ ...prev, fileUrl: f.name }));
+                    }
+                  }}
+                />
+              </label>
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
             <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))} className={inputCls}>

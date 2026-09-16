@@ -179,6 +179,8 @@ export interface Template {
   name: string;
   description?: string;
   version: string;
+  variant?: string;
+  fileUrl?: string;
   status: 'active' | 'inactive';
   usedCount: number;
   createdAt: string;
