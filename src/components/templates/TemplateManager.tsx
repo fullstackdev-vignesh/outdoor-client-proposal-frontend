@@ -16,11 +16,14 @@ export default function TemplateManager({
   subtitle,
   endpoint,
   showVariant,
+  pptxOnly,
 }: {
   title: string;
   subtitle: string;
   endpoint: string;
   showVariant?: boolean;
+  /** Simplified upload flow (Name, Description, .pptx file, Status only) used by PPT Master. */
+  pptxOnly?: boolean;
 }) {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -67,13 +70,25 @@ export default function TemplateManager({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (pptxOnly) {
+      if (!editing && !selectedFile) {
+        showToast('Please select a .pptx file to upload', 'error');
+        return;
+      }
+      if (selectedFile && !/\.pptx$/i.test(selectedFile.name)) {
+        showToast('Only .pptx files are allowed', 'error');
+        return;
+      }
+    }
     try {
       const data = new FormData();
       data.append('name', form.name);
       data.append('description', form.description);
-      data.append('version', form.version);
-      if (showVariant) {
-        data.append('variant', form.variant);
+      if (!pptxOnly) {
+        data.append('version', form.version);
+        if (showVariant) {
+          data.append('variant', form.variant);
+        }
       }
       data.append('status', form.status);
       if (selectedFile) {
@@ -208,36 +223,51 @@ export default function TemplateManager({
             <input required value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className={inputCls} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
-            <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} className={inputCls} rows={2} />
+            <label className="block text-sm font-medium text-slate-700 mb-1">Description{pptxOnly ? ' *' : ''}</label>
+            <textarea
+              required={pptxOnly}
+              value={form.description}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              className={inputCls}
+              rows={2}
+            />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Version</label>
-              <input value={form.version} onChange={(e) => setForm((f) => ({ ...f, version: e.target.value }))} className={inputCls} />
-            </div>
-            {showVariant && (
+          {!pptxOnly && (
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Template Variant</label>
-                <input value={form.variant} onChange={(e) => setForm((f) => ({ ...f, variant: e.target.value }))} className={inputCls} />
+                <label className="block text-sm font-medium text-slate-700 mb-1">Version</label>
+                <input value={form.version} onChange={(e) => setForm((f) => ({ ...f, version: e.target.value }))} className={inputCls} />
               </div>
-            )}
-          </div>
+              {showVariant && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Template Variant</label>
+                  <input value={form.variant} onChange={(e) => setForm((f) => ({ ...f, variant: e.target.value }))} className={inputCls} />
+                </div>
+              )}
+            </div>
+          )}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">File (.pptx / .xlsx)</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              File {pptxOnly ? '(.pptx)' : '(.pptx / .xlsx)'}
+              {pptxOnly && !editing ? ' *' : ''}
+            </label>
             <label className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 py-6 text-sm text-slate-500 cursor-pointer hover:border-blue-400">
               <UploadCloud className="h-4 w-4" />
               {selectedFile ? selectedFile.name : form.fileUrl ? form.fileUrl : 'Click to select file'}
               <input
                 type="file"
                 className="hidden"
-                accept=".pptx,.xlsx,.xls"
+                accept={pptxOnly ? '.pptx' : '.pptx,.xlsx,.xls'}
                 onChange={(e) => {
                   const f = e.target.files?.[0];
-                  if (f) {
-                    setSelectedFile(f);
-                    setForm((prev) => ({ ...prev, fileUrl: f.name }));
+                  if (!f) return;
+                  if (pptxOnly && !/\.pptx$/i.test(f.name)) {
+                    showToast('Only .pptx files are allowed', 'error');
+                    e.target.value = '';
+                    return;
                   }
+                  setSelectedFile(f);
+                  setForm((prev) => ({ ...prev, fileUrl: f.name }));
                 }}
               />
             </label>
