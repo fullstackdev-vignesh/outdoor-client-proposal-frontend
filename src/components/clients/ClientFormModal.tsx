@@ -16,8 +16,6 @@ const empty = {
   longitude: '',
   agencyComm: '',
   gst: '',
-  vendorName: '',
-  vendorCost: '',
   notes: '',
 };
 
@@ -47,9 +45,7 @@ export default function ClientFormModal({
         latitude: client.latitude?.toString() || '',
         longitude: client.longitude?.toString() || '',
         agencyComm: client.agencyComm?.toString() || '',
-        gst: client.gst || '',
-        vendorName: client.vendorName || '',
-        vendorCost: client.vendorCost?.toString() || '',
+        gst: client.gst?.toString() || '',
         notes: '',
       });
     } else {
@@ -67,8 +63,8 @@ export default function ClientFormModal({
     if (!form.longitude) return 'Longitude is required';
     if (isNaN(Number(form.latitude)) || Number(form.latitude) < -90 || Number(form.latitude) > 90) return 'Latitude must be between -90 and 90';
     if (isNaN(Number(form.longitude)) || Number(form.longitude) < -180 || Number(form.longitude) > 180) return 'Longitude must be between -180 and 180';
-    if (form.agencyComm && (isNaN(Number(form.agencyComm)) || Number(form.agencyComm) < 0)) return 'Agency Comm must be a valid number >= 0';
-    if (form.vendorCost && (isNaN(Number(form.vendorCost)) || Number(form.vendorCost) < 0)) return 'Vendor Cost must be a valid number >= 0';
+    if (form.agencyComm && (isNaN(Number(form.agencyComm)) || Number(form.agencyComm) < 0 || Number(form.agencyComm) > 100)) return 'Agency Comm must be a percentage between 0 and 100';
+    if (form.gst && (isNaN(Number(form.gst)) || Number(form.gst) < 0 || Number(form.gst) > 100)) return 'GST must be a percentage between 0 and 100';
     return null;
   }
 
@@ -86,7 +82,7 @@ export default function ClientFormModal({
         latitude: form.latitude ? Number(form.latitude) : undefined,
         longitude: form.longitude ? Number(form.longitude) : undefined,
         agencyComm: form.agencyComm ? Number(form.agencyComm) : undefined,
-        vendorCost: form.vendorCost ? Number(form.vendorCost) : undefined,
+        gst: form.gst ? Number(form.gst) : undefined,
       };
       if (client) {
         await api.put(`/clients/${client._id}`, payload);
@@ -159,20 +155,14 @@ export default function ClientFormModal({
             src={`https://maps.google.com/maps?q=${form.latitude},${form.longitude}&z=14&output=embed`}
           />
         )}
-        {isAgency && (
-          <Field label="Agency Comm">
-            <input placeholder="Enter agency commission" value={form.agencyComm} onChange={(e) => update('agencyComm', e.target.value)} className={inputCls} />
-          </Field>
-        )}
-        <Field label="GST">
-          <input placeholder="Enter GST details" value={form.gst} onChange={(e) => update('gst', e.target.value)} className={inputCls} />
-        </Field>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Vendor Name">
-            <input placeholder="Enter vendor name" value={form.vendorName} onChange={(e) => update('vendorName', e.target.value)} className={inputCls} />
-          </Field>
-          <Field label="Vendor Cost">
-            <input placeholder="Enter vendor cost" value={form.vendorCost} onChange={(e) => update('vendorCost', e.target.value)} className={inputCls} />
+          {isAgency && (
+            <Field label="Agency Comm">
+              <input type="number" min={0} max={100} placeholder="e.g. 2 (for 2%)" value={form.agencyComm} onChange={(e) => update('agencyComm', e.target.value)} className={inputCls} />
+            </Field>
+          )}
+          <Field label="GST">
+            <input type="number" min={0} max={100} placeholder="e.g. 18 (for 18%)" value={form.gst} onChange={(e) => update('gst', e.target.value)} className={inputCls} />
           </Field>
         </div>
         <Field label="Other Details">

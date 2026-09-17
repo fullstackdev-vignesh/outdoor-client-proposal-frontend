@@ -136,9 +136,7 @@ export interface Client {
   latitude?: number;
   longitude?: number;
   agencyComm?: number;
-  gst?: string;
-  vendorName?: string;
-  vendorCost?: number;
+  gst?: number;
   isActive: boolean;
   createdAt: string;
 }
@@ -171,6 +169,8 @@ export interface Proposal {
   status: 'draft' | 'generated' | 'completed';
   generatedPptUrl?: string;
   generatedExcelUrl?: string;
+  generatedPptFileName?: string;
+  generatedExcelFileName?: string;
   createdAt: string;
 }
 

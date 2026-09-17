@@ -187,7 +187,22 @@ export default function NewProposalPage() {
       const { data } = await api.post(`/proposals/${proposal._id}/generate-${type}`);
       setCreatedProposal(data);
       const url = type === 'ppt' ? data.generatedPptUrl : data.generatedExcelUrl;
-      if (url) window.open(`${fileBaseURL}${url}`, '_blank');
+      const downloadName =
+        (type === 'ppt' ? data.generatedPptFileName : data.generatedExcelFileName) ||
+        `proposal.${type === 'ppt' ? 'pptx' : 'xlsx'}`;
+      if (url) {
+        const absoluteUrl = /^https?:\/\//.test(url) ? url : `${fileBaseURL}${url}`;
+        const res = await fetch(absoluteUrl);
+        const blob = await res.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = downloadName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(blobUrl);
+      }
     } catch (err: any) {
       showToast(err?.response?.data?.message || `Failed to generate ${type.toUpperCase()}`, 'error');
     } finally {
