@@ -187,7 +187,7 @@ export default function NewProposalPage() {
       const { data } = await api.post(`/proposals/${proposal._id}/generate-${type}`);
       setCreatedProposal(data);
       const url = type === 'ppt' ? data.generatedPptUrl : data.generatedExcelUrl;
-      if (url) window.open(`${fileBaseURL}${url}`, '_blank');
+      if (url) window.open(/^https?:\/\//i.test(url) ? url : `${fileBaseURL}${url}`, '_blank');
     } catch (err: any) {
       showToast(err?.response?.data?.message || `Failed to generate ${type.toUpperCase()}`, 'error');
     } finally {
