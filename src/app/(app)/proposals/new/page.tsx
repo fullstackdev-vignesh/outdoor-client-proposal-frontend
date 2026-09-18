@@ -191,17 +191,12 @@ export default function NewProposalPage() {
         (type === 'ppt' ? data.generatedPptFileName : data.generatedExcelFileName) ||
         `proposal.${type === 'ppt' ? 'pptx' : 'xlsx'}`;
       if (url) {
+        // `?download=` tells the SERVER (see backend app.js) to set a Content-Disposition
+        // header with the real human-readable name, so a plain navigation downloads it under
+        // the right name without depending on fetch/blob/CORS working in the browser.
         const absoluteUrl = /^https?:\/\//.test(url) ? url : `${fileBaseURL}${url}`;
-        const res = await fetch(absoluteUrl);
-        const blob = await res.blob();
-        const blobUrl = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = downloadName;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(blobUrl);
+        const separator = absoluteUrl.includes('?') ? '&' : '?';
+        window.location.href = `${absoluteUrl}${separator}download=${encodeURIComponent(downloadName)}`;
       }
     } catch (err: any) {
       showToast(err?.response?.data?.message || `Failed to generate ${type.toUpperCase()}`, 'error');

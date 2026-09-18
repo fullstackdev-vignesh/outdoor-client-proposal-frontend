@@ -41,6 +41,20 @@ export default function ProposalDetailsPage() {
     }
   }
 
+  // The stored URL's own filename is a randomized storage key (collision-safe for concurrent
+  // generations) — `?download=` tells the SERVER (see backend app.js) to set a Content-
+  // Disposition header with the real human-readable name, so a plain navigation downloads it
+  // under the right name without depending on fetch/blob/CORS working in the browser.
+  function download(type: 'ppt' | 'excel') {
+    const url = type === 'ppt' ? proposal.generatedPptUrl : proposal.generatedExcelUrl;
+    if (!url) return;
+    const downloadName =
+      (type === 'ppt' ? proposal.generatedPptFileName : proposal.generatedExcelFileName) ||
+      `proposal.${type === 'ppt' ? 'pptx' : 'xlsx'}`;
+    const separator = url.includes('?') ? '&' : '?';
+    window.location.href = `${getFileUrl(url)}${separator}download=${encodeURIComponent(downloadName)}`;
+  }
+
   if (!proposal) return <div className="text-sm text-slate-400">Loading...</div>;
 
   return (
@@ -102,24 +116,22 @@ export default function ProposalDetailsPage() {
             {generating === 'excel' ? 'Generating...' : 'Generate Excel / Refresh'}
           </button>
           {proposal.generatedPptUrl && (
-            <a
-              href={getFileUrl(proposal.generatedPptUrl)}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={() => download('ppt')}
               className="flex items-center gap-1.5 text-xs text-emerald-600 hover:underline font-medium"
             >
               <Download className="h-3.5 w-3.5" /> Download PPT
-            </a>
+            </button>
           )}
           {proposal.generatedExcelUrl && (
-            <a
-              href={getFileUrl(proposal.generatedExcelUrl)}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={() => download('excel')}
               className="flex items-center gap-1.5 text-xs text-emerald-600 hover:underline font-medium"
             >
               <Download className="h-3.5 w-3.5" /> Download Excel
-            </a>
+            </button>
           )}
         </div>
       </Panel>
