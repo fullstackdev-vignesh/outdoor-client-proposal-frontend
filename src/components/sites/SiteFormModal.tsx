@@ -5,7 +5,7 @@ import { ImagePlus, Plus, Trash2, X } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import { StateSelect, CitySelect } from '@/components/ui/StateCitySelect';
 import api, { fileBaseURL } from '@/lib/api';
-import type { BookingRecord, Site, Client, MediaStatus } from '@/lib/types';
+import type { BookingRecord, Site, Client, MediaStatus, SiteInfo } from '@/lib/types';
 import { useToast } from '@/components/ui/Toast';
 import { todayISO } from '@/lib/date';
 import { formatINR, parseINRInput } from '@/lib/currency';
@@ -38,6 +38,7 @@ const emptyForm = {
   mountingCost: '',
   mediaImage: '',
   mediaStatus: 'available' as MediaStatus,
+  siteInfoId: '',
 };
 
 function calcAutoSize(width: string, height: string) {
@@ -130,6 +131,16 @@ export default function SiteFormModal({
   const [clients, setClients] = useState<Client[]>([]);
   const [bookingRows, setBookingRows] = useState<BookingRow[]>([]);
 
+  // Site Information (optional) — a reusable master list of Title/Description cards shown on
+  // PPT templates that support it (e.g. Adinn-Direct-Client-format). "+ Add Site Information"
+  // opens a small quick-create modal instead of navigating away from the site form.
+  const [siteInfos, setSiteInfos] = useState<SiteInfo[]>([]);
+  const [siteInfoModalOpen, setSiteInfoModalOpen] = useState(false);
+
+  function loadSiteInfos() {
+    api.get('/site-info').then((res) => setSiteInfos(res.data));
+  }
+
   // Block Details (inline, shown when Media Status = Blocked)
   const [blockReason, setBlockReason] = useState('');
   const [blockNotes, setBlockNotes] = useState('');
@@ -137,6 +148,7 @@ export default function SiteFormModal({
   useEffect(() => {
     if (!open) return;
     api.get('/clients', { params: { limit: 200 } }).then((res) => setClients(res.data.items));
+    loadSiteInfos();
   }, [open]);
 
   useEffect(() => {
@@ -164,6 +176,7 @@ export default function SiteFormModal({
         mountingCost: site.mountingCost?.toString() || '',
         mediaImage: site.mediaImage || '',
         mediaStatus: site.mediaStatus,
+        siteInfoId: typeof site.siteInfoId === 'object' ? site.siteInfoId?._id || '' : site.siteInfoId || '',
       });
       setImageFile(null);
       setImagePreview(resolveImageUrl(site.mediaImage));
@@ -644,6 +657,35 @@ export default function SiteFormModal({
           </div>
         </Section>
 
+        <Section title="Site Information">
+          <div className="col-span-2">
+            <label className="block text-sm font-medium text-slate-700 mb-1">Select Site Information</label>
+            <select
+              id="site-field-siteInfoId"
+              value={form.siteInfoId}
+              onChange={(e) => {
+                if (e.target.value === '__add_new__') {
+                  setSiteInfoModalOpen(true);
+                  return;
+                }
+                update('siteInfoId', e.target.value);
+              }}
+              className={fieldCls(false)}
+            >
+              <option value="">None</option>
+              {siteInfos.map((si) => (
+                <option key={si._id} value={si._id}>
+                  {si.title}
+                </option>
+              ))}
+              <option value="__add_new__">+ Add Site Information</option>
+            </select>
+            <p className="mt-1 text-xs text-slate-400">
+              Optional — shown as a description card on PPT templates that support it (e.g. Adinn-Direct-Client-format).
+            </p>
+          </div>
+        </Section>
+
         <Section title="Media Status">
           <div className="col-span-2 flex gap-2">
             {(['available', 'booked', 'blocked'] as MediaStatus[]).map((s) => (
@@ -841,6 +883,106 @@ export default function SiteFormModal({
         mediaType={form.mediaType}
         location={form.location}
       />
+
+      <SiteInfoQuickAddModal
+        open={siteInfoModalOpen}
+        onClose={() => setSiteInfoModalOpen(false)}
+        onSaved={(created) => {
+          setSiteInfos((prev) => [created, ...prev]);
+          update('siteInfoId', created._id);
+          setSiteInfoModalOpen(false);
+        }}
+      />
+    </Modal>
+  );
+}
+
+// Small quick-create modal for the "+ Add Site Information" dropdown option — lets the user
+// create a new SiteInfo master record without leaving the Site form, then selects it immediately.
+function SiteInfoQuickAddModal({
+  open,
+  onClose,
+  onSaved,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSaved: (created: SiteInfo) => void;
+}) {
+  const { showToast } = useToast();
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<{ title?: string; description?: string }>({});
+
+  useEffect(() => {
+    if (open) {
+      setTitle('');
+      setDescription('');
+      setErrors({});
+    }
+  }, [open]);
+
+  async function save() {
+    const errs: typeof errors = {};
+    if (!title.trim()) errs.title = 'Title is required';
+    if (!description.trim()) errs.description = 'Description is required';
+    setErrors(errs);
+    if (Object.keys(errs).length) return;
+
+    setSaving(true);
+    try {
+      const res = await api.post('/site-info', { title: title.trim(), description: description.trim() });
+      showToast('Site Information saved');
+      onSaved(res.data);
+    } catch (err: any) {
+      showToast(err?.response?.data?.message || 'Failed to save Site Information', 'error');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title="Add Site Information" size="md">
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Title <span className="text-red-500">*</span>
+          </label>
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="e.g. High Traffic Location"
+            className={fieldCls(!!errors.title)}
+          />
+          {errors.title && <p className="mt-1 text-xs font-medium text-red-600">{errors.title}</p>}
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Description <span className="text-red-500">*</span>
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="e.g. This site is strategically important due to heavy daily traffic and strong visibility from multiple approach directions."
+            rows={4}
+            className={fieldCls(!!errors.description)}
+          />
+          {errors.description && <p className="mt-1 text-xs font-medium text-red-600">{errors.description}</p>}
+        </div>
+        <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+          <button type="button" onClick={onClose} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={save}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+          >
+            {saving ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      </div>
     </Modal>
   );
 }

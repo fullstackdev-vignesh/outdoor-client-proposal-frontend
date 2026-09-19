@@ -73,6 +73,7 @@ export interface Site {
   mountingCost?: number;
   totalCost?: number;
   mediaImage?: string;
+  siteInfoId?: SiteInfo | string | null;
   isActive: boolean;
   mediaStatus: MediaStatus;
   bookingInfo?: BookingInfo;
@@ -81,6 +82,14 @@ export interface Site {
   createdAt: string;
   updatedAt?: string;
   inventoryUpdatedAt?: string;
+}
+
+export interface SiteInfo {
+  _id: string;
+  title: string;
+  description: string;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface SiteHistoryEntry {
