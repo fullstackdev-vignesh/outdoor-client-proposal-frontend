@@ -86,8 +86,11 @@ export default function ClientFormModal({
         ...form,
         latitude: form.latitude ? Number(form.latitude) : undefined,
         longitude: form.longitude ? Number(form.longitude) : undefined,
-        agencyComm: form.agencyComm ? Number(form.agencyComm) : undefined,
-        gst: form.gst ? Number(form.gst) : undefined,
+        // null (not undefined) so an emptied field is actually sent to the backend and clears
+        // the stored value — undefined keys get dropped entirely by JSON.stringify, which left
+        // the previous saved value in place forever once set.
+        agencyComm: form.agencyComm ? Number(form.agencyComm) : null,
+        gst: form.gst ? Number(form.gst) : null,
         vendorCost: form.vendorCost ? Number(form.vendorCost) : undefined,
       };
       if (client) {
