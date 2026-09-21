@@ -19,7 +19,7 @@ export default function ProposalDetailsPage() {
   const router = useRouter();
   const { showToast } = useToast();
   const [proposal, setProposal] = useState<any>(null);
-  const [generating, setGenerating] = useState<'ppt' | 'excel' | null>(null);
+  const [generating, setGenerating] = useState<'ppt-with' | 'ppt-without' | 'excel' | null>(null);
 
   function refresh() {
     api.get(`/proposals/${id}`).then((res) => setProposal(res.data));
@@ -27,15 +27,29 @@ export default function ProposalDetailsPage() {
 
   useEffect(refresh, [id]);
 
-  async function generate(type: 'ppt' | 'excel') {
-    setGenerating(type);
+  async function generateExcel() {
+    setGenerating('excel');
     try {
-      await api.post(`/proposals/${id}/generate-${type}`);
-      showToast(`${type === 'ppt' ? 'PPT' : 'Excel'} generated successfully`);
+      await api.post(`/proposals/${id}/generate-excel`);
+      showToast('Excel generated successfully');
       refresh();
     } catch (err: any) {
-      const msg = err?.response?.data?.message || `Failed to generate ${type === 'ppt' ? 'PPT' : 'Excel'}`;
-      showToast(msg, 'error');
+      showToast(err?.response?.data?.message || 'Failed to generate Excel', 'error');
+    } finally {
+      setGenerating(null);
+    }
+  }
+
+  // locationMode: 'with' keeps location text/title/map exactly as before; 'without' hides all
+  // of that and lets the site photo use the freed space, per template.
+  async function generatePpt(locationMode: 'with' | 'without') {
+    setGenerating(locationMode === 'with' ? 'ppt-with' : 'ppt-without');
+    try {
+      await api.post(`/proposals/${id}/generate-ppt`, { locationMode });
+      showToast('PPT generated successfully');
+      refresh();
+    } catch (err: any) {
+      showToast(err?.response?.data?.message || 'Failed to generate PPT', 'error');
     } finally {
       setGenerating(null);
     }
@@ -84,17 +98,31 @@ export default function ProposalDetailsPage() {
       </Panel>
 
       <Panel title="Generate & Download">
-        <div className="flex flex-wrap gap-3">
+        <div className="space-y-3">
+          <div>
+            <p className="text-xs font-medium text-slate-500 mb-1.5">Generate PPT</p>
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => generatePpt('without')}
+                disabled={!!generating}
+                className="flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+              >
+                <Presentation className="h-4 w-4 text-blue-600" />
+                {generating === 'ppt-without' ? 'Generating...' : 'Without Location'}
+              </button>
+              <button
+                onClick={() => generatePpt('with')}
+                disabled={!!generating}
+                className="flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+              >
+                <Presentation className="h-4 w-4 text-blue-600" />
+                {generating === 'ppt-with' ? 'Generating...' : 'With Location'}
+              </button>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-3">
           <button
-            onClick={() => generate('ppt')}
-            disabled={generating === 'ppt'}
-            className="flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-          >
-            <Presentation className="h-4 w-4 text-blue-600" />
-            {generating === 'ppt' ? 'Generating...' : 'Generate PPT / Refresh'}
-          </button>
-          <button
-            onClick={() => generate('excel')}
+            onClick={generateExcel}
             disabled={generating === 'excel'}
             className="flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
           >
@@ -121,6 +149,7 @@ export default function ProposalDetailsPage() {
               <Download className="h-3.5 w-3.5" /> Download Excel
             </a>
           )}
+          </div>
         </div>
       </Panel>
     </div>
