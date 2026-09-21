@@ -16,8 +16,6 @@ const empty = {
   longitude: '',
   agencyComm: '',
   gst: '',
-  vendorName: '',
-  vendorCost: '',
   notes: '',
 };
 
@@ -48,8 +46,6 @@ export default function ClientFormModal({
         longitude: client.longitude?.toString() || '',
         agencyComm: client.agencyComm?.toString() || '',
         gst: client.gst?.toString() || '',
-        vendorName: client.vendorName || '',
-        vendorCost: client.vendorCost?.toString() || '',
         notes: '',
       });
     } else {
@@ -69,7 +65,6 @@ export default function ClientFormModal({
     if (isNaN(Number(form.longitude)) || Number(form.longitude) < -180 || Number(form.longitude) > 180) return 'Longitude must be between -180 and 180';
     if (form.agencyComm && (isNaN(Number(form.agencyComm)) || Number(form.agencyComm) < 0 || Number(form.agencyComm) > 100)) return 'Agency Comm must be a percentage between 0 and 100';
     if (form.gst && (isNaN(Number(form.gst)) || Number(form.gst) < 0 || Number(form.gst) > 100)) return 'GST must be a percentage between 0 and 100';
-    if (form.vendorCost && (isNaN(Number(form.vendorCost)) || Number(form.vendorCost) < 0)) return 'Vendor Cost must be a valid number >= 0';
     return null;
   }
 
@@ -91,7 +86,6 @@ export default function ClientFormModal({
         // the previous saved value in place forever once set.
         agencyComm: form.agencyComm ? Number(form.agencyComm) : null,
         gst: form.gst ? Number(form.gst) : null,
-        vendorCost: form.vendorCost ? Number(form.vendorCost) : undefined,
       };
       if (client) {
         await api.put(`/clients/${client._id}`, payload);
@@ -172,14 +166,6 @@ export default function ClientFormModal({
         <Field label="GST (%)">
           <input type="number" min="0" max="100" step="0.01" placeholder="e.g. 18" value={form.gst} onChange={(e) => update('gst', e.target.value)} className={inputCls} />
         </Field>
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Vendor Name">
-            <input placeholder="Enter vendor name" value={form.vendorName} onChange={(e) => update('vendorName', e.target.value)} className={inputCls} />
-          </Field>
-          <Field label="Vendor Cost">
-            <input placeholder="Enter vendor cost" value={form.vendorCost} onChange={(e) => update('vendorCost', e.target.value)} className={inputCls} />
-          </Field>
-        </div>
         <Field label="Other Details">
           <textarea value={form.notes} onChange={(e) => update('notes', e.target.value)} className={inputCls} rows={2} />
         </Field>

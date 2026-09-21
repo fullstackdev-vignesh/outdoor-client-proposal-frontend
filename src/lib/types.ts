@@ -146,8 +146,6 @@ export interface Client {
   longitude?: number;
   agencyComm?: number;
   gst?: number;
-  vendorName?: string;
-  vendorCost?: number;
   isActive: boolean;
   createdAt: string;
 }
