@@ -17,6 +17,7 @@ export default function TemplateManager({
   endpoint,
   showVariant,
   pptxOnly,
+  formatOptions,
 }: {
   title: string;
   subtitle: string;
@@ -24,6 +25,9 @@ export default function TemplateManager({
   showVariant?: boolean;
   /** Simplified upload flow (Name, Description, .pptx file, Status only) used by PPT Master. */
   pptxOnly?: boolean;
+  /** Which template-mapping config (backend config/*TemplateConfigs.js) drives generation
+   * for files uploaded here. Omit to hide the field (falls back to 'generic'). */
+  formatOptions?: { value: string; label: string }[];
 }) {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -36,7 +40,7 @@ export default function TemplateManager({
   const [editing, setEditing] = useState<Template | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Template | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [form, setForm] = useState({ name: '', description: '', version: '1.0', variant: 'Standard', fileUrl: '', status: 'active' });
+  const [form, setForm] = useState({ name: '', description: '', version: '1.0', variant: 'Standard', fileUrl: '', status: 'active', formatKey: '' });
 
   const fetchItems = useCallback(() => {
     setLoading(true);
@@ -63,6 +67,7 @@ export default function TemplateManager({
       variant: item?.variant || 'Standard',
       fileUrl: item?.fileUrl || '',
       status: item?.status || 'active',
+      formatKey: item?.formatKey || '',
     });
     setSelectedFile(null);
     setFormOpen(true);
@@ -91,6 +96,9 @@ export default function TemplateManager({
         }
       }
       data.append('status', form.status);
+      if (formatOptions) {
+        data.append('formatKey', form.formatKey);
+      }
       if (selectedFile) {
         data.append('file', selectedFile);
       }
@@ -156,6 +164,7 @@ export default function TemplateManager({
                 <th className="px-4 py-3">Template Name</th>
                 <th className="px-4 py-3">Description</th>
                 <th className="px-4 py-3">Version</th>
+                {formatOptions && <th className="px-4 py-3">Format</th>}
                 <th className="px-4 py-3">Uploaded</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Used Count</th>
@@ -165,14 +174,14 @@ export default function TemplateManager({
             <tbody className="divide-y divide-slate-100">
               {loading && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-slate-400">
+                  <td colSpan={formatOptions ? 8 : 7} className="px-4 py-10 text-center text-slate-400">
                     Loading templates...
                   </td>
                 </tr>
               )}
               {!loading && items.length === 0 && (
                 <tr>
-                  <td colSpan={7}>
+                  <td colSpan={formatOptions ? 8 : 7}>
                     <EmptyState title="No templates uploaded yet" />
                   </td>
                 </tr>
@@ -183,6 +192,11 @@ export default function TemplateManager({
                     <td className="px-4 py-3 font-medium text-slate-800">{t.name}</td>
                     <td className="px-4 py-3 text-slate-600">{t.description || '-'}</td>
                     <td className="px-4 py-3 text-slate-600">{t.version}</td>
+                    {formatOptions && (
+                      <td className="px-4 py-3 text-slate-600">
+                        {formatOptions.find((o) => o.value === t.formatKey)?.label || 'Generic (auto)'}
+                      </td>
+                    )}
                     <td className="px-4 py-3 text-slate-500">{new Date(t.createdAt).toLocaleDateString()}</td>
                     <td className="px-4 py-3">
                       <span
@@ -272,6 +286,20 @@ export default function TemplateManager({
               />
             </label>
           </div>
+          {formatOptions && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Template Format</label>
+              <select value={form.formatKey} onChange={(e) => setForm((f) => ({ ...f, formatKey: e.target.value }))} className={inputCls}>
+                <option value="">Generic (auto)</option>
+                {formatOptions.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-slate-400">Selects which layout mapping is used to populate this exact file during proposal generation.</p>
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
             <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))} className={inputCls}>

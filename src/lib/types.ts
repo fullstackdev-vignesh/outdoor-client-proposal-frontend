@@ -145,7 +145,7 @@ export interface Client {
   latitude?: number;
   longitude?: number;
   agencyComm?: number;
-  gst?: string;
+  gst?: number;
   vendorName?: string;
   vendorCost?: number;
   isActive: boolean;
@@ -188,6 +188,10 @@ export interface Template {
   name: string;
   description?: string;
   version: string;
+  variant?: string;
+  fileUrl?: string;
+  /** Which entry in the backend's *TemplateConfigs.js drives generation for this file's layout. */
+  formatKey?: string;
   status: 'active' | 'inactive';
   usedCount: number;
   createdAt: string;
