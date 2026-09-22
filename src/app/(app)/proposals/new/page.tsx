@@ -7,6 +7,7 @@ import api, { fileBaseURL } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import { Panel } from '@/components/ui/Card';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { getBookingSummary } from '@/components/ui/BookingStatusSummary';
 import { StateSelect, CitySelect } from '@/components/ui/StateCitySelect';
 import { SiteOwnerSelect } from '@/components/ui/SiteOwnerSelect';
 import MediaPreviewModal from '@/components/inventory/MediaPreviewModal';
@@ -25,6 +26,63 @@ function resolveImageUrl(image?: string) {
 // Western grouping + decimals toLocaleString() gives with no locale/options.
 function formatINR(value: number) {
   return Math.round(value).toLocaleString('en-IN');
+}
+
+// Same "DD-Mon-YYYY" format BookingStatusSummary (shared with /sites and /inventory) uses —
+// duplicated locally rather than exported from there, so this page's own compact layout below
+// can't accidentally change anything on those other pages.
+const BOOKING_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function bookingDateLabel(value?: string) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return '';
+  return `${String(d.getUTCDate()).padStart(2, '0')}-${BOOKING_MONTHS[d.getUTCMonth()]}-${d.getUTCFullYear()}`;
+}
+
+// Right-hand column: status badge on top, cost below it.
+// Cost and Status each get their own FIXED-width slot (rather than being packed together and
+// right-justified as one block) — otherwise a shorter badge label (e.g. "BOOKED" vs
+// "AVAILABLE") shrinks the packed block's total width and shifts the Cost figure along with it,
+// so the same rupee amount lands at a different X position depending on the neighboring badge.
+function SiteStatusCost({ site }: { site: Site }) {
+  return (
+    <div className="flex items-center justify-end gap-3 whitespace-nowrap">
+      <span className="w-20 shrink-0 text-right text-xs font-semibold text-slate-600">
+        ₹{formatINR(site.totalCost ?? site.amount ?? 0)}
+      </span>
+      <div className="w-24 shrink-0">
+        <StatusBadge status={site.mediaStatus} />
+      </div>
+    </div>
+  );
+}
+
+// Full-width horizontal strip below a booked site's row — "Active: ... Upcoming: ..." side by
+// side — reuses the shared `getBookingSummary` data/rule (same as /sites); renders nothing when
+// the site isn't booked or has neither an active nor an upcoming booking.
+function BookingScheduleStrip({ site }: { site: Site }) {
+  const { active, upcoming } = getBookingSummary(site);
+  if (site.mediaStatus !== 'booked' || (!active && !upcoming)) return null;
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-2 pl-12 text-[11px]">
+      {active && (
+        <div className="flex items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-2 py-1">
+          <span className="rounded bg-blue-600 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-white">Active</span>
+          <span className="font-medium text-blue-700 whitespace-nowrap">
+            {bookingDateLabel(active.startDate)} → {bookingDateLabel(active.endDate)}
+          </span>
+        </div>
+      )}
+      {upcoming && (
+        <div className="flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-1">
+          <span className="rounded bg-amber-500 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-white">Upcoming</span>
+          <span className="font-medium text-amber-700 whitespace-nowrap">
+            {bookingDateLabel(upcoming.startDate)} → {bookingDateLabel(upcoming.endDate)}
+          </span>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function NewProposalPage() {
@@ -64,6 +122,7 @@ export default function NewProposalPage() {
   const nextPageRef = useRef(1);
   const fetchingRef = useRef(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const siteListRef = useRef<HTMLDivElement>(null);
 
   const siteQueryKey = JSON.stringify({ siteSearch, siteState, siteCity, siteStatus, siteOwner });
 
@@ -112,13 +171,17 @@ export default function NewProposalPage() {
     if (step !== 1) return;
     const el = sentinelRef.current;
     if (!el) return;
+    // `root` is explicitly pinned to the scrollable site-list container itself, not left as the
+    // default (the browser viewport) — with a `sticky` header row now also inside that same
+    // container, leaving root unset made the intersection calculation unreliable in some
+    // browsers, so scrolling the inner list no longer triggered the next page load.
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && !fetchingRef.current && sites.length < siteTotal) {
           fetchSitePage(nextPageRef.current, true);
         }
       },
-      { threshold: 0.1 }
+      { root: siteListRef.current, threshold: 0, rootMargin: '200px' }
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -132,6 +195,28 @@ export default function NewProposalPage() {
       return next;
     });
   }
+
+  // "Select All" only ever acts on the currently loaded/visible rows (`sites`) — matching
+  // whatever filters are active — never the full server-side total, and skips `blocked` sites
+  // (the only status that still can't be proposed). Selections for sites NOT in the current
+  // loaded list (e.g. selected before a filter/search changed) are left untouched either way.
+  const selectableSites = useMemo(() => sites.filter((s) => s.mediaStatus !== 'blocked'), [sites]);
+  const allVisibleSelected = selectableSites.length > 0 && selectableSites.every((s) => selectedSites.has(s._id));
+  const someVisibleSelected = selectableSites.some((s) => selectedSites.has(s._id));
+
+  function toggleSelectAll() {
+    setSelectedSites((prev) => {
+      const next = new Map(prev);
+      if (allVisibleSelected) {
+        selectableSites.forEach((s) => next.delete(s._id));
+      } else {
+        selectableSites.forEach((s) => next.set(s._id, s));
+      }
+      return next;
+    });
+  }
+
+  const activeSiteFilterCount = [siteSearch, siteState, siteCity, siteStatus, siteOwner].filter(Boolean).length;
 
   function clearSiteFilters() {
     setSiteSearch('');
@@ -317,7 +402,7 @@ export default function NewProposalPage() {
               />
               <CitySelect state={siteState} value={siteCity} onChange={setSiteCity} />
             </div>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2 mb-3">
               <select
                 value={siteStatus}
                 onChange={(e) => setSiteStatus(e.target.value as any)}
@@ -329,57 +414,97 @@ export default function NewProposalPage() {
                 <option value="blocked">Blocked</option>
               </select>
               <SiteOwnerSelect value={siteOwner} onChange={setSiteOwner} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-              <button onClick={clearSiteFilters} className="text-xs font-medium text-blue-600 hover:underline">
-                Clear Filters
-              </button>
+              {activeSiteFilterCount > 0 && (
+                <button onClick={clearSiteFilters} className="ml-auto text-xs font-medium text-blue-600 hover:underline">
+                  Clear Filters
+                </button>
+              )}
             </div>
 
-            <div className="max-h-96 overflow-y-auto divide-y divide-slate-100 rounded-lg border border-slate-200">
-              {siteLoading && <p className="px-3 py-6 text-center text-xs text-slate-400">Loading media...</p>}
-              {!siteLoading &&
-                sites.map((s) => {
-                  const disabled = s.mediaStatus !== 'available' && !selectedSites.has(s._id);
-                  const src = resolveImageUrl(s.mediaImage);
-                  return (
-                    <div key={s._id} className={`flex items-center gap-3 px-3 py-2 text-sm ${disabled ? 'opacity-50' : 'hover:bg-slate-50'}`}>
-                      <input
-                        type="checkbox"
-                        checked={selectedSites.has(s._id)}
-                        disabled={disabled}
-                        onChange={() => toggleSite(s)}
-                        title={disabled ? 'Only available media can be added to a proposal' : ''}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setPreviewSite(s)}
-                        className="h-10 w-10 shrink-0 rounded-md overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center"
-                      >
-                        {src ? (
-                          <img src={src} alt={s.mediaId} className="h-full w-full object-cover" />
-                        ) : (
-                          <ImageOff className="h-4 w-4 text-slate-300" />
-                        )}
-                      </button>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-slate-800 truncate">{s.mediaId}</p>
-                        <p className="text-xs text-slate-400 truncate">
-                          {s.mediaType} · {s.city}, {s.state} {s.areaName ? `· ${s.areaName}` : ''} {s.siteOwner ? `· Owner: ${s.siteOwner}` : ''}
-                        </p>
-                      </div>
-                      <span className="text-xs font-semibold text-slate-600 shrink-0">₹{formatINR(s.totalCost ?? s.amount ?? 0)}</span>
-                      <div className="shrink-0">
-                        <StatusBadge status={s.mediaStatus} />
-                      </div>
-                    </div>
-                  );
-                })}
-              {!siteLoading && sites.length === 0 && <p className="px-3 py-6 text-center text-xs text-slate-400">No media found</p>}
-              <div ref={sentinelRef} />
-              {siteLoadingMore && <p className="px-3 py-3 text-center text-xs text-slate-400">Loading more...</p>}
-            </div>
-            <p className="mt-2 text-sm font-medium text-blue-600">
+            <p className="mb-2 text-sm font-medium text-blue-600">
               {selectedSites.size} Sites Selected · Showing {sites.length} of {siteTotal}
             </p>
+
+            <div ref={siteListRef} className="max-h-96 overflow-y-auto rounded-lg border border-slate-200">
+              <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
+                <input
+                  type="checkbox"
+                  checked={allVisibleSelected}
+                  ref={(el) => {
+                    if (el) el.indeterminate = !allVisibleSelected && someVisibleSelected;
+                  }}
+                  onChange={toggleSelectAll}
+                  disabled={selectableSites.length === 0}
+                  title="Select all visible media"
+                />
+                <span className="w-6 shrink-0 text-center">#</span>
+                <span className="w-10 shrink-0" />
+                <span className="flex-1">Site</span>
+                <span className="shrink-0 w-52 text-right">Cost / Status</span>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {siteLoading && <p className="px-3 py-6 text-center text-xs text-slate-400">Loading media...</p>}
+                {!siteLoading &&
+                  sites.map((s, i) => {
+                    const disabled = s.mediaStatus === 'blocked' && !selectedSites.has(s._id);
+                    const src = resolveImageUrl(s.mediaImage);
+                    return (
+                      <div
+                        key={s._id}
+                        onClick={() => !disabled && toggleSite(s)}
+                        className={`px-3 py-2 text-sm ${
+                          disabled
+                            ? 'opacity-50'
+                            : s.mediaStatus === 'booked'
+                              ? 'cursor-pointer bg-blue-50/40 hover:bg-blue-50/70'
+                              : 'cursor-pointer hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedSites.has(s._id)}
+                            disabled={disabled}
+                            onChange={() => toggleSite(s)}
+                            onClick={(e) => e.stopPropagation()}
+                            title={disabled ? 'Blocked media cannot be added to a proposal' : ''}
+                          />
+                          <span className="w-6 shrink-0 text-center text-xs text-slate-400">{i + 1}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPreviewSite(s);
+                            }}
+                            className="h-10 w-10 shrink-0 rounded-md overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center"
+                          >
+                            {src ? (
+                              <img src={src} alt={s.mediaId} className="h-full w-full object-cover" />
+                            ) : (
+                              <ImageOff className="h-4 w-4 text-slate-300" />
+                            )}
+                          </button>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-slate-800 truncate">{s.mediaId}</p>
+                            <p className="text-xs text-slate-400 truncate">
+                              {s.mediaType} · {s.location || s.areaName || '-'} · {s.city}, {s.state}
+                              {s.width && s.height ? ` · ${s.width}x${s.height}` : ''}
+                              {s.siteOwner ? ` · Owner: ${s.siteOwner}` : ''}
+                            </p>
+                          </div>
+                          <div className="shrink-0 w-52">
+                            <SiteStatusCost site={s} />
+                          </div>
+                        </div>
+                        <BookingScheduleStrip site={s} />
+                      </div>
+                    );
+                  })}
+                {!siteLoading && sites.length === 0 && <p className="px-3 py-6 text-center text-xs text-slate-400">No media found</p>}
+                <div ref={sentinelRef} className="h-1" />
+                {siteLoadingMore && <p className="px-3 py-3 text-center text-xs text-slate-400">Loading more...</p>}
+              </div>
+            </div>
           </div>
         )}
 
@@ -550,7 +675,11 @@ export default function NewProposalPage() {
         image={previewSite?.mediaImage}
         mediaCode={previewSite?.mediaId}
         mediaType={previewSite?.mediaType}
-        location={previewSite ? `${previewSite.location || previewSite.areaName || ''} ${previewSite.city}, ${previewSite.state}` : ''}
+        location={previewSite?.location}
+        area={previewSite?.areaName}
+        city={previewSite?.city}
+        state={previewSite?.state}
+        size={previewSite?.width && previewSite?.height ? `${previewSite.width}x${previewSite.height}` : undefined}
       />
     </div>
   );

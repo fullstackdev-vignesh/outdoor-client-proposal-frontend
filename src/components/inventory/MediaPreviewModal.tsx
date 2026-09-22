@@ -17,6 +17,10 @@ export default function MediaPreviewModal({
   mediaCode,
   mediaType,
   location,
+  area,
+  city,
+  state,
+  size,
 }: {
   open: boolean;
   onClose: () => void;
@@ -24,6 +28,13 @@ export default function MediaPreviewModal({
   mediaCode?: string;
   mediaType?: string;
   location?: string;
+  // Optional — when a caller passes these, they're shown as their own separate fields instead
+  // of relying on `location` being pre-combined into one string. Existing callers that only pass
+  // `location` are unaffected.
+  area?: string;
+  city?: string;
+  state?: string;
+  size?: string;
 }) {
   const [failed, setFailed] = useState(false);
   const src = resolveImageUrl(image);
@@ -57,6 +68,30 @@ export default function MediaPreviewModal({
             <div className="col-span-2">
               <p className="text-xs text-slate-400">Location</p>
               <p className="font-semibold text-slate-800">{location}</p>
+            </div>
+          )}
+          {size && (
+            <div>
+              <p className="text-xs text-slate-400">Size</p>
+              <p className="font-semibold text-slate-800">{size}</p>
+            </div>
+          )}
+          {area && (
+            <div>
+              <p className="text-xs text-slate-400">Area</p>
+              <p className="font-semibold text-slate-800">{area}</p>
+            </div>
+          )}
+          {city && (
+            <div>
+              <p className="text-xs text-slate-400">City</p>
+              <p className="font-semibold text-slate-800">{city}</p>
+            </div>
+          )}
+          {state && (
+            <div>
+              <p className="text-xs text-slate-400">State</p>
+              <p className="font-semibold text-slate-800">{state}</p>
             </div>
           )}
         </div>
