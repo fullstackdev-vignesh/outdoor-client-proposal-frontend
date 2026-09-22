@@ -177,6 +177,8 @@ export interface Proposal {
   monthlyAmount?: number;
   status: 'draft' | 'generated' | 'completed';
   generatedPptUrl?: string;
+  generatedPptWithLocationUrl?: string;
+  generatedPptWithoutLocationUrl?: string;
   generatedExcelUrl?: string;
   createdAt: string;
 }

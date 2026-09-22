@@ -71,7 +71,7 @@ export default function SiteDetailsPage() {
         <dl className="grid grid-cols-3 gap-4 text-sm">
           <Info label="Amount" value={site.amount ? `₹${site.amount.toLocaleString()}` : '-'} />
           <Info label="GST Amount" value={site.gstAmount ? `₹${site.gstAmount.toLocaleString()}` : '-'} />
-          <Info label="Monthly Amount" value={site.monthlyAmount ? `₹${site.monthlyAmount.toLocaleString()}` : '-'} />
+          {/* <Info label="Monthly Amount" value={site.monthlyAmount ? `₹${site.monthlyAmount.toLocaleString()}` : '-'} /> */}
         </dl>
       </Panel>
 

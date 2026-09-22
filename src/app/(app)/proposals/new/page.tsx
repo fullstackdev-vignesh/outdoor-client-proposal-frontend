@@ -20,6 +20,13 @@ function resolveImageUrl(image?: string) {
   return /^(https?:|data:|blob:)/.test(image) ? image : `${fileBaseURL}${image}`;
 }
 
+// Indian comma grouping (lakhs/crores), rounded to a whole number — matches how the generated
+// Excel itself displays Total Cost (e.g. 592050.84 -> "5,92,051"), instead of the default
+// Western grouping + decimals toLocaleString() gives with no locale/options.
+function formatINR(value: number) {
+  return Math.round(value).toLocaleString('en-IN');
+}
+
 export default function NewProposalPage() {
   const router = useRouter();
   const { showToast } = useToast();
@@ -149,8 +156,19 @@ export default function NewProposalPage() {
   const selectedExcel = excelTemplates.find((t) => t._id === excelId);
 
   const selectedSiteList = useMemo(() => Array.from(selectedSites.values()), [selectedSites]);
-  const totalAmount = selectedSiteList.reduce((sum, s) => sum + (s.amount || 0), 0);
-  const gstAmount = selectedSiteList.reduce((sum, s) => sum + (s.gstAmount || 0), 0);
+  // Matches the Excel generation engine's own Agency Comm -> GST compounding rule exactly
+  // (excelTemplateEngine.js#applyAdinnDynamicColumns / applyConditionalFeeColumns): each fee is
+  // ROUND(runningSubtotalSoFar * percent / 100, 2), Agency Comm applied before GST, so the
+  // wizard's preview total matches the real downloaded Excel's Total Cost instead of only
+  // showing the pre-fee base cost.
+  function computeSiteFees(s: Site, c?: Client) {
+    const base = (s.monthlyAmount || 0) + (s.printingCost || 0) + (s.mountingCost || 0);
+    const agencyCommValue = c?.agencyComm ? Math.round(base * (c.agencyComm / 100) * 100) / 100 : 0;
+    const gstValue = c?.gst ? Math.round((base + agencyCommValue) * (c.gst / 100) * 100) / 100 : 0;
+    return { total: base + agencyCommValue + gstValue, gst: gstValue };
+  }
+  const totalAmount = selectedSiteList.reduce((sum, s) => sum + computeSiteFees(s, selectedCustomer).total, 0);
+  const gstAmount = selectedSiteList.reduce((sum, s) => sum + computeSiteFees(s, selectedCustomer).gst, 0);
   const monthlyAmount = selectedSiteList.reduce((sum, s) => sum + (s.monthlyAmount || 0), 0);
 
   const canNext = [!!customerId, selectedSites.size > 0, !!pptId, !!excelId, true][step];
@@ -348,7 +366,7 @@ export default function NewProposalPage() {
                           {s.mediaType} · {s.city}, {s.state} {s.areaName ? `· ${s.areaName}` : ''} {s.siteOwner ? `· Owner: ${s.siteOwner}` : ''}
                         </p>
                       </div>
-                      <span className="text-xs font-semibold text-slate-600 shrink-0">₹{(s.totalCost ?? s.amount ?? 0).toLocaleString()}</span>
+                      <span className="text-xs font-semibold text-slate-600 shrink-0">₹{formatINR(s.totalCost ?? s.amount ?? 0)}</span>
                       <div className="shrink-0">
                         <StatusBadge status={s.mediaStatus} />
                       </div>
@@ -377,8 +395,8 @@ export default function NewProposalPage() {
               <Row label="Selected Site Count" value={`${selectedSites.size} sites`} action={() => goToStep(1)} />
               <Row label="PPT Template" value={selectedPpt?.name || '-'} action={() => goToStep(2)} />
               <Row label="Excel Template" value={selectedExcel?.name || '-'} action={() => goToStep(3)} />
-              <Row label="Total Amount" value={`₹${totalAmount.toLocaleString()}`} />
-              <Row label="Monthly Amount" value={`₹${monthlyAmount.toLocaleString()}`} />
+              <Row label="Total Amount" value={`₹${formatINR(totalAmount)}`} />
+              {/* <Row label="Monthly Amount" value={`₹${formatINR(monthlyAmount)}`} /> */}
             </div>
 
             <div className="flex gap-2 border-b border-slate-200">
@@ -402,18 +420,23 @@ export default function NewProposalPage() {
 
             {previewTab === 'ppt' && (
               <div className="space-y-2">
-                <p className="text-xs text-slate-400">Slide 1: Cover — customer name, proposal ID</p>
-                <p className="text-xs text-slate-400">Slide 2: Summary — pricing totals</p>
-                <p className="text-xs text-slate-400">Slide 3: Media table — all selected sites</p>
-                <p className="text-xs text-slate-400">Slides 4+: One detail slide per site (image + specs)</p>
                 <div className="rounded-lg border border-slate-200 divide-y divide-slate-100 max-h-72 overflow-y-auto">
-                  {selectedSiteList.map((s) => (
-                    <div key={s._id} className="flex items-center gap-3 px-3 py-2 text-sm">
-                      <span className="font-medium text-slate-800">{s.mediaId}</span>
-                      <span className="text-xs text-slate-400">{s.city}, {s.state}</span>
-                      <span className="ml-auto text-xs font-semibold text-slate-600">₹{(s.monthlyAmount || 0).toLocaleString()}/mo</span>
-                    </div>
-                  ))}
+                  {selectedSiteList.map((s) => {
+                    const sizeLabel = s.width && s.height ? `${s.width}x${s.height}` : '';
+                    return (
+                      <div key={s._id} className="flex items-center gap-3 px-3 py-2 text-sm">
+                        <div className="min-w-0">
+                          <p className="font-medium text-slate-800">{s.mediaId}</p>
+                          <p className="text-xs text-slate-400 truncate">
+                            {s.mediaType} · {s.location || s.areaName || '-'} · {sizeLabel ? ` · ${sizeLabel}` : ''} . {s.city}, {s.state}
+                           
+                            {s.siteOwner ? ` · Owner: ${s.siteOwner}` : ''}
+                          </p>
+                        </div>
+                        <span className="ml-auto shrink-0 text-xs font-semibold text-slate-600">₹{formatINR(computeSiteFees(s, selectedCustomer).total)}</span>
+                      </div>
+                    );
+                  })}
                 </div>
                 <button onClick={() => goToStep(2)} className="text-xs font-medium text-blue-600 hover:underline">
                   Edit PPT Template
@@ -424,9 +447,9 @@ export default function NewProposalPage() {
             {previewTab === 'excel' && (
               <div className="space-y-2">
                 <p className="text-xs text-slate-400">Sheet: Media</p>
-                <div className="overflow-x-auto rounded-lg border border-slate-200">
+                <div className="max-h-72 overflow-y-auto overflow-x-auto rounded-lg border border-slate-200">
                   <table className="w-full text-xs">
-                    <thead className="bg-slate-50">
+                    <thead className="bg-slate-50 sticky top-0 z-10">
                       <tr>
                         {['SI.No', 'City', 'Media', 'Location', 'Total Cost', 'Site Status'].map((h) => (
                           <th key={h} className="px-2 py-1.5 text-left font-semibold text-slate-500">
@@ -442,7 +465,7 @@ export default function NewProposalPage() {
                           <td className="px-2 py-1.5">{s.city}</td>
                           <td className="px-2 py-1.5">{s.mediaId}</td>
                           <td className="px-2 py-1.5">{s.location || s.areaName || '-'}</td>
-                          <td className="px-2 py-1.5">₹{(s.totalCost || 0).toLocaleString()}</td>
+                          <td className="px-2 py-1.5">₹{formatINR(computeSiteFees(s, selectedCustomer).total)}</td>
                           <td className="px-2 py-1.5 capitalize">{s.mediaStatus}</td>
                         </tr>
                       ))}
@@ -456,20 +479,20 @@ export default function NewProposalPage() {
             )}
 
             <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-100">
-              <button
+              {/* <button
                 disabled={generating === 'ppt'}
                 onClick={() => handleDownload('ppt')}
                 className="flex items-center gap-1.5 rounded-lg border border-blue-300 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 disabled:opacity-60"
               >
                 <Download className="h-4 w-4" /> {generating === 'ppt' ? 'Generating PPT...' : 'Download PPT'}
-              </button>
-              <button
+              </button> */}
+              {/* <button
                 disabled={generating === 'excel'}
                 onClick={() => handleDownload('excel')}
                 className="flex items-center gap-1.5 rounded-lg border border-blue-300 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 disabled:opacity-60"
               >
                 <Download className="h-4 w-4" /> {generating === 'excel' ? 'Generating Excel...' : 'Download Excel'}
-              </button>
+              </button> */}
               {createdProposal && (
                 <button
                   onClick={() => router.push(`/proposals/${createdProposal._id}`)}

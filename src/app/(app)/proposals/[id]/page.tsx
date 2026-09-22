@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Presentation, FileSpreadsheet, Download } from 'lucide-react';
+import { ArrowLeft, Presentation, FileSpreadsheet, Download, Loader2 } from 'lucide-react';
 import api, { fileBaseURL } from '@/lib/api';
 import { Panel } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
@@ -12,6 +12,12 @@ function getFileUrl(url?: string) {
   if (!url) return '#';
   if (/^https?:\/\//i.test(url)) return url;
   return `${fileBaseURL}${url}`;
+}
+
+// Indian comma grouping (lakhs/crores), rounded to a whole number — matches how the generated
+// Excel itself displays amounts.
+function formatINR(value: number) {
+  return Math.round(value).toLocaleString('en-IN');
 }
 
 export default function ProposalDetailsPage() {
@@ -27,12 +33,17 @@ export default function ProposalDetailsPage() {
 
   useEffect(refresh, [id]);
 
+  function openFile(url?: string) {
+    if (url) window.open(getFileUrl(url), '_blank', 'noopener,noreferrer');
+  }
+
   async function generateExcel() {
     setGenerating('excel');
     try {
-      await api.post(`/proposals/${id}/generate-excel`);
-      showToast('Excel generated successfully');
-      refresh();
+      const { data } = await api.post(`/proposals/${id}/generate-excel`);
+      setProposal(data);
+      showToast('Excel generated — download starting');
+      openFile(data.generatedExcelUrl);
     } catch (err: any) {
       showToast(err?.response?.data?.message || 'Failed to generate Excel', 'error');
     } finally {
@@ -45,9 +56,10 @@ export default function ProposalDetailsPage() {
   async function generatePpt(locationMode: 'with' | 'without') {
     setGenerating(locationMode === 'with' ? 'ppt-with' : 'ppt-without');
     try {
-      await api.post(`/proposals/${id}/generate-ppt`, { locationMode });
-      showToast('PPT generated successfully');
-      refresh();
+      const { data } = await api.post(`/proposals/${id}/generate-ppt`, { locationMode });
+      setProposal(data);
+      showToast('PPT generated — download starting');
+      openFile(data.generatedPptUrl);
     } catch (err: any) {
       showToast(err?.response?.data?.message || 'Failed to generate PPT', 'error');
     } finally {
@@ -79,21 +91,29 @@ export default function ProposalDetailsPage() {
           <Info label="Media Count" value={proposal.sites?.length?.toString()} />
           <Info label="PPT Template" value={proposal.pptTemplate?.name || '-'} />
           <Info label="Excel Template" value={proposal.excelTemplate?.name || '-'} />
-          <Info label="Variant" value={proposal.variant} />
-          <Info label="Total Amount" value={proposal.totalAmount ? `₹${proposal.totalAmount.toLocaleString()}` : '-'} />
-          <Info label="GST Amount" value={proposal.gstAmount ? `₹${proposal.gstAmount.toLocaleString()}` : '-'} />
-          <Info label="Monthly Amount" value={proposal.monthlyAmount ? `₹${proposal.monthlyAmount.toLocaleString()}` : '-'} />
+          <Info label="Total Amount" value={proposal.totalAmount ? `₹${formatINR(proposal.totalAmount)}` : '-'} />
+          {/* <Info label="Monthly Amount" value={proposal.monthlyAmount ? `₹${formatINR(proposal.monthlyAmount)}` : '-'} /> */}
         </dl>
       </Panel>
 
       <Panel title="Selected Media">
-        <ul className="divide-y divide-slate-100">
-          {proposal.sites?.map((s: any) => (
-            <li key={s._id} className="flex items-center justify-between py-2.5 text-sm">
-              <span className="font-medium text-slate-800">{s.mediaName}</span>
-              <StatusBadge status={s.mediaStatus} />
-            </li>
-          ))}
+        <ul className="max-h-96 overflow-y-auto divide-y divide-slate-100">
+          {proposal.sites?.map((s: any) => {
+            const sizeLabel = s.width && s.height ? `${s.width}x${s.height}` : '';
+            return (
+              <li key={s._id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+                <div className="min-w-0">
+                  <p className="font-medium text-slate-800">{s.mediaId}</p>
+                  <p className="text-xs text-slate-400 truncate">
+                    {s.mediaType} · {s.location || s.areaName || '-'} · {s.city}, {s.state}
+                    {sizeLabel ? ` · ${sizeLabel}` : ''}
+                    {s.siteOwner ? ` · Owner: ${s.siteOwner}` : ''}
+                  </p>
+                </div>
+                <StatusBadge status={s.mediaStatus} />
+              </li>
+            );
+          })}
         </ul>
       </Panel>
 
@@ -107,36 +127,58 @@ export default function ProposalDetailsPage() {
                 disabled={!!generating}
                 className="flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
               >
-                <Presentation className="h-4 w-4 text-blue-600" />
-                {generating === 'ppt-without' ? 'Generating...' : 'Without Location'}
+                {generating === 'ppt-without' ? (
+                  <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
+                ) : (
+                  <Presentation className="h-4 w-4 text-blue-600" />
+                )}
+                {generating === 'ppt-without' ? 'Generating & downloading...' : 'Without Location'}
               </button>
               <button
                 onClick={() => generatePpt('with')}
                 disabled={!!generating}
                 className="flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
               >
-                <Presentation className="h-4 w-4 text-blue-600" />
-                {generating === 'ppt-with' ? 'Generating...' : 'With Location'}
+                {generating === 'ppt-with' ? (
+                  <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
+                ) : (
+                  <Presentation className="h-4 w-4 text-blue-600" />
+                )}
+                {generating === 'ppt-with' ? 'Generating & downloading...' : 'With Location'}
               </button>
             </div>
           </div>
           <div className="flex flex-wrap gap-3">
           <button
             onClick={generateExcel}
-            disabled={generating === 'excel'}
+            disabled={!!generating}
             className="flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
           >
-            <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
-            {generating === 'excel' ? 'Generating...' : 'Generate Excel / Refresh'}
+            {generating === 'excel' ? (
+              <Loader2 className="h-4 w-4 text-emerald-600 animate-spin" />
+            ) : (
+              <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+            )}
+            {generating === 'excel' ? 'Generating & downloading...' : 'Generate Excel / Refresh'}
           </button>
-          {proposal.generatedPptUrl && (
+          {proposal.generatedPptWithoutLocationUrl && (
             <a
-              href={getFileUrl(proposal.generatedPptUrl)}
+              href={getFileUrl(proposal.generatedPptWithoutLocationUrl)}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-xs text-emerald-600 hover:underline font-medium"
             >
-              <Download className="h-3.5 w-3.5" /> Download PPT
+              <Download className="h-3.5 w-3.5" /> Download PPT (Without Location)
+            </a>
+          )}
+          {proposal.generatedPptWithLocationUrl && (
+            <a
+              href={getFileUrl(proposal.generatedPptWithLocationUrl)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs text-emerald-600 hover:underline font-medium"
+            >
+              <Download className="h-3.5 w-3.5" /> Download PPT (With Location)
             </a>
           )}
           {proposal.generatedExcelUrl && (
