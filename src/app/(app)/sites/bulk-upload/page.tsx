@@ -17,6 +17,7 @@ const COLUMN_ALIASES: Record<string, string> = {
   medianame: 'mediaName',
   mediatype: 'mediaType',
   quantity: 'quantity',
+  autosize: 'autoSize',
   state: 'state',
   city: 'city',
   location: 'location',
@@ -32,10 +33,12 @@ const COLUMN_ALIASES: Record<string, string> = {
   displaycostpermonth: 'monthlyAmount',
   monthlyamount: 'monthlyAmount',
   printingcost: 'printingCost',
+  printingcos: 'printingCost',
   mountingcost: 'mountingCost',
   amount: 'amount',
   gstamount: 'gstAmount',
   mediaimage: 'mediaImage',
+  medialimage: 'mediaImage',
   image: 'mediaImage',
   siteowner: 'siteOwner',
   mediastatus: 'mediaStatus',
@@ -85,10 +88,10 @@ export default function BulkUploadPage() {
   function downloadSample() {
     const ws = XLSX.utils.json_to_sheet([
       {
-        MediaCode: 'ADINCHN0001', MediaType: 'Unipole', City: 'Chennai', AreaName: 'Gemini Flyover',
-        Location: 'Gemini flyover twds Cathedral rd / Marina Beach (Top)', Quantity: 1, Width: 40, Height: 25,
-        Illumination: 'Front Lit', DisplayCostPerMonth: 600000, PrintingCost: 13000, MountingCost: 5000,
-        Latitude: 13.0536, Longitude: 80.2502, SiteOwner: '', MediaImage: '',
+        SrNo:1,Mediacode: 'ADINCHN0001', mediaType: 'Unipole',state: 'Tamil Nadu', city: 'Chennai', areaName: 'Gemini Flyover',
+        location: 'Gemini flyover twds Cathedral rd / Marina Beach (Top)', sizeUnit: 1, width: 40, height: 25,autoSize:'40x20',
+        illumination: 'Front Lit',Size:1000, monthlyAmount: 600000, printingCos: 13000, mountingCost: 5000,totalCost: 618000,
+        latitude: 13.0536, longitude: 80.2502, SiteOwner: 'Adinn', MediaImage: '',
       },
     ]);
     const wb = XLSX.utils.book_new();
@@ -197,12 +200,12 @@ export default function BulkUploadPage() {
         <p className="text-sm text-slate-500">Onboard 5,000+ sites at once via Excel</p>
       </div>
 
-      <Panel title="Default State">
+      {/* <Panel title="Default State">
         <p className="text-xs text-slate-500 mb-2">
           Used for every row unless the sheet itself has a State column.
         </p>
         <StateSelect value={defaultState} onChange={setDefaultState} className="w-64 rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-      </Panel>
+      </Panel> */}
 
       <Panel>
         <div className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-slate-300 rounded-xl py-10 text-center hover:border-blue-400 transition">
