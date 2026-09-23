@@ -279,8 +279,11 @@ export default function SiteFormModal({
     const errs: Record<string, string> = {};
     for (let i = 0; i < rows.length; i++) {
       if (rows[i].status === 'completed') continue;
-      for (let j = 0; j < rows.length; j++) {
-        if (i === j || rows[j].status === 'completed') continue;
+      // Only compare against EARLIER rows (j < i), so a conflicting pair gets the error
+      // assigned once — to the later row (the one being added/edited) — instead of the old
+      // symmetric check (j over all rows) which flagged both sides of every overlap.
+      for (let j = 0; j < i; j++) {
+        if (rows[j].status === 'completed') continue;
         if (rowsOverlap(rows[i], rows[j])) {
           errs[`booking-${i}`] = `This site is already booked from ${formatDateLabel(rows[j].startDate)} to ${formatDateLabel(rows[j].endDate)}.`;
           break;
@@ -784,10 +787,12 @@ export default function SiteFormModal({
                             ...(row.endDate && row.endDate < v ? { endDate: '' } : {}),
                           })
                         }
-                        // Only new bookings are floored at today — an existing row (has a
-                        // bookingId, i.e. it was already saved) keeps its own historical
-                        // start date editable so opening an old/active booking never breaks.
-                        min={row.bookingId ? undefined : todayISO()}
+                        // Start Date selection is always floored at today, for new AND already-
+                        // saved bookings alike — this only disables which NEW dates are pickable
+                        // in the calendar. It never touches `row.startDate` itself, so an existing
+                        // historical booking keeps displaying its own saved (possibly past) value
+                        // untouched until the user actively picks a different date.
+                        min={todayISO()}
                         max={row.endDate || undefined}
                         error={!!errors[`booking-${index}`]}
                         disabled={readOnly}
