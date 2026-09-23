@@ -123,9 +123,9 @@ export default function UserManager({ role, title, subtitle }: { role: Role; tit
                     <td className="px-4 py-3 text-slate-500">{new Date(u.createdAt).toLocaleDateString()}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => openEdit(u)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-blue-600 cursor-pointer">
+                        {/* <button onClick={() => openEdit(u)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-blue-600 cursor-pointer">
                           <Pencil className="h-4 w-4" />
-                        </button>
+                        </button> */}
                         <button onClick={() => setDeleteTarget(u)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-red-600 cursor-pointer">
                           <Trash2 className="h-4 w-4" />
                         </button>
