@@ -7,11 +7,13 @@ import type { AuthUser, Role } from './types';
 
 export interface RegisterData {
   userName: string;
-  userEmail?: string;
+  userEmail: string;
   userPhone: string;
   password: string;
-  confirmPassword: string;
-  userType: number;
+  confirmPassword?: string;
+  userType?: number;
+  role?: Role;
+  registerPassword?: string;
 }
 
 interface AuthContextValue {
@@ -19,6 +21,9 @@ interface AuthContextValue {
   loading: boolean;
   login: (identifier: string, password: string, role: Role) => Promise<void>;
   register: (data: RegisterData) => Promise<any>;
+  forgotPin: (identifier: string) => Promise<any>;
+  forgotPinVerify: (data: { identifier: string; role: Role; registerPassword: string }) => Promise<any>;
+  resetPin: (data: { identifier: string; temporaryPin?: string; newPin: string; confirmPin?: string }) => Promise<any>;
   logout: () => void;
 }
 
@@ -36,7 +41,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function login(identifier: string, password: string, role: Role) {
-    const { data } = await api.post('/auth/login', { email: identifier, identifier, phone: identifier, password, role });
+    const { data } = await api.post('/auth/login', {
+      email: identifier,
+      identifier,
+      phone: identifier,
+      userPhone: identifier,
+      password,
+      pin: password,
+      role,
+    });
     localStorage.setItem('outdoor_token', data.token);
     localStorage.setItem('outdoor_user', JSON.stringify(data.user));
     setUser(data.user);
@@ -56,6 +69,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return res.data;
   }
 
+  async function forgotPin(identifier: string) {
+    const res = await api.post('/auth/forgot-pin', {
+      identifier,
+      email: identifier,
+      userEmail: identifier,
+      phone: identifier,
+      userPhone: identifier,
+    });
+    return res.data;
+  }
+
+  async function forgotPinVerify(data: { identifier: string; role: Role; registerPassword: string }) {
+    const res = await api.post('/auth/forgot-pin-verify', {
+      phone: data.identifier,
+      userPhone: data.identifier,
+      email: data.identifier,
+      role: data.role,
+      registerPassword: data.registerPassword,
+    });
+    return res.data;
+  }
+
+  async function resetPin(data: { identifier: string; temporaryPin?: string; newPin: string; confirmPin?: string }) {
+    const res = await api.post('/auth/reset-pin', {
+      identifier: data.identifier,
+      phone: data.identifier,
+      userPhone: data.identifier,
+      email: data.identifier,
+      temporaryPin: data.temporaryPin,
+      currentPin: data.temporaryPin,
+      newPin: data.newPin,
+      confirmPin: data.confirmPin,
+    });
+    return res.data;
+  }
+
   function logout() {
     localStorage.removeItem('outdoor_token');
     localStorage.removeItem('outdoor_user');
@@ -70,6 +119,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         login,
         register,
+        forgotPin,
+        forgotPinVerify,
+        resetPin,
         logout,
       }}
     >
