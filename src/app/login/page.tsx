@@ -242,11 +242,11 @@ export default function LoginPage() {
                   )}
                 </div>
 
-                {error && (
+                {/* {error && (
                   <div className="mb-4 rounded-xl bg-red-50 border border-red-200 px-3.5 py-2.5 text-sm text-red-700 font-medium">
                     {error}
                   </div>
-                )}
+                )} */}
 
                 <button
                   type="button"

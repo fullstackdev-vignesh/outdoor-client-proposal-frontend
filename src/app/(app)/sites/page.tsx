@@ -31,7 +31,7 @@ export default function SitesPage() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const params = useSearchParams();
-  const canManage = user?.role === 'admin' || user?.role === 'tl';
+  const canManage = user?.role === 'admin' || user?.role === 'tl' || user?.role === 'user';
 
   const [items, setItems] = useState<Site[]>([]);
   const [total, setTotal] = useState(0);
@@ -160,13 +160,13 @@ export default function SitesPage() {
             >
               <Upload className="h-4 w-4" /> Bulk Upload
             </Link>
-            {/* <button
+            <button
               onClick={handleExport}
               disabled={exporting}
               className="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
             >
               <Download className="h-4 w-4" /> {exporting ? 'Exporting...' : 'Export'}
-            </button> */}
+            </button>
             <button
               onClick={() => {
                 setEditingSite(null);

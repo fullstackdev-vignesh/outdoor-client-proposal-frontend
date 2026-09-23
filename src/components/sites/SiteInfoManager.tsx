@@ -17,7 +17,7 @@ import type { SiteInfo } from '@/lib/types';
 export default function SiteInfoManager() {
   const { user } = useAuth();
   const { showToast } = useToast();
-  const canManage = user?.role === 'admin' || user?.role === 'tl';
+  const canManage = user?.role === 'admin' || user?.role === 'tl' || user?.role === 'user';
 
   const [items, setItems] = useState<SiteInfo[]>([]);
   const [loading, setLoading] = useState(true);
