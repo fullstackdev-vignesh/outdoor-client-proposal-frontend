@@ -5,6 +5,7 @@ import { Plus, Pencil, Trash2 } from 'lucide-react';
 import api from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/lib/auth-context';
+import { formatIST } from '@/lib/date';
 import Modal from '@/components/ui/Modal';
 import EmptyState from '@/components/ui/EmptyState';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
@@ -134,7 +135,7 @@ export default function SiteInfoManager() {
                   <tr key={si._id} className="hover:bg-slate-50">
                     <td className="px-4 py-3 font-medium text-slate-800">{si.title}</td>
                     <td className="px-4 py-3 text-slate-600 max-w-xl truncate">{si.description}</td>
-                    <td className="px-4 py-3 text-slate-500">{new Date(si.createdAt).toLocaleDateString()}</td>
+                    <td className="px-4 py-3 text-slate-500">{formatIST(si.createdAt)}</td>
                     <td className="px-4 py-3">
                       {canManage && (
                         <div className="flex items-center justify-end gap-1">

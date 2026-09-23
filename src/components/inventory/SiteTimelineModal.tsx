@@ -55,6 +55,21 @@ export default function SiteTimelineModal({
                     {(h.bookingSnapshot.amount || 0).toLocaleString()}
                   </p>
                 )}
+                {h.status === 'cancelled' && (
+                  <div className="text-sm text-slate-600 mt-1 space-y-0.5">
+                    {h.bookingSnapshot && (
+                      <p>
+                        Booked Period: {formatISTDate(h.bookingSnapshot.startDate)} → {formatISTDate(h.bookingSnapshot.endDate)}
+                      </p>
+                    )}
+                    <p>Reason: {h.cancellationSnapshot?.reason || '-'}</p>
+                    <p>
+                      Cancelled By: {h.cancellationSnapshot?.cancelledByName || '-'}
+                      {h.cancellationSnapshot?.cancelledByRole ? ` (${h.cancellationSnapshot.cancelledByRole.toUpperCase()})` : ''}
+                      {h.cancellationSnapshot?.cancelledAt ? ` · ${formatIST(h.cancellationSnapshot.cancelledAt)}` : ''}
+                    </p>
+                  </div>
+                )}
                 {h.status === 'blocked' && h.blockSnapshot && <p className="text-sm text-slate-600 mt-1">{h.blockSnapshot.reason || '-'}</p>}
                 <p className="text-xs text-slate-400 mt-1">
                   Changed: {formatIST(h.changedAt)} {changedByName ? `· by ${changedByName}` : ''} · via {h.source === 'inventory' ? 'Inventory' : 'Sites'}

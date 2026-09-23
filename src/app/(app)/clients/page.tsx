@@ -10,6 +10,7 @@ import Pagination from '@/components/ui/Pagination';
 import EmptyState from '@/components/ui/EmptyState';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import ClientFormModal from '@/components/clients/ClientFormModal';
+import { formatIST } from '@/lib/date';
 import type { Client, PaginatedResponse } from '@/lib/types';
 
 export default function ClientsPage() {
@@ -126,7 +127,7 @@ export default function ClientsPage() {
                         {c.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-slate-500">{new Date(c.createdAt).toLocaleDateString()}</td>
+                    <td className="px-4 py-3 text-slate-500">{formatIST(c.createdAt)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
                         {/* <Link href={`/clients/${c._id}`} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700">

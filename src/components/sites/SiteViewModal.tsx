@@ -44,6 +44,16 @@ function label(field: string) {
   return map[field] || field;
 }
 
+// "Booking Cancelled" rows arrive as one pipe-joined string ("Booking: ... | Reason: ... |
+// Cancelled By: ... | Cancelled At: ...") from the backend — split back into label/value pairs
+// here purely for display, so each ends up on its own vertical block instead of one line.
+function parseBookingCancelledDetails(value: string) {
+  return value.split(' | ').map((part) => {
+    const idx = part.indexOf(': ');
+    return idx === -1 ? { label: '', value: part } : { label: part.slice(0, idx), value: part.slice(idx + 2) };
+  });
+}
+
 // Rows written by the SAME save operation all share the exact same `changedAt` — group them
 // into one card per save so the UI shows "one edit = one event" instead of a flat list of
 // unrelated field changes.
@@ -252,7 +262,16 @@ export default function SiteViewModal({ open, onClose, site: siteProp }: { open:
                   {group.entries.map((h) => (
                     <div key={h._id}>
                       <p className="font-semibold text-slate-800 mb-0.5">{label(h.field)}</p>
-                      {h.oldValue == null || h.oldValue === '' ? (
+                      {h.field === 'Booking Cancelled' && typeof h.newValue === 'string' ? (
+                        <div className="space-y-2 mt-1.5">
+                          {parseBookingCancelledDetails(h.newValue).map((d, i) => (
+                            <div key={i}>
+                              <p className="text-xs font-medium text-slate-500">{d.label}</p>
+                              <p className="text-emerald-600 font-medium break-words">{d.value}</p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : h.oldValue == null || h.oldValue === '' ? (
                         <p className="text-emerald-600 font-medium">{String(h.newValue ?? '-')}</p>
                       ) : (
                         <p>

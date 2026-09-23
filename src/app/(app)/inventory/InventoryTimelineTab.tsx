@@ -306,11 +306,13 @@ export default function InventoryTimelineTab() {
                       <td className="px-4 py-3 text-xs text-slate-500">{formatISTDate(h.effectiveFrom)}</td>
                       <td className="px-4 py-3 text-xs text-slate-500">{h.effectiveTo ? formatISTDate(h.effectiveTo) : 'Ongoing'}</td>
                       <td className="px-4 py-3 text-xs text-slate-500">
-                        {h.status === 'booked' && h.bookingSnapshot?.durationDays ? `${h.bookingSnapshot.durationDays} Days` : '-'}
+                        {(h.status === 'booked' || h.status === 'cancelled') && h.bookingSnapshot?.durationDays ? `${h.bookingSnapshot.durationDays} Days` : '-'}
                       </td>
-                      <td className="px-4 py-3 text-xs text-slate-600 max-w-[200px] truncate" title={
+                      <td className="px-4 py-3 text-xs text-slate-600 max-w-[240px] truncate" title={
                         h.status === 'booked'
                           ? `${h.bookingSnapshot?.customerName || '-'} • ${h.bookingSnapshot?.durationDays || 0} Days • ₹${(h.bookingSnapshot?.amount || 0).toLocaleString()}`
+                          : h.status === 'cancelled'
+                          ? `Booked Period: ${h.bookingSnapshot?.startDate ? formatISTDate(h.bookingSnapshot.startDate) : '-'} → ${h.bookingSnapshot?.endDate ? formatISTDate(h.bookingSnapshot.endDate) : '-'} • Cancelled: ${h.cancellationSnapshot?.cancelledAt ? formatIST(h.cancellationSnapshot.cancelledAt) : '-'} • Reason: ${h.cancellationSnapshot?.reason || '-'} • By: ${h.cancellationSnapshot?.cancelledByName || '-'}${h.cancellationSnapshot?.cancelledByRole ? ` (${h.cancellationSnapshot.cancelledByRole.toUpperCase()})` : ''}`
                           : h.status === 'blocked'
                           ? h.blockSnapshot?.reason || '-'
                           : ''
@@ -318,6 +320,12 @@ export default function InventoryTimelineTab() {
                         {h.status === 'booked' && (
                           <span>
                             {h.bookingSnapshot?.customerName || '-'} • {h.bookingSnapshot?.durationDays || 0} Days • ₹{(h.bookingSnapshot?.amount || 0).toLocaleString()}
+                          </span>
+                        )}
+                        {h.status === 'cancelled' && (
+                          <span>
+                            Reason: {h.cancellationSnapshot?.reason || '-'} • By: {h.cancellationSnapshot?.cancelledByName || '-'}
+                            {h.cancellationSnapshot?.cancelledByRole ? ` (${h.cancellationSnapshot.cancelledByRole.toUpperCase()})` : ''}
                           </span>
                         )}
                         {h.status === 'blocked' && <span>{h.blockSnapshot?.reason || '-'}</span>}

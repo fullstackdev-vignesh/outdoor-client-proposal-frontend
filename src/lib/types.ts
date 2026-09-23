@@ -37,6 +37,10 @@ export interface BookingRecord {
   status: BookingStatus;
   createdAt?: string;
   updatedAt?: string;
+  cancellationReason?: string;
+  cancelledAt?: string;
+  cancelledByName?: string;
+  cancelledByRole?: string;
 }
 
 export interface BlockInfo {
@@ -110,9 +114,10 @@ export interface InventoryHistoryEntry {
   city?: string;
   mediaImage?: string;
   siteOwner?: string;
-  status: MediaStatus;
+  status: MediaStatus | 'cancelled';
   previousStatus?: MediaStatus | null;
   isActive?: boolean;
+  bookingId?: string;
   effectiveFrom: string;
   effectiveTo?: string | null;
   changedAt: string;
@@ -132,6 +137,12 @@ export interface InventoryHistoryEntry {
     reason?: string;
     notes?: string;
     blockedDate?: string;
+  };
+  cancellationSnapshot?: {
+    reason?: string;
+    cancelledAt?: string;
+    cancelledByName?: string;
+    cancelledByRole?: string;
   };
 }
 

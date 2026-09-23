@@ -130,6 +130,12 @@ export default function SiteFormModal({
   // non-overlapping booking orders; "+ Add Booking" appends another inline card below.
   const [clients, setClients] = useState<Client[]>([]);
   const [bookingRows, setBookingRows] = useState<BookingRow[]>([]);
+  // "Delete" on an already-saved booking (has a bookingId) opens this confirm-with-reason
+  // modal instead of removing it locally — cancellation must go through the backend so it's
+  // recorded in history/timeline and the site's status is recalculated from what remains.
+  const [cancelTarget, setCancelTarget] = useState<{ index: number; row: BookingRow } | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelling, setCancelling] = useState(false);
 
   // Site Information (optional) — a reusable master list of Title/Description cards shown on
   // PPT templates that support it (e.g. Adinn-Direct-Client-format). "+ Add Site Information"
@@ -182,7 +188,9 @@ export default function SiteFormModal({
       setImagePreview(resolveImageUrl(site.mediaImage));
 
       if (site.bookings && site.bookings.length > 0) {
-        setBookingRows(site.bookings.map(bookingRecordToRow));
+        // Cancelled bookings stay in `site.bookings` for history/timeline, but they're no
+        // longer an editable/active booking, so they don't belong in this list.
+        setBookingRows(site.bookings.filter((b) => b.status !== 'cancelled').map(bookingRecordToRow));
       } else if (site.mediaStatus === 'booked' && site.bookingInfo) {
         setBookingRows([bookingRecordToRow({ ...site.bookingInfo, status: 'active' } as BookingRecord)]);
       } else {
@@ -262,6 +270,33 @@ export default function SiteFormModal({
 
   function removeBookingRow(index: number) {
     setBookingRows((rows) => rows.filter((_, i) => i !== index));
+  }
+
+  async function confirmCancelBooking() {
+    if (!cancelTarget || !site) return;
+    const reason = cancelReason.trim();
+    if (!reason) return;
+    setCancelling(true);
+    try {
+      const res = await api.patch(`/sites/${site._id}/bookings/${cancelTarget.row.bookingId}/cancel`, {
+        reason,
+        source: 'sites',
+      });
+      // The cancelled booking no longer belongs in this editable list — it's history now,
+      // visible via Edit History / Inventory Timeline instead. Remaining bookings (e.g. an
+      // Upcoming one) are untouched; the site's live status/mediaStatus is recalculated
+      // server-side from whatever's left, so refresh the row list from the response.
+      const updatedBookings = (res.data.bookings || []).filter((b: BookingRecord) => b.status !== 'cancelled');
+      setBookingRows(updatedBookings.map(bookingRecordToRow));
+      showToast('Booking cancelled successfully');
+      onSaved();
+      setCancelTarget(null);
+      setCancelReason('');
+    } catch (err: any) {
+      showToast(err?.response?.data?.message || 'Failed to cancel booking', 'error');
+    } finally {
+      setCancelling(false);
+    }
   }
 
   function updateBookingRow(index: number, patch: Partial<BookingRow>) {
@@ -734,7 +769,16 @@ export default function SiteFormModal({
                       Booking #{index + 1} {row.status && <span className="capitalize font-normal text-blue-500">({row.status})</span>}
                     </p>
                     {!readOnly && bookingRows.length > 0 && (
-                      <button type="button" onClick={() => removeBookingRow(index)} className="text-slate-400 hover:text-red-600">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          // A booking already saved on the server (has a bookingId) must go
+                          // through the Cancel Booking confirmation + reason flow — only a
+                          // brand-new, not-yet-saved row can be removed locally with no trace.
+                          row.bookingId ? setCancelTarget({ index, row }) : removeBookingRow(index)
+                        }
+                        className="text-slate-400 hover:text-red-600"
+                      >
                         <Trash2 className="h-4 w-4" />
                       </button>
                     )}
@@ -898,6 +942,56 @@ export default function SiteFormModal({
           setSiteInfoModalOpen(false);
         }}
       />
+
+      <Modal
+        open={!!cancelTarget}
+        onClose={() => {
+          setCancelTarget(null);
+          setCancelReason('');
+        }}
+        title="Cancel Booking"
+        size="sm"
+      >
+        {cancelTarget && (
+          <div className="space-y-3">
+            <p className="text-sm text-slate-600">
+              Booking: <span className="font-medium text-slate-800">{formatDateLabel(cancelTarget.row.startDate)} → {formatDateLabel(cancelTarget.row.endDate)}</span>
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Cancellation Reason *</label>
+              <textarea
+                autoFocus
+                placeholder="e.g. Client rejected the booking"
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                rows={3}
+                required
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => {
+                  setCancelTarget(null);
+                  setCancelReason('');
+                }}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmCancelBooking}
+                disabled={!cancelReason.trim() || cancelling}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {cancelling ? 'Cancelling...' : 'Confirm Cancellation'}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </Modal>
   );
 }

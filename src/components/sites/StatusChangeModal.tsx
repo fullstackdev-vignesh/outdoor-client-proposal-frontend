@@ -44,6 +44,7 @@ export default function StatusChangeModal({
   const [clientId, setClientId] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [cancellationReason, setCancellationReason] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -71,6 +72,7 @@ export default function StatusChangeModal({
       setBlockReason('');
       setBlockNotes('');
     }
+    setCancellationReason('');
 
     api.get('/clients', { params: { limit: 200 } }).then((res) => setClients(res.data.items));
   }, [site, open, initialStatus]);
@@ -79,6 +81,9 @@ export default function StatusChangeModal({
   const durationDays = calcDurationDays(startDate, endDate);
   const bookingAmount = calcBookingAmount(monthlyTotalCost, durationDays);
   const validDateRange = !startDate || !endDate || new Date(endDate) >= new Date(startDate);
+  // Booked -> Available is really "cancel the booking that's making this site Booked" — never
+  // a silent status flip. Only relevant when the site is CURRENTLY Booked.
+  const isCancellingBooking = site?.mediaStatus === 'booked' && newStatus === 'available';
 
   async function submit() {
     if (!site) return;
@@ -91,6 +96,9 @@ export default function StatusChangeModal({
       }
       if (newStatus === 'booked') {
         payload.bookingInfo = { customerType, client: clientId, startDate, endDate };
+      }
+      if (isCancellingBooking) {
+        payload.cancellationReason = cancellationReason.trim();
       }
       await api.patch(`/sites/${site._id}/status`, payload);
       showToast('Media status updated successfully');
@@ -107,7 +115,7 @@ export default function StatusChangeModal({
   if (!site) return null;
 
   const canSubmit =
-    newStatus === 'available' ||
+    (newStatus === 'available' && (!isCancellingBooking || !!cancellationReason.trim())) ||
     (newStatus === 'blocked' && !!blockReason) ||
     (newStatus === 'booked' && !!clientId && !!startDate && !!endDate && validDateRange);
 
@@ -137,10 +145,32 @@ export default function StatusChangeModal({
             </div>
           </div>
 
-          {newStatus === 'available' && (
+          {newStatus === 'available' && !isCancellingBooking && (
             <p className="text-sm text-slate-500">
               This will mark the site as Available. Previous booking/block history is kept for reference.
             </p>
+          )}
+
+          {newStatus === 'available' && isCancellingBooking && (
+            <div className="space-y-3 rounded-lg bg-amber-50 border border-amber-100 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Cancel Booking / Change to Available</p>
+              <p className="text-xs text-slate-500">
+                This site is currently Booked. Changing to Available cancels the current booking — this cannot be a silent
+                status flip, so a reason is required. If another Upcoming booking still exists, the site will follow that
+                booking&apos;s status instead of becoming Available.
+              </p>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Cancellation Reason *</label>
+                <textarea
+                  placeholder="e.g. Client rejected the booking"
+                  value={cancellationReason}
+                  onChange={(e) => setCancellationReason(e.target.value)}
+                  className={inputCls}
+                  rows={2}
+                  required
+                />
+              </div>
+            </div>
           )}
 
           {newStatus === 'blocked' && (
@@ -207,7 +237,17 @@ export default function StatusChangeModal({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Start Date *</label>
-                  <DatePicker value={startDate} onChange={setStartDate} max={endDate || undefined} />
+                  <DatePicker
+                    value={startDate}
+                    onChange={(v) => {
+                      setStartDate(v);
+                      // Clear an End Date that's no longer valid against the new Start Date —
+                      // a still-valid End Date is left untouched.
+                      if (endDate && v && endDate < v) setEndDate('');
+                    }}
+                    min={todayISO()}
+                    max={endDate || undefined}
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">End Date *</label>
