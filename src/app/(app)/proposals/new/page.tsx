@@ -240,6 +240,17 @@ export default function NewProposalPage() {
   const selectedPpt = pptTemplates.find((t) => t._id === pptId);
   const selectedExcel = excelTemplates.find((t) => t._id === excelId);
 
+  // If a proposal was already created (Preview reached, then the user goes Back and picks a
+  // different PPT/Excel template), `createdProposal` still points at the OLD proposal record —
+  // handleDownload/generateProposal below both short-circuit to reusing it via `if
+  // (!createdProposal)`, so without this the newly picked template would silently never take
+  // effect. Clearing it here forces a fresh `generateProposal()` call (a real new POST
+  // /proposals) with whatever is currently selected, and brings the "Generate Proposal" button
+  // back since it's only hidden while `createdProposal` is set.
+  useEffect(() => {
+    setCreatedProposal(null);
+  }, [pptId, excelId]);
+
   const selectedSiteList = useMemo(() => Array.from(selectedSites.values()), [selectedSites]);
   // Matches the Excel generation engine's own Agency Comm -> GST compounding rule exactly
   // (excelTemplateEngine.js#applyAdinnDynamicColumns / applyConditionalFeeColumns): each fee is
