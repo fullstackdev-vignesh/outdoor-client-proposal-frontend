@@ -8,7 +8,7 @@ import api, { fileBaseURL } from '@/lib/api';
 import type { BookingRecord, Site, Client, MediaStatus, SiteInfo } from '@/lib/types';
 import { useToast } from '@/components/ui/Toast';
 import { todayISO } from '@/lib/date';
-import { formatINR, parseINRInput } from '@/lib/currency';
+import { formatINR, parseINRInput, formatIndianGroups } from '@/lib/currency';
 import DatePicker from '@/components/ui/DatePicker';
 import MediaPreviewModal from '@/components/inventory/MediaPreviewModal';
 
@@ -248,7 +248,7 @@ export default function SiteFormModal({
   // never fight the cursor), and the formatted ₹ / Indian-grouped value once they blur out.
   function priceDisplayValue(key: 'monthlyAmount' | 'printingCost' | 'mountingCost') {
     const raw = form[key];
-    if (focusedPriceField === key) return raw;
+    if (focusedPriceField === key) return formatIndianGroups(raw);
     return raw ? formatINR(raw) : '';
   }
 

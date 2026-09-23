@@ -129,9 +129,9 @@ export default function ClientsPage() {
                     <td className="px-4 py-3 text-slate-500">{new Date(c.createdAt).toLocaleDateString()}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
-                        <Link href={`/clients/${c._id}`} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+                        {/* <Link href={`/clients/${c._id}`} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
                           <Eye className="h-4 w-4" />
-                        </Link>
+                        </Link> */}
                         <button
                           onClick={() => {
                             setEditing(c);

@@ -200,10 +200,18 @@ export default function DatePicker({
   for (let d = 1; d <= totalDays; d++) cells.push({ y: viewY, m: viewM, d, outside: false });
   while (cells.length % 7 !== 0 || cells.length < 42) {
     const last = cells[cells.length - 1];
-    const nextM = last.m === 12 ? 1 : last.m + 1;
-    const nextY = last.m === 12 ? last.y + 1 : last.y;
-    const nextD = last.outside && last.m !== viewM ? last.d + 1 : cells.filter((c) => c.m === nextM && c.y === nextY).length + 1;
-    cells.push({ y: nextY, m: nextM, d: nextD, outside: true });
+    let y = last.y;
+    let m = last.m;
+    let d = last.d + 1;
+    // Only roll over to the next month once the day count actually exceeds that month's length —
+    // recomputing month/year from the previous cell on every iteration (the old logic) advanced
+    // the month by one on every single trailing day, corrupting far-past-month-end dates.
+    if (d > daysInMonth(y, m)) {
+      d = 1;
+      m = m === 12 ? 1 : m + 1;
+      y = last.m === 12 ? last.y + 1 : last.y;
+    }
+    cells.push({ y, m, d, outside: true });
     if (cells.length >= 42) break;
   }
 
