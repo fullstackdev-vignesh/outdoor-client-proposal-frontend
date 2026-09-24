@@ -62,6 +62,48 @@ function mapRow(row: Record<string, any>): Record<string, any> {
   return mapped;
 }
 
+// Latitude/Longitude are optional — an empty cell or a placeholder like "-", "NA", "N/A" means
+// "not given". Besides plain decimals, common spreadsheet formats are understood: a comma
+// decimal ("13,0536"), a direction letter ("13.0536 N", "80.25E", S/W make it negative) and
+// degrees-minutes-seconds ("13°03'13.0\"N"). Returns undefined for "not given", NaN for a value
+// that was given but can't be read, otherwise the parsed number.
+const EMPTY_COORD_VALUES = new Set(['', '-', '--', 'na', 'n/a', 'nil', 'null', 'none', 'nan', '0']);
+function parseCoord(value: unknown): number | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === 'number') return value === 0 ? undefined : value;
+  let text = String(value).trim();
+  if (EMPTY_COORD_VALUES.has(text.toLowerCase())) return undefined;
+
+  let sign = 1;
+  const dir = text.match(/[NSEW]$/i) || text.match(/^[NSEW]/i);
+  if (dir) {
+    if (/[SW]/i.test(dir[0])) sign = -1;
+    text = text.replace(/^[NSEW]\s*|\s*[NSEW]$/gi, '');
+  }
+
+  // Degrees-minutes-seconds: 13°03'13.0"  /  13 03 13.0  /  13°03.22'
+  const dms = text.match(/^(-?\d+(?:[.,]\d+)?)\s*[°º\s]\s*(\d+(?:[.,]\d+)?)?\s*['′]?\s*(\d+(?:[.,]\d+)?)?\s*["″]?$/);
+  if (dms && (dms[2] || dms[3])) {
+    const [deg, min, sec] = [dms[1], dms[2] || '0', dms[3] || '0'].map((p) => Number(p.replace(',', '.')));
+    const abs = Math.abs(deg) + min / 60 + sec / 3600;
+    return sign * (deg < 0 ? -abs : abs);
+  }
+
+  text = text.replace(/[°º]/g, '').replace(',', '.').trim();
+  return text === '' ? undefined : sign * Number(text);
+}
+// A coordinate that can't be used never blocks the row — the site just imports without it.
+function coordWarning(value: unknown, limit: number): string | null {
+  const n = parseCoord(value);
+  if (n === undefined) return null;
+  if (isNaN(n)) return `"${value}" is not a valid coordinate — will import without it`;
+  if (n < -limit || n > limit) return `"${value}" is outside -${limit}…${limit} — will import without it`;
+  return null;
+}
+function usableCoord(value: unknown, limit: number): number | undefined {
+  return coordWarning(value, limit) ? undefined : parseCoord(value);
+}
+
 const REQUIRED_FIELDS = ['mediaId', 'mediaType', 'city'];
 const SAMPLE_HEADERS = [
   'MediaCode', 'MediaType', 'City', 'AreaName', 'Location', 'Quantity',
@@ -73,6 +115,8 @@ interface ValidationError {
   row: number;
   field: string;
   error: string;
+  // Warnings are shown but don't make the row invalid.
+  warning?: boolean;
 }
 
 export default function BulkUploadPage() {
@@ -125,8 +169,10 @@ export default function BulkUploadPage() {
       if (!row.state && !defaultState) {
         errs.push({ row: rowNum, field: 'state', error: 'Required (select a default State above, or add a State column)' });
       }
-      if (row.latitude && isNaN(Number(row.latitude))) errs.push({ row: rowNum, field: 'latitude', error: 'Invalid' });
-      if (row.longitude && isNaN(Number(row.longitude))) errs.push({ row: rowNum, field: 'longitude', error: 'Invalid' });
+      const latWarning = coordWarning(row.latitude, 90);
+      const lngWarning = coordWarning(row.longitude, 180);
+      if (latWarning) errs.push({ row: rowNum, field: 'latitude', error: latWarning, warning: true });
+      if (lngWarning) errs.push({ row: rowNum, field: 'longitude', error: lngWarning, warning: true });
       if (row.width !== undefined && row.width !== '' && Number(row.width) <= 0) errs.push({ row: rowNum, field: 'width', error: 'Must be > 0' });
       if (row.height !== undefined && row.height !== '' && Number(row.height) <= 0) errs.push({ row: rowNum, field: 'height', error: 'Must be > 0' });
       if (row.mediaId) {
@@ -149,7 +195,7 @@ export default function BulkUploadPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultState]);
 
-  const invalidRows = new Set(errors.map((e) => e.row));
+  const invalidRows = new Set(errors.filter((e) => !e.warning).map((e) => e.row));
   const validCount = rawRows.length - invalidRows.size;
 
   async function importValid() {
@@ -166,8 +212,8 @@ export default function BulkUploadPage() {
           location: r.location,
           areaName: r.areaName,
           locationDetails: r.locationDetails,
-          latitude: r.latitude ? Number(r.latitude) : undefined,
-          longitude: r.longitude ? Number(r.longitude) : undefined,
+          latitude: usableCoord(r.latitude, 90),
+          longitude: usableCoord(r.longitude, 180),
           illumination: r.illumination,
           width: r.width ? Number(r.width) : undefined,
           height: r.height ? Number(r.height) : undefined,
@@ -242,7 +288,7 @@ export default function BulkUploadPage() {
           </div>
 
           {errors.length > 0 && (
-            <Panel title="Validation Errors">
+            <Panel title="Validation Errors & Warnings">
               <div className="overflow-x-auto max-h-64 overflow-y-auto">
                 <table className="w-full text-sm">
                   <thead className="text-left text-xs font-semibold text-slate-500 uppercase">
@@ -257,7 +303,10 @@ export default function BulkUploadPage() {
                       <tr key={i}>
                         <td className="py-1.5 pr-4">{e.row}</td>
                         <td className="py-1.5 pr-4">{e.field}</td>
-                        <td className="py-1.5 text-red-600">{e.error}</td>
+                        <td className={`py-1.5 ${e.warning ? 'text-amber-600' : 'text-red-600'}`}>
+                          {e.warning ? 'Warning: ' : ''}
+                          {e.error}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

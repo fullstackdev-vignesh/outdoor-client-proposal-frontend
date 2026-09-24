@@ -11,7 +11,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) router.replace('/login');
+    if (loading || user) return;
+    // Deferred to the next tick: this effect can run on the very first commit, before the App
+    // Router has initialized ("Router action dispatched before initialization").
+    const id = setTimeout(() => router.replace('/login'), 0);
+    return () => clearTimeout(id);
   }, [user, loading, router]);
 
   if (loading || !user) {

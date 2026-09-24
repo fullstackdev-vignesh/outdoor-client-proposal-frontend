@@ -32,6 +32,8 @@ export default function SitesPage() {
   const { showToast } = useToast();
   const params = useSearchParams();
   const canManage = user?.role === 'admin' || user?.role === 'tl' || user?.role === 'user';
+  // Deleting a site is admin-only (the API enforces the same rule).
+  const canDelete = user?.role === 'admin';
 
   const [items, setItems] = useState<Site[]>([]);
   const [total, setTotal] = useState(0);
@@ -354,12 +356,14 @@ export default function SitesPage() {
                             >
                               <Pencil className="h-4 w-4" />
                             </button>
-                            <button
-                              onClick={() => setDeleteTarget(site)}
-                              className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-red-600"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+                            {canDelete && (
+                              <button
+                                onClick={() => setDeleteTarget(site)}
+                                className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-red-600"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            )}
                           </>
                         )}
                       </div>

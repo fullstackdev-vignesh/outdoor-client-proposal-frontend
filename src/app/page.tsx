@@ -10,7 +10,10 @@ export default function RootPage() {
 
   useEffect(() => {
     if (loading) return;
-    router.replace(user ? '/dashboard' : '/login');
+    // Deferred to the next tick: this effect can run on the very first commit, before the App
+    // Router has initialized ("Router action dispatched before initialization").
+    const id = setTimeout(() => router.replace(user ? '/dashboard' : '/login'), 0);
+    return () => clearTimeout(id);
   }, [user, loading, router]);
 
   return null;

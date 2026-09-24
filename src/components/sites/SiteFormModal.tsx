@@ -336,14 +336,12 @@ export default function SiteFormModal({
     if (!form.state.trim()) errs.state = 'State is required';
     if (!form.city.trim()) errs.city = 'City is required';
     if (!form.location.trim()) errs.location = 'Location is required';
-    if (!form.areaName.trim()) errs.areaName = 'Area Name is required';
-
-    if (!form.latitude) errs.latitude = 'Latitude is required';
-    else if (isNaN(Number(form.latitude)) || Number(form.latitude) < -90 || Number(form.latitude) > 90) {
+    // Area Name, Latitude, Longitude, Display Cost Per Month and Media Image are optional —
+    // only validated when a value is entered.
+    if (form.latitude !== '' && (isNaN(Number(form.latitude)) || Number(form.latitude) < -90 || Number(form.latitude) > 90)) {
       errs.latitude = 'Latitude must be between -90 and 90';
     }
-    if (!form.longitude) errs.longitude = 'Longitude is required';
-    else if (isNaN(Number(form.longitude)) || Number(form.longitude) < -180 || Number(form.longitude) > 180) {
+    if (form.longitude !== '' && (isNaN(Number(form.longitude)) || Number(form.longitude) < -180 || Number(form.longitude) > 180)) {
       errs.longitude = 'Longitude must be between -180 and 180';
     }
 
@@ -353,17 +351,16 @@ export default function SiteFormModal({
     if (!form.height) errs.height = 'Height is required';
     else if (Number(form.height) <= 0) errs.height = 'Height must be greater than 0';
 
-    for (const [key, label] of [
-      ['monthlyAmount', 'Display Cost Per Month'],
-      ['printingCost', 'Printing Cost'],
-      ['mountingCost', 'Mounting Cost'],
+    for (const [key, label, required] of [
+      ['monthlyAmount', 'Display Cost Per Month', false],
+      ['printingCost', 'Printing Cost', true],
+      ['mountingCost', 'Mounting Cost', true],
     ] as const) {
       const val = form[key];
-      if (!val) errs[key] = `${label} is required`;
-      else if (isNaN(Number(val)) || Number(val) < 0) errs[key] = `${label} must be a valid number >= 0`;
+      if (!val) {
+        if (required) errs[key] = `${label} is required`;
+      } else if (isNaN(Number(val)) || Number(val) < 0) errs[key] = `${label} must be a valid number >= 0`;
     }
-
-    if (!form.mediaImage && !imageFile) errs.mediaImage = 'Media Image is required';
 
     if (form.mediaStatus === 'booked') {
       if (bookingRows.length === 0) errs.booking = 'At least one booking is required';
@@ -401,10 +398,12 @@ export default function SiteFormModal({
       // The backend uploads it and stores the returned URL — no separate upload call.
       const fd = new FormData();
       const numericFields = new Set(['quantity', 'latitude', 'longitude', 'width', 'height', 'amount', 'gstAmount', 'monthlyAmount', 'printingCost', 'mountingCost']);
+      const OPTIONAL_NUMERIC_FIELDS = new Set(['latitude', 'longitude', 'monthlyAmount']);
       (Object.keys(form) as (keyof typeof form)[]).forEach((key) => {
         if (key === 'mediaImage') return; // never send the existing URL as a field; only a new file goes up
         const value = form[key];
-        if (numericFields.has(key) && value === '') return;
+        // Optional numbers are still sent blank on Edit so clearing a saved value actually removes it.
+        if (numericFields.has(key) && value === '' && !(site && OPTIONAL_NUMERIC_FIELDS.has(key))) return;
         fd.append(key, String(value));
       });
       if (form.mediaStatus === 'booked') {
@@ -515,7 +514,7 @@ export default function SiteFormModal({
               className={fieldCls(!!errors.location)}
             />
           </Field>
-          <Field label="Area Name" required error={errors.areaName}>
+          <Field label="Area Name" error={errors.areaName}>
             <input
               id="site-field-areaName"
               placeholder="Enter area name"
@@ -536,7 +535,7 @@ export default function SiteFormModal({
         </Section>
 
         <Section title="Location Details">
-          <Field label="Latitude" required error={errors.latitude}>
+          <Field label="Latitude" error={errors.latitude}>
             <input
               id="site-field-latitude"
               placeholder="e.g. 13.0827"
@@ -545,7 +544,7 @@ export default function SiteFormModal({
               className={fieldCls(!!errors.latitude)}
             />
           </Field>
-          <Field label="Longitude" required error={errors.longitude}>
+          <Field label="Longitude" error={errors.longitude}>
             <input
               id="site-field-longitude"
               placeholder="e.g. 80.2707"
@@ -607,7 +606,7 @@ export default function SiteFormModal({
         </Section>
 
         <Section title="Pricing">
-          <Field label="Display Cost Per Month" required error={errors.monthlyAmount}>
+          <Field label="Display Cost Per Month" error={errors.monthlyAmount}>
             <input
               id="site-field-monthlyAmount"
               type="text"
@@ -682,7 +681,7 @@ export default function SiteFormModal({
                 }`}
               >
                 <ImagePlus className="h-6 w-6 mb-1" />
-                <span className="text-xs">Upload image *</span>
+                <span className="text-xs">Upload image</span>
                 <input
                   type="file"
                   accept="image/*"
