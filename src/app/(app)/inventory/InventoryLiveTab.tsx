@@ -60,7 +60,8 @@ export default function InventoryLiveTab() {
       const setter = append ? setLoadingMore : setLoading;
       setter(true);
       return api
-        .get('/sites', { params: { page: pageNum, limit: PAGE_SIZE, search, ...filters } })
+        // Inventory lists by the latest status/booking/block change, not by Site master edits.
+        .get('/sites', { params: { page: pageNum, limit: PAGE_SIZE, search, ...filters, sortBy: 'inventory' } })
         .then((res) => {
           setTotal(res.data.total);
           nextPageRef.current = pageNum + 1;
@@ -132,7 +133,7 @@ export default function InventoryLiveTab() {
     setExporting(true);
     try {
       const res = await api.get('/sites/export', {
-        params: { search, ...filters, filenamePrefix: 'inventory' },
+        params: { search, ...filters, filenamePrefix: 'inventory', sortBy: 'inventory' },
         responseType: 'blob',
       });
       const disposition = res.headers['content-disposition'] || '';

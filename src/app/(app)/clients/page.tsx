@@ -95,7 +95,7 @@ export default function ClientsPage() {
                 <th className="px-4 py-3">Phone</th>
                 <th className="px-4 py-3">Email</th>
                 <th className="px-4 py-3">Location</th>
-                <th className="px-4 py-3">Status</th>
+                {/* <th className="px-4 py-3">Status</th> */}
                 <th className="px-4 py-3">Created</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
@@ -122,11 +122,11 @@ export default function ClientsPage() {
                     <td className="px-4 py-3 text-slate-600">{c.phone || '-'}</td>
                     <td className="px-4 py-3 text-slate-600">{c.email || '-'}</td>
                     <td className="px-4 py-3 text-slate-600">{c.location || '-'}</td>
-                    <td className="px-4 py-3">
+                    {/* <td className="px-4 py-3">
                       <span className={`text-xs font-medium ${c.isActive ? 'text-emerald-600' : 'text-slate-400'}`}>
                         {c.isActive ? 'Active' : 'Inactive'}
                       </span>
-                    </td>
+                    </td> */}
                     <td className="px-4 py-3 text-slate-500">{formatIST(c.createdAt)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">

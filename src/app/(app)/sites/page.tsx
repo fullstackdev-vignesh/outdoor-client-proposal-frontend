@@ -268,7 +268,7 @@ export default function SitesPage() {
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Active</th>
                 <th className="px-4 py-3">Inventory Updated</th>
-                <th className="px-4 py-3">Last Updated</th>
+                <th className="px-4 py-3">Site Updated</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
