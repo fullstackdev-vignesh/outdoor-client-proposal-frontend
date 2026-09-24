@@ -63,12 +63,15 @@ export default function DatePicker({
   className,
   error,
   disabled,
+  disabledRanges,
 }: {
   id?: string;
   value?: string;
   onChange?: (value: string) => void;
   min?: string;
   max?: string;
+  // Inclusive 'YYYY-MM-DD' ranges that can't be picked (e.g. dates already booked).
+  disabledRanges?: { start: string; end: string }[];
   minYear?: number;
   maxYear?: number;
   placeholder?: string;
@@ -151,6 +154,11 @@ export default function DatePicker({
   function isDisabled(ymd: YMD) {
     if (minYMD && compareYMD(ymd, minYMD) < 0) return true;
     if (maxYMD && compareYMD(ymd, maxYMD) > 0) return true;
+    if (disabledRanges?.length) {
+      // 'YYYY-MM-DD' strings compare correctly as plain strings.
+      const iso = toISO(ymd);
+      if (disabledRanges.some((r) => iso >= r.start.slice(0, 10) && iso <= r.end.slice(0, 10))) return true;
+    }
     return false;
   }
 
@@ -360,14 +368,19 @@ export default function DatePicker({
               const isSelected = !!selected && compareYMD(ymd, selected) === 0;
               const isToday = compareYMD(ymd, todayYMD) === 0;
               const dis = isDisabled(ymd);
+              const iso = toISO(ymd);
+              const inBlockedRange = !!disabledRanges?.some((r) => iso >= r.start.slice(0, 10) && iso <= r.end.slice(0, 10));
               return (
                 <button
                   key={i}
                   type="button"
                   disabled={dis}
+                  title={inBlockedRange ? 'Already booked' : undefined}
                   onClick={() => selectDay(c.y, c.m, c.d)}
                   className={`h-8 w-8 rounded-lg text-sm mx-auto flex items-center justify-center transition ${
-                    dis
+                    inBlockedRange
+                      ? 'bg-red-50 text-red-300 line-through cursor-not-allowed'
+                      : dis
                       ? 'text-slate-300 cursor-not-allowed'
                       : c.outside
                       ? 'text-slate-300 hover:bg-slate-100'

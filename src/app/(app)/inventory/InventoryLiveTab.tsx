@@ -400,6 +400,17 @@ export default function InventoryLiveTab() {
                             </option>
                           ))}
                         </select>
+                        {/* Booked → Booked isn't a status "change", so the Save button stays off —
+                            this lets a Booked site take another booking (another client/dates). */}
+                        {site.mediaStatus === 'booked' && !hasChange && (
+                          <button
+                            type="button"
+                            onClick={() => setRowModal({ site, status: 'booked' })}
+                            className="mt-1 block text-[11px] font-medium text-blue-600 hover:underline"
+                          >
+                            + Add Booking
+                          </button>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <StatusDetailsPopover site={site} onViewFullDetails={() => setViewSite(site)} />

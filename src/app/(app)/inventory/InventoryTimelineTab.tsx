@@ -234,7 +234,7 @@ export default function InventoryTimelineTab() {
         <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 border-b border-slate-100">
           <h2 className="text-sm font-semibold text-slate-700">Inventory Timeline</h2>
           <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
-            {total} {total === 1 ? 'Record' : 'Records'} · {distinctSiteCount} {distinctSiteCount === 1 ? 'Site' : 'Sites'}
+            {distinctSiteCount} {distinctSiteCount === 1 ? 'Site' : 'Sites'}
           </span>
         </div>
         <div className="overflow-x-auto">
@@ -251,7 +251,6 @@ export default function InventoryTimelineTab() {
                 <th className="px-4 py-3">From Date</th>
                 <th className="px-4 py-3">To Date</th>
                 <th className="px-4 py-3">Duration</th>
-                <th className="px-4 py-3">Details</th>
                 <th className="px-4 py-3">Changed On</th>
                 <th className="px-4 py-3">Changed By</th>
                 <th className="px-4 py-3">Source</th>
@@ -261,14 +260,14 @@ export default function InventoryTimelineTab() {
             <tbody className="divide-y divide-slate-100">
               {loading && (
                 <tr>
-                  <td colSpan={15} className="px-4 py-10 text-center text-slate-400">
+                  <td colSpan={14} className="px-4 py-10 text-center text-slate-400">
                     Loading timeline...
                   </td>
                 </tr>
               )}
               {!loading && items.length === 0 && (
                 <tr>
-                  <td colSpan={15}>
+                  <td colSpan={14}>
                     <EmptyState title="No history found" subtitle="Try adjusting your filters or date range." />
                   </td>
                 </tr>
@@ -308,29 +307,6 @@ export default function InventoryTimelineTab() {
                       <td className="px-4 py-3 text-xs text-slate-500">
                         {(h.status === 'booked' || h.status === 'cancelled') && h.bookingSnapshot?.durationDays ? `${h.bookingSnapshot.durationDays} Days` : '-'}
                       </td>
-                      <td className="px-4 py-3 text-xs text-slate-600 max-w-[240px] truncate" title={
-                        h.status === 'booked'
-                          ? `${h.bookingSnapshot?.customerName || '-'} • ${h.bookingSnapshot?.durationDays || 0} Days • ₹${(h.bookingSnapshot?.amount || 0).toLocaleString()}`
-                          : h.status === 'cancelled'
-                          ? `Booked Period: ${h.bookingSnapshot?.startDate ? formatISTDate(h.bookingSnapshot.startDate) : '-'} → ${h.bookingSnapshot?.endDate ? formatISTDate(h.bookingSnapshot.endDate) : '-'} • Cancelled: ${h.cancellationSnapshot?.cancelledAt ? formatIST(h.cancellationSnapshot.cancelledAt) : '-'} • Reason: ${h.cancellationSnapshot?.reason || '-'} • By: ${h.cancellationSnapshot?.cancelledByName || '-'}${h.cancellationSnapshot?.cancelledByRole ? ` (${h.cancellationSnapshot.cancelledByRole.toUpperCase()})` : ''}`
-                          : h.status === 'blocked'
-                          ? h.blockSnapshot?.reason || '-'
-                          : ''
-                      }>
-                        {h.status === 'booked' && (
-                          <span>
-                            {h.bookingSnapshot?.customerName || '-'} • {h.bookingSnapshot?.durationDays || 0} Days • ₹{(h.bookingSnapshot?.amount || 0).toLocaleString()}
-                          </span>
-                        )}
-                        {h.status === 'cancelled' && (
-                          <span>
-                            Reason: {h.cancellationSnapshot?.reason || '-'} • By: {h.cancellationSnapshot?.cancelledByName || '-'}
-                            {h.cancellationSnapshot?.cancelledByRole ? ` (${h.cancellationSnapshot.cancelledByRole.toUpperCase()})` : ''}
-                          </span>
-                        )}
-                        {h.status === 'blocked' && <span>{h.blockSnapshot?.reason || '-'}</span>}
-                        {h.status === 'available' && <span>—</span>}
-                      </td>
                       <td className="px-4 py-3 text-xs text-slate-500">{formatIST(h.changedAt)}</td>
                       <td className="px-4 py-3 text-xs text-slate-500">{changedByName || '-'}</td>
                       <td className="px-4 py-3 text-xs capitalize text-slate-500">{h.source}</td>
@@ -340,6 +316,9 @@ export default function InventoryTimelineTab() {
                           className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50"
                         >
                           <History className="h-3.5 w-3.5" /> View
+                          {h.changeCount && h.changeCount > 1 ? (
+                            <span className="ml-0.5 rounded-full bg-blue-50 px-1.5 text-[10px] font-semibold text-blue-700">{h.changeCount}</span>
+                          ) : null}
                         </button>
                       </td>
                     </tr>
@@ -350,7 +329,7 @@ export default function InventoryTimelineTab() {
         </div>
         <div ref={sentinelRef} className="py-4 text-center text-xs text-slate-400">
           {loadingMore && 'Loading more...'}
-          {!loading && !loadingMore && `Showing ${items.length} of ${total} History Records • ${distinctSiteCount} Sites`}
+          {!loading && !loadingMore && `Showing ${items.length} of ${total} Sites • click View to see every change for a site`}
         </div>
       </div>
 

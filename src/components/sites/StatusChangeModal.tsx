@@ -16,6 +16,21 @@ function calcDurationDays(start: string, end: string) {
   return diff >= 0 ? diff + 1 : 0;
 }
 
+function formatDay(value?: string) {
+  if (!value) return '-';
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return '-';
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${String(d.getUTCDate()).padStart(2, '0')}-${MONTHS[d.getUTCMonth()]}`;
+}
+
+// 'YYYY-MM-DD' → the previous day, built from UTC parts so there's no timezone shift.
+function dayBefore(iso: string) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const prev = new Date(Date.UTC(y, m - 1, d - 1));
+  return prev.toISOString().slice(0, 10);
+}
+
 function calcBookingAmount(monthlyTotalCost: number, durationDays: number) {
   return Math.round(((monthlyTotalCost / 30) * durationDays + Number.EPSILON) * 100) / 100;
 }
@@ -47,13 +62,14 @@ export default function StatusChangeModal({
   const [cancellationReason, setCancellationReason] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  // A site that's already Booked can take more bookings (another client, later dates) —
+  // 'new' adds a separate booking and leaves the current one untouched; 'edit' changes the
+  // current booking's client/dates.
+  const [bookingMode, setBookingMode] = useState<'new' | 'edit'>('new');
 
-  useEffect(() => {
-    if (!site || !open) return;
-    setNewStatus(initialStatus || site.mediaStatus);
-
-    if (site.mediaStatus === 'booked' && site.bookingInfo) {
-      const b = site.bookingInfo;
+  function fillBookingFields(mode: 'new' | 'edit') {
+    const b = site?.bookingInfo;
+    if (mode === 'edit' && b) {
       setCustomerType(b.customerType || 'client');
       setClientId(typeof b.client === 'object' ? b.client?._id || '' : b.client || '');
       setStartDate(b.startDate ? b.startDate.slice(0, 10) : '');
@@ -64,6 +80,23 @@ export default function StatusChangeModal({
       setStartDate('');
       setEndDate('');
     }
+  }
+
+  function switchBookingMode(mode: 'new' | 'edit') {
+    setBookingMode(mode);
+    fillBookingFields(mode);
+  }
+
+  useEffect(() => {
+    if (!site || !open) return;
+    setNewStatus(initialStatus || site.mediaStatus);
+    setBookingMode('new');
+    fillBookingFields('new');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [site, open, initialStatus]);
+
+  useEffect(() => {
+    if (!site || !open) return;
 
     if (site.mediaStatus === 'blocked' && site.blockInfo) {
       setBlockReason(site.blockInfo.reason || '');
@@ -84,6 +117,28 @@ export default function StatusChangeModal({
   // Booked -> Available is really "cancel the booking that's making this site Booked" — never
   // a silent status flip. Only relevant when the site is CURRENTLY Booked.
   const isCancellingBooking = site?.mediaStatus === 'booked' && newStatus === 'available';
+  const hasCurrentBooking = site?.mediaStatus === 'booked' && !!site?.bookingInfo;
+  // Bookings still in play (active or upcoming) — shown so a new booking can be placed around them.
+  const openBookings = (site?.bookings || [])
+    .filter((b) => b.status !== 'cancelled' && b.status !== 'completed')
+    .sort((a, b) => (a.startDate || '').localeCompare(b.startDate || ''));
+  // Older bookings saved from this popup have no customerName stored — fall back to the client list.
+  function bookingCustomerName(b: (typeof openBookings)[number]) {
+    if (b.customerName) return b.customerName;
+    if (typeof b.client === 'object' && b.client?.name) return b.client.name;
+    const id = typeof b.client === 'object' ? b.client?._id : b.client;
+    return clients.find((c) => c._id === id)?.name;
+  }
+
+  // Dates taken by OTHER bookings are greyed out in both pickers (when editing, the booking being
+  // edited doesn't block itself).
+  const editingId = hasCurrentBooking && bookingMode === 'edit' ? site?.bookingInfo?.bookingId : undefined;
+  const bookedRanges = openBookings
+    .filter((b) => b.bookingId !== editingId && b.startDate && b.endDate)
+    .map((b) => ({ start: b.startDate.slice(0, 10), end: b.endDate.slice(0, 10) }));
+  // The End Date can't run past the next booking after the chosen Start Date.
+  const nextBookedStart = startDate ? bookedRanges.map((r) => r.start).filter((s) => s > startDate).sort()[0] : undefined;
+  const endDateMax = nextBookedStart ? dayBefore(nextBookedStart) : undefined;
 
   async function submit() {
     if (!site) return;
@@ -95,7 +150,14 @@ export default function StatusChangeModal({
         payload.blockNotes = blockNotes;
       }
       if (newStatus === 'booked') {
-        payload.bookingInfo = { customerType, client: clientId, startDate, endDate };
+        payload.bookingInfo = {
+          customerType,
+          client: clientId,
+          customerName: clients.find((c) => c._id === clientId)?.name,
+          startDate,
+          endDate,
+        };
+        payload.bookingMode = hasCurrentBooking ? bookingMode : 'new';
       }
       if (isCancellingBooking) {
         payload.cancellationReason = cancellationReason.trim();
@@ -204,6 +266,47 @@ export default function StatusChangeModal({
 
           {newStatus === 'booked' && (
             <div className="space-y-3 rounded-lg bg-blue-50 border border-blue-100 p-3">
+              {openBookings.length > 0 && (
+                <div className="rounded-lg bg-white border border-blue-200 p-2.5">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1.5">Existing Bookings</p>
+                  <ul className="space-y-1 text-xs text-slate-600">
+                    {openBookings.map((b) => (
+                      <li key={b.bookingId} className="flex justify-between gap-2">
+                        <span>
+                          {b.customerType === 'agency' ? 'Agency' : 'Client'}:{' '}
+                          <span className="font-medium text-slate-800">{bookingCustomerName(b) || '-'}</span>
+                        </span>
+                        <span>
+                          {formatDay(b.startDate)} → {formatDay(b.endDate)}
+                          <span className="ml-1.5 capitalize text-blue-600">{b.status}</span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {hasCurrentBooking && (
+                <div className="flex gap-2">
+                  {([
+                    ['new', '+ Add New Booking'],
+                    ['edit', 'Edit Current Booking'],
+                  ] as const).map(([mode, label]) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => switchBookingMode(mode)}
+                      className={`rounded-lg border px-3 py-1.5 text-xs font-medium ${
+                        bookingMode === mode ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {hasCurrentBooking && bookingMode === 'new' && (
+                <p className="text-xs text-slate-500">Adds a separate booking — existing bookings are kept. Dates must not overlap them.</p>
+              )}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Customer Type *</label>
                 <div className="flex gap-2">
@@ -241,17 +344,26 @@ export default function StatusChangeModal({
                     value={startDate}
                     onChange={(v) => {
                       setStartDate(v);
-                      // Clear an End Date that's no longer valid against the new Start Date —
-                      // a still-valid End Date is left untouched.
-                      if (endDate && v && endDate < v) setEndDate('');
+                      // Clear an End Date that's no longer valid against the new Start Date (before
+                      // it, or reaching into another booking) — a still-valid one is left untouched.
+                      if (endDate && v && (endDate < v || bookedRanges.some((r) => r.start > v && r.start <= endDate))) {
+                        setEndDate('');
+                      }
                     }}
                     min={todayISO()}
                     max={endDate || undefined}
+                    disabledRanges={bookedRanges}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">End Date *</label>
-                  <DatePicker value={endDate} onChange={setEndDate} min={startDate || undefined} />
+                  <DatePicker
+                    value={endDate}
+                    onChange={setEndDate}
+                    min={startDate || undefined}
+                    max={endDateMax}
+                    disabledRanges={bookedRanges}
+                  />
                 </div>
               </div>
               {!validDateRange && <p className="text-xs text-red-500">End Date must be on or after Start Date</p>}

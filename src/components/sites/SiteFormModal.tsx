@@ -299,6 +299,23 @@ export default function SiteFormModal({
     }
   }
 
+  // Dates held by the OTHER booking cards — greyed out in this card's pickers so bookings can't overlap.
+  function otherBookingRanges(index: number) {
+    return bookingRows
+      .filter((r, i) => i !== index && r.startDate && r.endDate)
+      .map((r) => ({ start: r.startDate, end: r.endDate }));
+  }
+
+  // This card's End Date can't run past the next other booking after its Start Date.
+  function endDateLimit(index: number) {
+    const start = bookingRows[index]?.startDate;
+    if (!start) return undefined;
+    const next = otherBookingRanges(index).map((r) => r.start).filter((s) => s > start).sort()[0];
+    if (!next) return undefined;
+    const [y, m, d] = next.split('-').map(Number);
+    return new Date(Date.UTC(y, m - 1, d - 1)).toISOString().slice(0, 10);
+  }
+
   function updateBookingRow(index: number, patch: Partial<BookingRow>) {
     setBookingRows((rows) => rows.map((r, i) => (i === index ? { ...r, ...patch } : r)));
     setErrors((e) => {
@@ -837,6 +854,7 @@ export default function SiteFormModal({
                         // untouched until the user actively picks a different date.
                         min={todayISO()}
                         max={row.endDate || undefined}
+                        disabledRanges={otherBookingRanges(index)}
                         error={!!errors[`booking-${index}`]}
                         disabled={readOnly}
                       />
@@ -847,6 +865,8 @@ export default function SiteFormModal({
                         value={row.endDate}
                         onChange={(v) => updateBookingRow(index, { endDate: v })}
                         min={row.startDate || undefined}
+                        max={endDateLimit(index)}
+                        disabledRanges={otherBookingRanges(index)}
                         error={!!errors[`booking-${index}`]}
                         disabled={readOnly}
                       />

@@ -108,6 +108,8 @@ export interface SiteHistoryEntry {
 export interface InventoryHistoryEntry {
   _id: string;
   site: string;
+  // Timeline list only (one row per site): how many history entries this site has.
+  changeCount?: number;
   mediaId: string;
   mediaType?: string;
   state?: string;
