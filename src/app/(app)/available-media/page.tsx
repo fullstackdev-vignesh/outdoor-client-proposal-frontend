@@ -6,6 +6,7 @@ import api from '@/lib/api';
 import Pagination from '@/components/ui/Pagination';
 import EmptyState from '@/components/ui/EmptyState';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { StateSelect, CitySelect } from '@/components/ui/StateCitySelect';
 import { useToast } from '@/components/ui/Toast';
 import type { Site, PaginatedResponse } from '@/lib/types';
 
@@ -56,7 +57,7 @@ export default function AvailableMediaPage() {
         )}
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-4 flex flex-wrap gap-3">
+      <div className="rounded-xl border border-slate-200 bg-white p-4 flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[220px]">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
           <input
@@ -69,24 +70,25 @@ export default function AvailableMediaPage() {
             className="w-full rounded-lg border border-slate-300 pl-9 pr-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
           />
         </div>
-        <input
-          placeholder="State"
+        <StateSelect
           value={filters.state}
-          onChange={(e) => {
-            setFilters((f) => ({ ...f, state: e.target.value }));
+          onChange={(state) => {
+            setFilters((f) => ({ ...f, state, city: '' }));
             setPage(1);
           }}
-          className="w-32 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className="w-40 rounded-lg border border-slate-300 px-3 py-2 text-sm"
         />
-        <input
-          placeholder="City"
-          value={filters.city}
-          onChange={(e) => {
-            setFilters((f) => ({ ...f, city: e.target.value }));
-            setPage(1);
-          }}
-          className="w-32 rounded-lg border border-slate-300 px-3 py-2 text-sm"
-        />
+        <div className="w-40">
+          <CitySelect
+            state={filters.state}
+            value={filters.city}
+            onChange={(city) => {
+              setFilters((f) => ({ ...f, city }));
+              setPage(1);
+            }}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          />
+        </div>
         <input
           placeholder="Media Type"
           value={filters.mediaType}
@@ -111,7 +113,7 @@ export default function AvailableMediaPage() {
           >
             <div className="h-32 bg-slate-100 flex items-center justify-center overflow-hidden">
               {site.mediaImage ? (
-                <img src={site.mediaImage} alt={site.mediaName} className="w-full h-full object-cover" />
+                <img src={site.mediaImage} alt={site.mediaName || site.mediaId} className="w-full h-full object-cover" />
               ) : (
                 <span className="text-xs text-slate-400">No image</span>
               )}
@@ -119,7 +121,7 @@ export default function AvailableMediaPage() {
             <div className="p-4 space-y-2">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="font-semibold text-slate-800 text-sm">{site.mediaName}</p>
+                  <p className="font-semibold text-slate-800 text-sm">{site.mediaCode || site.mediaId}</p>
                   <p className="text-xs text-slate-400">{site.mediaType}</p>
                 </div>
                 <StatusBadge status={site.mediaStatus} />

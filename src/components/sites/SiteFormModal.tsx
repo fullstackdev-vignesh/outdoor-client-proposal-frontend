@@ -504,7 +504,7 @@ export default function SiteFormModal({
             />
           </Field>
           <Field label="City" required error={errors.city}>
-            <CitySelect state={form.state} value={form.city} onChange={(city) => update('city', city)} className={fieldCls(!!errors.city)} />
+            <CitySelect state={form.state} value={form.city} onChange={(city) => update('city', city)} className={fieldCls(!!errors.city)} allowAdd={true} />
           </Field>
           <Field label="Location" required error={errors.location}>
             <input

@@ -16,7 +16,6 @@ import {
   PlusCircle,
   Upload,
   UserPlus,
-  FileUp,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
@@ -33,6 +32,14 @@ interface DashboardStats {
     proposals: any[];
     users: any[];
   };
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function formatDateLabel(value?: string | Date) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return '';
+  return `${String(d.getUTCDate()).padStart(2, '0')}-${MONTHS[d.getUTCMonth()]}-${d.getUTCFullYear()}`;
 }
 
 export default function DashboardPage() {
@@ -108,14 +115,12 @@ export default function DashboardPage() {
 
       {user?.role === 'admin' && (
         <Panel title="Quick Actions">
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
               { label: 'Add Site', href: '/sites?action=add', icon: PlusCircle },
               { label: 'Bulk Upload Sites', href: '/sites/bulk-upload', icon: Upload },
               { label: 'Add Client', href: '/clients?action=add', icon: UserPlus },
-              { label: 'Upload PPT Master', href: '/ppt-master?action=add', icon: FileUp },
               { label: 'Create Proposal', href: '/proposals/new', icon: FileText },
-              { label: 'Create Booking', href: '/bookings?action=add', icon: CalendarCheck },
             ].map((a) => (
               <Link
                 key={a.label}
@@ -136,7 +141,7 @@ export default function DashboardPage() {
             {recent.sites.map((s) => (
               <li key={s._id} className="flex items-center justify-between py-2.5 text-sm">
                 <div>
-                  <p className="font-medium text-slate-800">{s.mediaName}</p>
+                  <p className="font-medium text-slate-800">{s.mediaCode || s.mediaId || s.mediaName}</p>
                   <p className="text-xs text-slate-400">{s.city}, {s.state}</p>
                 </div>
                 <StatusBadge status={s.mediaStatus} />
@@ -160,15 +165,42 @@ export default function DashboardPage() {
 
         <Panel title="Recent Bookings">
           <ul className="divide-y divide-slate-100">
-            {recent.bookings.map((b) => (
-              <li key={b._id} className="flex items-center justify-between py-2.5 text-sm">
-                <div>
-                  <p className="font-medium text-slate-800">{b.bookingId}</p>
-                  <p className="text-xs text-slate-400">{typeof b.client === 'object' ? b.client?.name : ''}</p>
-                </div>
-                <span className="text-xs font-medium text-slate-500 capitalize">{b.status}</span>
-              </li>
-            ))}
+            {recent.bookings.map((b: any) => {
+              const clientNameLabel =
+                b.clientName && b.clientName !== '-'
+                  ? b.clientName
+                  : typeof b.client === 'object' && b.client?.name
+                  ? b.client.name
+                  : '';
+              const dateRangeLabel =
+                b.startDate && b.endDate
+                  ? `${formatDateLabel(b.startDate)} → ${formatDateLabel(b.endDate)}`
+                  : '';
+              return (
+                <li key={b.id || b._id || b.bookingId} className="flex items-center justify-between py-2.5 text-sm">
+                  <div>
+                    <p className="font-medium text-slate-800">
+                      {b.mediaCode || b.mediaId}
+                      {b.mediaType ? ` · ${b.mediaType}` : ''}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {clientNameLabel && dateRangeLabel
+                        ? `${clientNameLabel} (${dateRangeLabel})`
+                        : clientNameLabel || (dateRangeLabel ? `(${dateRangeLabel})` : '')}
+                    </p>
+                  </div>
+                  <span
+                    className={`text-xs font-semibold capitalize px-2 py-0.5 rounded border ${
+                      b.status === 'cancelled'
+                        ? 'bg-red-50 text-red-700 border-red-100'
+                        : 'bg-blue-50 text-blue-700 border-blue-100'
+                    }`}
+                  >
+                    {b.status || 'booked'}
+                  </span>
+                </li>
+              );
+            })}
             {recent.bookings.length === 0 && <p className="text-sm text-slate-400 py-4">No bookings yet</p>}
           </ul>
         </Panel>
