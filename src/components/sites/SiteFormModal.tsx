@@ -370,8 +370,8 @@ export default function SiteFormModal({
 
     for (const [key, label, required] of [
       ['monthlyAmount', 'Display Cost Per Month', false],
-      ['printingCost', 'Printing Cost', true],
-      ['mountingCost', 'Mounting Cost', true],
+      ['printingCost', 'Printing Cost', false],
+      ['mountingCost', 'Mounting Cost', false],
     ] as const) {
       const val = form[key];
       if (!val) {
@@ -415,7 +415,7 @@ export default function SiteFormModal({
       // The backend uploads it and stores the returned URL — no separate upload call.
       const fd = new FormData();
       const numericFields = new Set(['quantity', 'latitude', 'longitude', 'width', 'height', 'amount', 'gstAmount', 'monthlyAmount', 'printingCost', 'mountingCost']);
-      const OPTIONAL_NUMERIC_FIELDS = new Set(['latitude', 'longitude', 'monthlyAmount']);
+      const OPTIONAL_NUMERIC_FIELDS = new Set(['latitude', 'longitude', 'monthlyAmount', 'printingCost', 'mountingCost']);
       (Object.keys(form) as (keyof typeof form)[]).forEach((key) => {
         if (key === 'mediaImage') return; // never send the existing URL as a field; only a new file goes up
         const value = form[key];
@@ -636,7 +636,7 @@ export default function SiteFormModal({
               className={fieldCls(!!errors.monthlyAmount)}
             />
           </Field>
-          <Field label="Printing Cost" required error={errors.printingCost}>
+          <Field label="Printing Cost" error={errors.printingCost}>
             <input
               id="site-field-printingCost"
               type="text"
@@ -649,7 +649,7 @@ export default function SiteFormModal({
               className={fieldCls(!!errors.printingCost)}
             />
           </Field>
-          <Field label="Mounting Cost" required error={errors.mountingCost}>
+          <Field label="Mounting Cost" error={errors.mountingCost}>
             <input
               id="site-field-mountingCost"
               type="text"

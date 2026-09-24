@@ -17,6 +17,7 @@ export default function TemplateManager({
   endpoint,
   showVariant,
   pptxOnly,
+  excelOnly,
   formatOptions,
 }: {
   title: string;
@@ -25,6 +26,8 @@ export default function TemplateManager({
   showVariant?: boolean;
   /** Simplified upload flow (Name, Description, .pptx file, Status only) used by PPT Master. */
   pptxOnly?: boolean;
+  /** Restricted upload flow (.xlsx/.xls only) used by Excel Templates. */
+  excelOnly?: boolean;
   /** Which template-mapping config (backend config/*TemplateConfigs.js) drives generation
    * for files uploaded here. Omit to hide the field (falls back to 'generic'). */
   formatOptions?: { value: string; label: string }[];
@@ -82,6 +85,16 @@ export default function TemplateManager({
       }
       if (selectedFile && !/\.pptx$/i.test(selectedFile.name)) {
         showToast('Only .pptx files are allowed', 'error');
+        return;
+      }
+    }
+    if (excelOnly) {
+      if (!editing && !selectedFile) {
+        showToast('Please select an Excel file (.xlsx / .xls) to upload', 'error');
+        return;
+      }
+      if (selectedFile && !/\.(xlsx|xls)$/i.test(selectedFile.name)) {
+        showToast('Only .xlsx or .xls files are allowed', 'error');
         return;
       }
     }
@@ -262,8 +275,8 @@ export default function TemplateManager({
           )}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              File {pptxOnly ? '(.pptx)' : '(.pptx / .xlsx)'}
-              {pptxOnly && !editing ? ' *' : ''}
+              File {pptxOnly ? '(.pptx)' : excelOnly ? '(.xlsx / .xls)' : '(.pptx / .xlsx)'}
+              {(pptxOnly || excelOnly) && !editing ? ' *' : ''}
             </label>
             <label className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 py-6 text-sm text-slate-500 cursor-pointer hover:border-blue-400">
               <UploadCloud className="h-4 w-4" />
@@ -271,12 +284,23 @@ export default function TemplateManager({
               <input
                 type="file"
                 className="hidden"
-                accept={pptxOnly ? '.pptx' : '.pptx,.xlsx,.xls'}
+                accept={
+                  pptxOnly
+                    ? '.pptx'
+                    : excelOnly
+                    ? '.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel'
+                    : '.pptx,.xlsx,.xls'
+                }
                 onChange={(e) => {
                   const f = e.target.files?.[0];
                   if (!f) return;
                   if (pptxOnly && !/\.pptx$/i.test(f.name)) {
                     showToast('Only .pptx files are allowed', 'error');
+                    e.target.value = '';
+                    return;
+                  }
+                  if (excelOnly && !/\.(xlsx|xls)$/i.test(f.name)) {
+                    showToast('Only .xlsx or .xls files are allowed', 'error');
                     e.target.value = '';
                     return;
                   }

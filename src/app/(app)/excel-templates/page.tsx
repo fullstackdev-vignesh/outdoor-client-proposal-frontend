@@ -15,6 +15,7 @@ export default function ExcelTemplatesPage() {
       subtitle="Manage Excel formats used for client-specific proposal exports. Note: legacy .xls files (old binary Excel format) can be uploaded but must be re-saved as .xlsx before proposal generation will work."
       endpoint="/excel-templates"
       formatOptions={EXCEL_FORMAT_OPTIONS}
+      excelOnly
     />
   );
 }
