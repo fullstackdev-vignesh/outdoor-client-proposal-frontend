@@ -164,10 +164,6 @@ export default function ClientFormModal({
       errs.longitude = 'Longitude must be between -180 and 180.';
     }
 
-    if (form.agencyComm && (isNaN(Number(form.agencyComm)) || Number(form.agencyComm) < 0 || Number(form.agencyComm) > 100)) {
-      errs.agencyComm = 'Agency Comm must be between 0 and 100.';
-    }
-
     return errs;
   }
 
@@ -194,8 +190,8 @@ export default function ClientFormModal({
       fd.append('location', form.location.trim());
       if (form.latitude) fd.append('latitude', String(Number(form.latitude)));
       if (form.longitude) fd.append('longitude', String(Number(form.longitude)));
-      if (form.agencyComm) fd.append('agencyComm', String(Number(form.agencyComm)));
-      if (Number(form.gst) > 0) fd.append('gst', '18');
+      fd.append('agencyComm', form.agencyComm ? String(Number(form.agencyComm)) : '');
+      fd.append('gst', Number(form.gst) > 0 ? '18' : '0');
       if (form.notes) fd.append('notes', form.notes.trim());
 
       if (imageFile) {
@@ -372,14 +368,14 @@ export default function ClientFormModal({
         {isAgency && (
           <Field label="Agency Comm (%)" error={formErrors.agencyComm}>
             <input
-              type="number"
-              min="0"
-              max="100"
-              step="0.01"
-              placeholder="e.g. 2"
+              type="text"
+              inputMode="numeric"
+              placeholder="e.g. 2 %"
               value={form.agencyComm}
+              onWheel={(e) => e.currentTarget.blur()}
               onChange={(e) => {
-                update('agencyComm', e.target.value);
+                const val = e.target.value.replace(/\D/g, '').slice(0, 2);
+                update('agencyComm', val);
                 setFormErrors((prev) => ({ ...prev, agencyComm: undefined }));
               }}
               className={getInputCls(!!formErrors.agencyComm)}
