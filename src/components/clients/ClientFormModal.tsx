@@ -62,7 +62,7 @@ export default function ClientFormModal({
         latitude: client.latitude?.toString() || '',
         longitude: client.longitude?.toString() || '',
         agencyComm: client.agencyComm?.toString() || '',
-        gst: client.gst?.toString() || '',
+        gst: Number(client.gst) > 0 ? '18' : '',
         notes: '',
       });
     } else {
@@ -117,10 +117,6 @@ export default function ClientFormModal({
       errs.agencyComm = 'Agency Comm must be between 0 and 100.';
     }
 
-    if (form.gst && (isNaN(Number(form.gst)) || Number(form.gst) < 0 || Number(form.gst) > 100)) {
-      errs.gst = 'GST must be between 0 and 100.';
-    }
-
     return errs;
   }
 
@@ -147,7 +143,7 @@ export default function ClientFormModal({
         latitude: form.latitude ? Number(form.latitude) : undefined,
         longitude: form.longitude ? Number(form.longitude) : undefined,
         agencyComm: form.agencyComm ? Number(form.agencyComm) : null,
-        gst: form.gst ? Number(form.gst) : null,
+        gst: Number(form.gst) > 0 ? 18 : null,
       };
       if (client) {
         await api.put(`/clients/${client._id}`, payload);
@@ -284,21 +280,38 @@ export default function ClientFormModal({
           </Field>
         )}
 
-        <Field label="GST (%)" error={formErrors.gst}>
-          <input
-            type="number"
-            min="0"
-            max="100"
-            step="0.01"
-            placeholder="e.g. 18"
-            value={form.gst}
-            onChange={(e) => {
-              update('gst', e.target.value);
-              setFormErrors((prev) => ({ ...prev, gst: undefined }));
-            }}
-            className={getInputCls(!!formErrors.gst)}
-          />
-        </Field>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">GST (18%)</label>
+          <div className="flex items-center justify-between rounded-lg border border-slate-200 p-3 bg-slate-50/50">
+            <div className="space-y-0.5">
+              <span className="text-sm font-medium text-slate-800">
+                {Number(form.gst) > 0 ? '18% GST Enabled' : 'GST Disabled'}
+              </span>
+              <p className="text-xs text-slate-400">
+                {Number(form.gst) > 0 ? 'Apply 18% GST on proposals for this customer' : 'Do not apply GST for this customer'}
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={Number(form.gst) > 0}
+              onClick={() => {
+                const nextGst = Number(form.gst) > 0 ? '' : '18';
+                update('gst', nextGst);
+                setFormErrors((prev) => ({ ...prev, gst: undefined }));
+              }}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                Number(form.gst) > 0 ? 'bg-blue-600' : 'bg-slate-300'
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  Number(form.gst) > 0 ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+        </div>
 
         <Field label="Other Details">
           <textarea
@@ -308,12 +321,6 @@ export default function ClientFormModal({
             rows={2}
           />
         </Field>
-
-        {/* {errorMsg && (
-          <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700 font-medium">
-            {errorMsg}
-          </div>
-        )} */}
 
         <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
           <button
