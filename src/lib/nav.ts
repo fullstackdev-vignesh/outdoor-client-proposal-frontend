@@ -57,6 +57,7 @@ const NAV: Record<Role, NavItem[]> = {
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { label: 'Clients', href: '/clients', icon: Contact2 },
     { label: 'Sites / Media', href: '/sites', icon: Building2 },
+     { label: 'Site Info', href: '/site-info', icon: ClipboardList },
     // { label: 'Available Media', href: '/available-media', icon: Search },
     { label: 'Proposals', href: '/proposals', icon: FileText },
     // { label: 'PPT Master', href: '/ppt-master', icon: Presentation },
