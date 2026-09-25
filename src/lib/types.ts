@@ -159,6 +159,7 @@ export interface Client {
   longitude?: number;
   agencyComm?: number;
   gst?: number;
+  clientLocationPinImage?: string | null;
   isActive: boolean;
   createdAt: string;
 }

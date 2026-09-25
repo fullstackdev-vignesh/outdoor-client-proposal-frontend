@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
-import api from '@/lib/api';
+import { ArrowLeft, Building2, CheckCircle2, CalendarCheck, FileText } from 'lucide-react';
+import api, { fileBaseURL } from '@/lib/api';
 import { StatCard, Panel } from '@/components/ui/Card';
-import { Building2, CheckCircle2, CalendarCheck, FileText } from 'lucide-react';
 import EmptyState from '@/components/ui/EmptyState';
 
 const TABS = ['Overview', 'Media / Sites', 'Bookings', 'Proposals', 'Generated PPT', 'Generated Excel'] as const;
@@ -66,6 +65,16 @@ export default function ClientDetailsPage() {
             <Info label="Email" value={client.email || '-'} />
             <Info label="Location" value={client.location || '-'} />
           </dl>
+          {client.clientLocationPinImage && (
+            <div className="mt-4 pt-4 border-t border-slate-100">
+              <p className="text-xs font-medium text-slate-400 mb-2">Location Pin Image</p>
+              <img
+                src={client.clientLocationPinImage.startsWith('http') ? client.clientLocationPinImage : `${fileBaseURL}${client.clientLocationPinImage}`}
+                alt="Location Pin"
+                className="max-h-60 rounded-lg border border-slate-200 object-contain"
+              />
+            </div>
+          )}
         </Panel>
       )}
 

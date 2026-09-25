@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ImagePlus, Pencil, X } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
-import api from '@/lib/api';
+import api, { fileBaseURL } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import type { Client } from '@/lib/types';
 
@@ -29,6 +30,11 @@ interface FormErrors {
   gst?: string;
 }
 
+function resolveImageUrl(image?: string | null) {
+  if (!image) return '';
+  return /^(https?:|data:|blob:)/.test(image) ? image : `${fileBaseURL}${image}`;
+}
+
 export default function ClientFormModal({
   open,
   onClose,
@@ -45,6 +51,11 @@ export default function ClientFormModal({
   const [saving, setSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [errorMsg, setErrorMsg] = useState('');
+
+  const [imagePreview, setImagePreview] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageError, setImageError] = useState('');
+  const [imageRemoved, setImageRemoved] = useState(false);
 
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   const phoneDigitsRegex = /^\d{10}$/;
@@ -65,8 +76,16 @@ export default function ClientFormModal({
         gst: Number(client.gst) > 0 ? '18' : '',
         notes: '',
       });
+      setImageFile(null);
+      setImagePreview(resolveImageUrl(client.clientLocationPinImage));
+      setImageError('');
+      setImageRemoved(false);
     } else {
       setForm(empty);
+      setImageFile(null);
+      setImagePreview('');
+      setImageError('');
+      setImageRemoved(false);
     }
   }, [client, open]);
 
@@ -80,6 +99,38 @@ export default function ClientFormModal({
     setErrorMsg('');
     setFormErrors((prev) => ({ ...prev, phone: undefined }));
     setForm((f) => ({ ...f, phone: numericVal }));
+  }
+
+  function handleImageSelect(file: File) {
+    setImageError('');
+    const ext = file.name.split('.').pop()?.toLowerCase() || '';
+    const allowedExts = ['jpg', 'jpeg', 'png', 'webp'];
+    const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
+    if (!allowedExts.includes(ext) || !allowedMimes.some((m) => file.type.toLowerCase().includes(m) || file.type.startsWith('image/'))) {
+      const msg = 'Only JPG, JPEG, PNG and WEBP image files are allowed.';
+      setImageError(msg);
+      showToast(msg, 'error');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      const msg = 'Image size must be 10MB or smaller.';
+      setImageError(msg);
+      showToast(msg, 'error');
+      return;
+    }
+
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+    setImageRemoved(false);
+  }
+
+  function handleImageRemove() {
+    setImageFile(null);
+    setImagePreview('');
+    setImageError('');
+    setImageRemoved(true);
   }
 
   function validateForm(): FormErrors {
@@ -135,21 +186,30 @@ export default function ClientFormModal({
 
     setSaving(true);
     try {
-      const payload = {
-        ...form,
-        name: form.name.trim(),
-        phone: form.phone.trim(),
-        email: form.email.trim(),
-        latitude: form.latitude ? Number(form.latitude) : undefined,
-        longitude: form.longitude ? Number(form.longitude) : undefined,
-        agencyComm: form.agencyComm ? Number(form.agencyComm) : null,
-        gst: Number(form.gst) > 0 ? 18 : null,
-      };
+      const fd = new FormData();
+      fd.append('customerType', form.customerType);
+      fd.append('name', form.name.trim());
+      fd.append('phone', form.phone.trim());
+      fd.append('email', form.email.trim());
+      fd.append('location', form.location.trim());
+      if (form.latitude) fd.append('latitude', String(Number(form.latitude)));
+      if (form.longitude) fd.append('longitude', String(Number(form.longitude)));
+      if (form.agencyComm) fd.append('agencyComm', String(Number(form.agencyComm)));
+      if (Number(form.gst) > 0) fd.append('gst', '18');
+      if (form.notes) fd.append('notes', form.notes.trim());
+
+      if (imageFile) {
+        fd.append('clientLocationPinImage', imageFile);
+      } else if (imageRemoved) {
+        fd.append('clientLocationPinImage', '');
+        fd.append('removeClientLocationPinImage', 'true');
+      }
+
       if (client) {
-        await api.put(`/clients/${client._id}`, payload);
+        await api.put(`/clients/${client._id}`, fd);
         showToast('Client updated successfully');
       } else {
-        await api.post('/clients', payload);
+        await api.post('/clients', fd);
         showToast('Client added successfully');
       }
       onSaved();
@@ -261,6 +321,53 @@ export default function ClientFormModal({
             src={`https://maps.google.com/maps?q=${form.latitude},${form.longitude}&z=14&output=embed`}
           />
         )}
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Client Location Pin Image
+          </label>
+          {imagePreview ? (
+            <div className="relative w-full h-40 rounded-lg border border-slate-200 overflow-hidden bg-slate-50 flex items-center justify-center">
+              <img
+                src={imagePreview}
+                alt="Client location pin"
+                className="w-full h-full object-contain cursor-pointer"
+              />
+              <div className="absolute top-2 right-2 flex gap-1">
+                <label className="bg-white/90 border border-slate-200 rounded-full p-1.5 shadow text-slate-600 hover:text-blue-600 cursor-pointer" title="Change Image">
+                  <Pencil className="h-3.5 w-3.5" />
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={(e) => e.target.files?.[0] && handleImageSelect(e.target.files[0])}
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={handleImageRemove}
+                  className="bg-white/90 border border-slate-200 rounded-full p-1.5 shadow text-slate-600 hover:text-red-600"
+                  title="Remove Image"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <label className="flex flex-col items-center justify-center w-full h-32 rounded-lg border-2 border-dashed border-slate-300 cursor-pointer hover:border-blue-400 text-slate-500 hover:text-blue-600 transition bg-slate-50/50">
+              <ImagePlus className="h-6 w-6 mb-1 text-slate-400" />
+              <span className="text-xs font-medium">Upload Client Location Pin Image</span>
+              <span className="text-[10px] text-slate-400">JPG, JPEG, PNG or WEBP only</span>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(e) => e.target.files?.[0] && handleImageSelect(e.target.files[0])}
+              />
+            </label>
+          )}
+          {imageError && <p className="mt-1 text-xs font-medium text-red-600">{imageError}</p>}
+        </div>
 
         {isAgency && (
           <Field label="Agency Comm (%)" error={formErrors.agencyComm}>
