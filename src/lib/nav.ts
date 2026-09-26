@@ -43,7 +43,7 @@ const NAV: Record<Role, NavItem[]> = {
      { label: 'Clients', href: '/clients', icon: Contact2 },
     { label: 'Sites / Media', href: '/sites', icon: Building2 },
     { label: 'Site Info', href: '/site-info', icon: ClipboardList },
-    // { label: 'Inventory', href: '/inventory', icon: ClipboardList },
+    { label: 'Inventory', href: '/inventory', icon: ClipboardList },
    
     // { label: 'Bookings', href: '/bookings', icon: CalendarCheck },
     { label: 'Proposals', href: '/proposals', icon: FileText },
@@ -58,7 +58,7 @@ const NAV: Record<Role, NavItem[]> = {
     { label: 'Clients', href: '/clients', icon: Contact2 },
     { label: 'Sites / Media', href: '/sites', icon: Building2 },
      { label: 'Site Info', href: '/site-info', icon: ClipboardList },
-    // { label: 'Available Media', href: '/available-media', icon: Search },
+   { label: 'Inventory', href: '/inventory', icon: ClipboardList },
     { label: 'Proposals', href: '/proposals', icon: FileText },
     // { label: 'PPT Master', href: '/ppt-master', icon: Presentation },
     // { label: 'Excel Templates', href: '/excel-templates', icon: FileSpreadsheet },

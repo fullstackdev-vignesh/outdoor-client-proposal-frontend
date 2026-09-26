@@ -185,20 +185,21 @@ export default function ProposalsPage() {
                 <th className="px-4 py-3">Media Count</th>
                 <th className="px-4 py-3">Created At</th>
                 <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Updated By</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-slate-400">
+                  <td colSpan={8} className="px-4 py-10 text-center text-slate-400">
                     Loading proposals...
                   </td>
                 </tr>
               )}
               {!loading && data?.items.length === 0 && (
                 <tr>
-                  <td colSpan={7}>
+                  <td colSpan={8}>
                     <EmptyState title="No proposals found" subtitle="Create your first proposal to get started." />
                   </td>
                 </tr>
@@ -213,6 +214,9 @@ export default function ProposalsPage() {
                     <td className="px-4 py-3 text-slate-500">{formatCreatedAt(p.createdAt)}</td>
                     <td className="px-4 py-3">
                       <StatusPill status={p.status} />
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-500">
+                      {p.updatedBy || 'System'}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Building2, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import type { Role } from '@/lib/types';
+import loginBg from '@/images/login-bg.png';
 
 interface FormErrors {
   userName?: string;
@@ -240,7 +241,11 @@ function RegisterContent() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-slate-100 px-4 py-8">
+    <div className="relative min-h-screen flex items-center justify-center px-4 py-8">
+      <div
+        className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${loginBg.src})` }}
+      />
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-6">
           <div className="h-14 w-14 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-200">

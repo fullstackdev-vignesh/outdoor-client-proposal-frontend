@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Building2, ArrowLeft, KeyRound, CheckCircle2, Loader2, MailCheck } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import loginBg from '@/images/login-bg.png';
 
 function MpinBoxInput({
   idPrefix,
@@ -168,7 +169,11 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-slate-100 px-4 py-8">
+    <div className="relative min-h-screen flex items-center justify-center px-4 py-8">
+      <div
+        className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${loginBg.src})` }}
+      />
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
           <div className="h-14 w-14 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-200">

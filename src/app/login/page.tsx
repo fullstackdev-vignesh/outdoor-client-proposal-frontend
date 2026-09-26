@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Building2, Loader2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import type { Role } from '@/lib/types';
+import loginBg from '@/images/login-bg.png';
 
 const roleOptions: { key: Role; label: string; fullLabel: string }[] = [
   { key: 'user', label: 'USER', fullLabel: 'User' },
@@ -182,7 +183,11 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-slate-100 px-4 py-8">
+    <div className="relative min-h-screen flex items-center justify-center px-4 py-8">
+      <div
+        className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${loginBg.src})` }}
+      />
       <div className="w-full max-w-md">
         <div className="bg-white border border-slate-200 rounded-3xl shadow-xl shadow-slate-200/50 p-8">
           <form noValidate onSubmit={handleSubmit}>

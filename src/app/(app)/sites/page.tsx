@@ -271,20 +271,21 @@ export default function SitesPage() {
                 <th className="px-4 py-3">Active</th>
                 <th className="px-4 py-3">Inventory Updated</th>
                 <th className="px-4 py-3">Site Updated</th>
+                <th className="px-4 py-3">Updated By</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading && (
                 <tr>
-                  <td colSpan={13} className="px-4 py-10 text-center text-slate-400">
+                  <td colSpan={14} className="px-4 py-10 text-center text-slate-400">
                     Loading sites...
                   </td>
                 </tr>
               )}
               {!loading && items.length === 0 && (
                 <tr>
-                  <td colSpan={13}>
+                  <td colSpan={14}>
                     <EmptyState title="No sites found" subtitle="Try adjusting your filters or add a new site." />
                   </td>
                 </tr>
@@ -339,6 +340,9 @@ export default function SitesPage() {
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-500">
                       {formatIST(site.updatedAt)}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-500">
+                      {site.updatedBy || 'System'}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">

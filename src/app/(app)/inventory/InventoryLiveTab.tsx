@@ -335,20 +335,21 @@ export default function InventoryLiveTab() {
                 <th className="px-4 py-3">Media Status</th>
                 <th className="px-4 py-3">Inventory Updated</th>
                 <th className="px-4 py-3">Site Last Updated</th>
+                <th className="px-4 py-3">Updated By</th>
                 <th className="px-4 py-3 text-center">Save</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading && (
                 <tr>
-                  <td colSpan={12} className="px-4 py-10 text-center text-slate-400">
+                  <td colSpan={13} className="px-4 py-10 text-center text-slate-400">
                     Loading inventory...
                   </td>
                 </tr>
               )}
               {!loading && items.length === 0 && (
                 <tr>
-                  <td colSpan={12}>
+                  <td colSpan={13}>
                     <EmptyState title="No sites found" subtitle="Try adjusting your filters." />
                   </td>
                 </tr>
@@ -420,6 +421,9 @@ export default function InventoryLiveTab() {
                       </td>
                       <td className="px-4 py-3 text-xs text-slate-500">
                         {formatIST(site.updatedAt)}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-500">
+                        {site.inventoryUpdatedBy || site.updatedBy || 'System'}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <button
