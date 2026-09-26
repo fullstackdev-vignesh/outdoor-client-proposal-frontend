@@ -1,16 +1,15 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { Plus, Eye, Trash2, Search } from 'lucide-react';
 import api from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
-import Pagination from '@/components/ui/Pagination';
 import EmptyState from '@/components/ui/EmptyState';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import ClientSelect from '@/components/ui/ClientSelect';
 import DatePicker from '@/components/ui/DatePicker';
-import type { Proposal, PaginatedResponse } from '@/lib/types';
+import type { Proposal } from '@/lib/types';
 
 const PAGE_SIZE = 20;
 
@@ -33,57 +32,87 @@ function formatCreatedAt(value: string) {
 
 export default function ProposalsPage() {
   const { showToast } = useToast();
-  const [data, setData] = useState<PaginatedResponse<Proposal> | null>(null);
+  const [items, setItems] = useState<Proposal[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [status, setStatus] = useState('');
   const [search, setSearch] = useState('');
   const [clientId, setClientId] = useState('');
   const [clientLabel, setClientLabel] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
-  const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<Proposal | null>(null);
 
-  const fetchProposals = useCallback(() => {
-    setLoading(true);
-    api
-      .get('/proposals', {
-        params: {
-          page,
-          limit: PAGE_SIZE,
-          status: status || undefined,
-          search: search || undefined,
-          client: clientId || undefined,
-          fromDate: fromDate || undefined,
-          toDate: toDate || undefined,
-        },
-      })
-      .then((res) => setData(res.data))
-      .finally(() => setLoading(false));
-  }, [page, status, search, clientId, fromDate, toDate]);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const nextPageRef = useRef(1);
+  const fetchingRef = useRef(false);
+  const queryKey = JSON.stringify({ status, search, clientId, fromDate, toDate });
+
+  const fetchPage = useCallback(
+    (pageNum: number, append: boolean) => {
+      if (fetchingRef.current) return Promise.resolve();
+      fetchingRef.current = true;
+      const setter = append ? setLoadingMore : setLoading;
+      setter(true);
+      return api
+        .get('/proposals', {
+          params: {
+            page: pageNum,
+            limit: PAGE_SIZE,
+            status: status || undefined,
+            search: search || undefined,
+            client: clientId || undefined,
+            fromDate: fromDate || undefined,
+            toDate: toDate || undefined,
+          },
+        })
+        .then((res) => {
+          setTotal(res.data.total);
+          nextPageRef.current = pageNum + 1;
+          setItems((prev) => {
+            if (!append) return res.data.items;
+            const existingIds = new Set(prev.map((p: Proposal) => p._id));
+            return [...prev, ...res.data.items.filter((p: Proposal) => !existingIds.has(p._id))];
+          });
+        })
+        .finally(() => {
+          setter(false);
+          fetchingRef.current = false;
+        });
+    },
+    [status, search, clientId, fromDate, toDate]
+  );
 
   useEffect(() => {
-    fetchProposals();
-  }, [fetchProposals]);
+    nextPageRef.current = 1;
+    fetchPage(1, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryKey]);
 
-  function goToFilteredPage1() {
-    setPage(1);
-  }
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !fetchingRef.current && items.length < total) {
+          fetchPage(nextPageRef.current, true);
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [items.length, total, fetchPage]);
 
   function handleFromDateChange(value: string) {
     setFromDate(value);
-    goToFilteredPage1();
-    // From Date moving past the already-picked To Date would make an invalid (empty) range —
-    // clear To Date rather than silently keeping a now-inconsistent value.
     if (toDate && value && toDate < value) setToDate('');
   }
 
   function handleToDateChange(value: string) {
-    // Belt-and-braces guard alongside the date input's own `min` attribute (which already stops
-    // most browsers from letting the user pick an earlier date in the picker UI).
     if (fromDate && value && value < fromDate) return;
     setToDate(value);
-    goToFilteredPage1();
   }
 
   const hasActiveFilters = !!(search || clientId || fromDate || toDate || status);
@@ -95,7 +124,6 @@ export default function ProposalsPage() {
     setFromDate('');
     setToDate('');
     setStatus('');
-    setPage(1);
   }
 
   async function handleDelete() {
@@ -103,7 +131,8 @@ export default function ProposalsPage() {
     try {
       await api.delete(`/proposals/${deleteTarget._id}`);
       showToast('Proposal deleted successfully');
-      fetchProposals();
+      nextPageRef.current = 1;
+      fetchPage(1, false);
     } catch {
       showToast('Failed to delete proposal', 'error');
     } finally {
@@ -132,10 +161,7 @@ export default function ProposalsPage() {
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
             <input
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                goToFilteredPage1();
-              }}
+              onChange={(e) => setSearch(e.target.value)}
               placeholder="Search Proposal ID / Client..."
               className="w-full rounded-lg border border-slate-300 pl-9 pr-3 py-2 text-sm"
             />
@@ -146,7 +172,6 @@ export default function ProposalsPage() {
             onChange={(id, label) => {
               setClientId(id);
               setClientLabel(label);
-              goToFilteredPage1();
             }}
           />
           <DatePicker value={fromDate} onChange={handleFromDateChange} max={toDate || undefined} placeholder="From Date" />
@@ -154,10 +179,7 @@ export default function ProposalsPage() {
           <div className="flex items-center gap-3">
             <select
               value={status}
-              onChange={(e) => {
-                setStatus(e.target.value);
-                goToFilteredPage1();
-              }}
+              onChange={(e) => setStatus(e.target.value)}
               className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
             >
               <option value="">All Statuses</option>
@@ -197,7 +219,7 @@ export default function ProposalsPage() {
                   </td>
                 </tr>
               )}
-              {!loading && data?.items.length === 0 && (
+              {!loading && items.length === 0 && (
                 <tr>
                   <td colSpan={8}>
                     <EmptyState title="No proposals found" subtitle="Create your first proposal to get started." />
@@ -205,9 +227,9 @@ export default function ProposalsPage() {
                 </tr>
               )}
               {!loading &&
-                data?.items.map((p, i) => (
+                items.map((p, i) => (
                   <tr key={p._id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 text-slate-500">{(data.page - 1) * PAGE_SIZE + i + 1}</td>
+                    <td className="px-4 py-3 text-slate-500">{i + 1}</td>
                     <td className="px-4 py-3 font-mono text-xs text-slate-500">{p.proposalId}</td>
                     <td className="px-4 py-3 font-medium text-slate-800">{p.client && typeof p.client === 'object' ? p.client.name : ''}</td>
                     <td className="px-4 py-3 text-slate-600">{Array.isArray(p.sites) ? p.sites.length : 0}</td>
@@ -233,7 +255,10 @@ export default function ProposalsPage() {
             </tbody>
           </table>
         </div>
-        {data && <Pagination page={data.page} pages={data.pages} total={data.total} onChange={setPage} />}
+        <div ref={sentinelRef} className="py-4 text-center text-xs text-slate-400">
+          {loadingMore && 'Loading more proposals...'}
+          {!loading && !loadingMore && `Showing ${items.length} of ${total} Proposals`}
+        </div>
       </div>
 
       <ConfirmDialog

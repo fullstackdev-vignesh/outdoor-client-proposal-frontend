@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Modal from '@/components/ui/Modal';
 import api from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
+import { todayISO } from '@/lib/date';
 import type { Client, Site } from '@/lib/types';
 
 export default function BookingFormModal({
@@ -107,7 +108,7 @@ export default function BookingFormModal({
 
         <div className="grid grid-cols-2 gap-4">
           <Field label="Booking Start Date" required>
-            <input type="date" required value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputCls} />
+            <input type="date" required min={todayISO()} value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputCls} />
           </Field>
           <Field label="Booking End Date" required>
             <input type="date" required value={endDate} onChange={(e) => setEndDate(e.target.value)} className={inputCls} />

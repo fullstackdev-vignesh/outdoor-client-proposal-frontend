@@ -123,9 +123,8 @@ export default function DatePicker({
     if (rect) {
       // Prefer opening upward (easier to reach without extra scrolling); fall back to
       // downward only when there truly isn't enough room above the field.
-      const POPUP_HEIGHT = 340;
-      const openUp = rect.top >= POPUP_HEIGHT;
-      setPos({ top: openUp ? rect.top : rect.bottom, left: rect.left, width: rect.width, openUp });
+      const openUp = true;
+      setPos({ top: rect.top, left: rect.left, width: rect.width, openUp });
     }
     // Open on the selected value's month if there is one; otherwise default to minDate's
     // month (e.g. an End Date picker with no value yet should open on the Start Date's

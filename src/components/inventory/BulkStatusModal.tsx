@@ -154,7 +154,7 @@ export default function BulkStatusModal({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Start Date *</label>
-                  <DatePicker value={startDate} onChange={setStartDate} max={endDate || undefined} />
+                  <DatePicker value={startDate} onChange={setStartDate} min={todayISO()} max={endDate || undefined} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">End Date *</label>
