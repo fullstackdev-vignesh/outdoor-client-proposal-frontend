@@ -13,6 +13,7 @@ import SiteViewModal from '@/components/sites/SiteViewModal';
 import BulkStatusModal from '@/components/inventory/BulkStatusModal';
 import MediaPreviewModal from '@/components/inventory/MediaPreviewModal';
 import StatusDetailsPopover from '@/components/inventory/StatusDetailsPopover';
+import Loader from '@/components/ui/Loader';
 import { formatIST } from '@/lib/date';
 import type { Site, MediaStatus } from '@/lib/types';
 
@@ -342,8 +343,8 @@ export default function InventoryLiveTab() {
             <tbody className="divide-y divide-slate-100">
               {loading && (
                 <tr>
-                  <td colSpan={13} className="px-4 py-10 text-center text-slate-400">
-                    Loading inventory...
+                  <td colSpan={13} className="px-4 py-10 text-center">
+                    <Loader text="Loading inventory..." />
                   </td>
                 </tr>
               )}
@@ -444,7 +445,7 @@ export default function InventoryLiveTab() {
           </table>
         </div>
         <div ref={sentinelRef} className="py-4 text-center text-xs text-slate-400">
-          {loadingMore && 'Loading more...'}
+          {loadingMore && <Loader size="sm" text="Loading more..." />}
           {!loading && !loadingMore && `Showing ${items.length} of ${total} Sites`}
         </div>
       </div>

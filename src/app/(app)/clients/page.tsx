@@ -10,6 +10,7 @@ import Pagination from '@/components/ui/Pagination';
 import EmptyState from '@/components/ui/EmptyState';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import ClientFormModal from '@/components/clients/ClientFormModal';
+import Loader from '@/components/ui/Loader';
 import { formatIST } from '@/lib/date';
 import type { Client, PaginatedResponse } from '@/lib/types';
 
@@ -103,8 +104,8 @@ export default function ClientsPage() {
             <tbody className="divide-y divide-slate-100">
               {loading && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-slate-400">
-                    Loading clients...
+                  <td colSpan={7} className="px-4 py-10 text-center">
+                    <Loader text="Loading clients..." />
                   </td>
                 </tr>
               )}

@@ -13,6 +13,7 @@ import SiteTimelineModal from '@/components/inventory/SiteTimelineModal';
 import MediaPreviewModal from '@/components/inventory/MediaPreviewModal';
 import { formatIST, formatISTDate, todayISO } from '@/lib/date';
 import type { InventoryHistoryEntry, MediaStatus } from '@/lib/types';
+import Loader from '@/components/ui/Loader';
 
 const PAGE_SIZE = 20;
 const emptyFilters = { state: '', city: '', mediaStatus: '', isActive: '', from: '', to: '', siteOwner: '' };
@@ -260,8 +261,8 @@ export default function InventoryTimelineTab() {
             <tbody className="divide-y divide-slate-100">
               {loading && (
                 <tr>
-                  <td colSpan={14} className="px-4 py-10 text-center text-slate-400">
-                    Loading timeline...
+                  <td colSpan={14} className="px-4 py-10 text-center">
+                    <Loader text="Loading timeline..." />
                   </td>
                 </tr>
               )}
@@ -328,7 +329,7 @@ export default function InventoryTimelineTab() {
           </table>
         </div>
         <div ref={sentinelRef} className="py-4 text-center text-xs text-slate-400">
-          {loadingMore && 'Loading more...'}
+          {loadingMore && <Loader size="sm" text="Loading more..." />}
           {!loading && !loadingMore && `Showing ${items.length} of ${total} Sites • click View to see every change for a site`}
         </div>
       </div>

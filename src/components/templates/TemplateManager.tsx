@@ -9,6 +9,7 @@ import { useAuth } from '@/lib/auth-context';
 import Modal from '@/components/ui/Modal';
 import EmptyState from '@/components/ui/EmptyState';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import Loader from '@/components/ui/Loader';
 import type { Template } from '@/lib/types';
 
 export default function TemplateManager({
@@ -187,8 +188,8 @@ export default function TemplateManager({
             <tbody className="divide-y divide-slate-100">
               {loading && (
                 <tr>
-                  <td colSpan={formatOptions ? 8 : 7} className="px-4 py-10 text-center text-slate-400">
-                    Loading templates...
+                  <td colSpan={formatOptions ? 8 : 7} className="px-4 py-10 text-center">
+                    <Loader text="Loading templates..." />
                   </td>
                 </tr>
               )}

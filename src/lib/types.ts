@@ -86,6 +86,8 @@ export interface Site {
   createdAt: string;
   updatedAt?: string;
   inventoryUpdatedAt?: string;
+  inventoryUpdatedBy?: any;
+  updatedBy?: any;
 }
 
 export interface SiteInfo {
@@ -195,6 +197,7 @@ export interface Proposal {
   generatedPptWithoutLocationUrl?: string;
   generatedExcelUrl?: string;
   createdAt: string;
+  updatedBy?: any;
 }
 
 export interface Template {

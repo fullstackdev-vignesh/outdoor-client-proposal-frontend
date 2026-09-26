@@ -32,7 +32,7 @@ export default function ReportsPage() {
             rows={[
               ['Total Sites', reports.siteReport.total],
               ['Active Sites', reports.siteReport.active],
-              ['Inactive Sites', reports.siteReport.inactive],
+              // ['Inactive Sites', reports.siteReport.inactive],
               ['Available Media', reports.siteReport.available],
               ['Booked Media', reports.siteReport.booked],
               ['Blocked Media', reports.siteReport.blocked],

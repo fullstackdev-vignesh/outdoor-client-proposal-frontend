@@ -9,6 +9,7 @@ import { formatIST } from '@/lib/date';
 import Modal from '@/components/ui/Modal';
 import EmptyState from '@/components/ui/EmptyState';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import Loader from '@/components/ui/Loader';
 import type { SiteInfo } from '@/lib/types';
 
 // Site Info Management — a reusable master list of Title/Description cards. Sites optionally
@@ -118,8 +119,8 @@ export default function SiteInfoManager() {
             <tbody className="divide-y divide-slate-100">
               {loading && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-10 text-center text-slate-400">
-                    Loading...
+                  <td colSpan={4} className="px-4 py-10 text-center">
+                    <Loader text="Loading site info..." />
                   </td>
                 </tr>
               )}

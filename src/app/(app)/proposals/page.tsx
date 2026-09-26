@@ -9,6 +9,7 @@ import EmptyState from '@/components/ui/EmptyState';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import ClientSelect from '@/components/ui/ClientSelect';
 import DatePicker from '@/components/ui/DatePicker';
+import Loader from '@/components/ui/Loader';
 import type { Proposal } from '@/lib/types';
 
 const PAGE_SIZE = 20;
@@ -214,8 +215,8 @@ export default function ProposalsPage() {
             <tbody className="divide-y divide-slate-100">
               {loading && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-10 text-center text-slate-400">
-                    Loading proposals...
+                  <td colSpan={8} className="px-4 py-10 text-center">
+                    <Loader text="Loading proposals..." />
                   </td>
                 </tr>
               )}
@@ -256,7 +257,7 @@ export default function ProposalsPage() {
           </table>
         </div>
         <div ref={sentinelRef} className="py-4 text-center text-xs text-slate-400">
-          {loadingMore && 'Loading more proposals...'}
+          {loadingMore && <Loader size="sm" text="Loading more proposals..." />}
           {!loading && !loadingMore && `Showing ${items.length} of ${total} Proposals`}
         </div>
       </div>

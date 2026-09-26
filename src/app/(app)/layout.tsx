@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import Sidebar from '@/components/layout/Sidebar';
 import Header from '@/components/layout/Header';
+import Loader from '@/components/ui/Loader';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -20,8 +21,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-slate-400 text-sm">
-        Loading...
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 w-full">
+        <Loader fullPage size="lg" text="Loading application..." />
       </div>
     );
   }

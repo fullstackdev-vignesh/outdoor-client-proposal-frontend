@@ -15,6 +15,7 @@ import StatusChangeModal from '@/components/sites/StatusChangeModal';
 import SiteViewModal from '@/components/sites/SiteViewModal';
 import { StateSelect, CitySelect } from '@/components/ui/StateCitySelect';
 import { SiteOwnerSelect } from '@/components/ui/SiteOwnerSelect';
+import Loader from '@/components/ui/Loader';
 import { formatIST } from '@/lib/date';
 import type { Site } from '@/lib/types';
 
@@ -278,8 +279,8 @@ export default function SitesPage() {
             <tbody className="divide-y divide-slate-100">
               {loading && (
                 <tr>
-                  <td colSpan={14} className="px-4 py-10 text-center text-slate-400">
-                    Loading sites...
+                  <td colSpan={14} className="px-4 py-10 text-center">
+                    <Loader text="Loading sites..." />
                   </td>
                 </tr>
               )}
@@ -378,7 +379,7 @@ export default function SitesPage() {
           </table>
         </div>
         <div ref={sentinelRef} className="py-4 text-center text-xs text-slate-400">
-          {loadingMore && 'Loading more...'}
+          {loadingMore && <Loader size="sm" text="Loading more sites..." />}
           {!loading && !loadingMore && `Showing ${items.length} of ${total} Sites`}
         </div>
       </div>

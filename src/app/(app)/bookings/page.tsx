@@ -11,6 +11,7 @@ import Pagination from '@/components/ui/Pagination';
 import EmptyState from '@/components/ui/EmptyState';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import BookingFormModal from '@/components/bookings/BookingFormModal';
+import Loader from '@/components/ui/Loader';
 import type { Booking, PaginatedResponse } from '@/lib/types';
 
 export default function BookingsPage() {
@@ -106,8 +107,8 @@ export default function BookingsPage() {
             <tbody className="divide-y divide-slate-100">
               {loading && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-10 text-center text-slate-400">
-                    Loading bookings...
+                  <td colSpan={8} className="px-4 py-10 text-center">
+                    <Loader text="Loading bookings..." />
                   </td>
                 </tr>
               )}

@@ -7,6 +7,7 @@ import { useToast } from '@/components/ui/Toast';
 import Modal from '@/components/ui/Modal';
 import EmptyState from '@/components/ui/EmptyState';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import Loader from '@/components/ui/Loader';
 import type { Role } from '@/lib/types';
 
 export default function UserManager({ role, title, subtitle }: { role: Role; title: string; subtitle: string }) {
@@ -97,8 +98,8 @@ export default function UserManager({ role, title, subtitle }: { role: Role; tit
             <tbody className="divide-y divide-slate-100">
               {loading && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-slate-400">
-                    Loading...
+                  <td colSpan={6} className="px-4 py-10 text-center">
+                    <Loader text="Loading users..." />
                   </td>
                 </tr>
               )}

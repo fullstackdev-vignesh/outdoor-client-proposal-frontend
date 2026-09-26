@@ -18,6 +18,7 @@ import {
   UserPlus,
 } from 'lucide-react';
 import api from '@/lib/api';
+import Loader from '@/components/ui/Loader';
 import { useAuth } from '@/lib/auth-context';
 import { StatCard, Panel } from '@/components/ui/Card';
 import StatusBadge from '@/components/ui/StatusBadge';
@@ -55,7 +56,7 @@ export default function DashboardPage() {
   }, []);
 
   if (loading || !stats) {
-    return <div className="text-sm text-slate-400">Loading dashboard...</div>;
+    return <Loader fullPage size="lg" text="Loading dashboard..." />;
   }
 
   const { cards, mediaStatusSummary, recent } = stats;
@@ -66,7 +67,7 @@ export default function DashboardPage() {
     { key: 'totalBDs', label: 'Total BDs', icon: UserCheck, accent: 'blue', roles: ['admin'] },
     { key: 'totalSites', label: 'Total Sites', icon: Building2, accent: 'blue' },
     { key: 'activeSites', label: 'Active Sites', icon: CheckCircle2, accent: 'emerald' },
-    { key: 'inactiveSites', label: 'Inactive Sites', icon: XCircle, accent: 'slate' },
+    // { key: 'inactiveSites', label: 'Inactive Sites', icon: XCircle, accent: 'slate' },
     { key: 'availableMedia', label: 'Available Media', icon: CircleDot, accent: 'emerald' },
     { key: 'bookedMedia', label: 'Booked Media', icon: CalendarCheck, accent: 'blue' },
     { key: 'blockedMedia', label: 'Blocked Media', icon: XCircle, accent: 'red' },
