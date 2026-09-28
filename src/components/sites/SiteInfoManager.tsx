@@ -98,7 +98,7 @@ export default function SiteInfoManager() {
         {canManage && (
           <button
             onClick={() => openForm(null)}
-            className="flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            className="flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
           >
             <Plus className="h-4 w-4" /> Add Site Information
           </button>
@@ -140,7 +140,7 @@ export default function SiteInfoManager() {
                     <td className="px-4 py-3">
                       {canManage && (
                         <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => openForm(si)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-blue-600" title="Edit">
+                          <button onClick={() => openForm(si)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-red-600" title="Edit">
                             <Pencil className="h-4 w-4" />
                           </button>
                           <button onClick={() => setDeleteTarget(si)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-red-600" title="Delete">
@@ -187,7 +187,7 @@ export default function SiteInfoManager() {
             <button type="button" onClick={() => setFormOpen(false)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
               Cancel
             </button>
-            <button type="submit" disabled={saving} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60">
+            <button type="submit" disabled={saving} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60">
               {saving ? 'Saving...' : 'Save'}
             </button>
           </div>
@@ -208,7 +208,7 @@ export default function SiteInfoManager() {
 }
 
 const inputCls =
-  'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100';
+  'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100';
 
 function fieldCls(hasError: boolean) {
   return hasError

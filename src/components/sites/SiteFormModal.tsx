@@ -11,6 +11,7 @@ import { todayISO } from '@/lib/date';
 import { formatINR, parseINRInput, formatIndianGroups } from '@/lib/currency';
 import DatePicker from '@/components/ui/DatePicker';
 import MediaPreviewModal from '@/components/inventory/MediaPreviewModal';
+import CustomSelect from '@/components/ui/CustomSelect';
 
 const MEDIA_TYPES = ['Hoarding', 'Digital Hoarding', 'Unipole', 'Gantry', 'Bus Shelter', 'Bridge Panel'];
 const ILLUMINATION_OPTIONS = ['Front Lit', 'Not Lit'];
@@ -487,16 +488,13 @@ export default function SiteFormModal({
             />
           </Field>
           <Field label="Media Type" required error={errors.mediaType}>
-            <select
+            <CustomSelect
               id="site-field-mediaType"
               value={form.mediaType}
-              onChange={(e) => update('mediaType', e.target.value)}
+              onChange={(val) => update('mediaType', val)}
+              options={MEDIA_TYPES}
               className={fieldCls(!!errors.mediaType)}
-            >
-              {MEDIA_TYPES.map((t) => (
-                <option key={t}>{t}</option>
-              ))}
-            </select>
+            />
           </Field>
           <Field label="Quantity" required error={errors.quantity}>
             <input
@@ -582,18 +580,13 @@ export default function SiteFormModal({
 
         <Section title="Media Size">
           <Field label="Illumination" required error={errors.illumination}>
-            <select
+            <CustomSelect
               id="site-field-illumination"
               value={form.illumination}
-              onChange={(e) => update('illumination', e.target.value)}
+              onChange={(val) => update('illumination', val)}
+              options={ILLUMINATION_OPTIONS}
               className={fieldCls(!!errors.illumination)}
-            >
-              {ILLUMINATION_OPTIONS.map((o) => (
-                <option key={o} value={o}>
-                  {o}
-                </option>
-              ))}
-            </select>
+            />
           </Field>
           <Field label="Width" required error={errors.width}>
             <input
@@ -617,7 +610,7 @@ export default function SiteFormModal({
               className={fieldCls(!!errors.height)}
             />
           </Field>
-          <Field label="Auto Size">
+          <Field label="Total Sq.ft">
             <input disabled value={`${form.width || 0} x ${form.height || 0} = ${calcAutoSize(form.width, form.height)}`} className={`${inputCls} bg-slate-50 text-slate-500`} />
           </Field>
         </Section>
@@ -694,7 +687,7 @@ export default function SiteFormModal({
             ) : (
               <label
                 className={`flex flex-col items-center justify-center w-48 h-32 rounded-lg border-2 border-dashed cursor-pointer ${
-                  errors.mediaImage ? 'border-red-400 text-red-400 hover:border-red-500' : 'border-slate-300 text-slate-400 hover:border-blue-400 hover:text-blue-500'
+                  errors.mediaImage ? 'border-red-400 text-red-400 hover:border-red-500' : 'border-slate-300 text-slate-400 hover:border-red-400 hover:text-red-500'
                 }`}
               >
                 <ImagePlus className="h-6 w-6 mb-1" />
@@ -714,26 +707,23 @@ export default function SiteFormModal({
         <Section title="Site Information">
           <div className="col-span-2">
             <label className="block text-sm font-medium text-slate-700 mb-1">Select Site Information</label>
-            <select
+            <CustomSelect
               id="site-field-siteInfoId"
               value={form.siteInfoId}
-              onChange={(e) => {
-                if (e.target.value === '__add_new__') {
+              onChange={(val) => {
+                if (val === '__add_new__') {
                   setSiteInfoModalOpen(true);
                   return;
                 }
-                update('siteInfoId', e.target.value);
+                update('siteInfoId', val);
               }}
+              placeholder="None"
+              options={[
+                ...siteInfos.map((si) => ({ value: si._id, label: si.title })),
+                { value: '__add_new__', label: '+ Add Site Information' },
+              ]}
               className={fieldCls(false)}
-            >
-              <option value="">None</option>
-              {siteInfos.map((si) => (
-                <option key={si._id} value={si._id}>
-                  {si.title}
-                </option>
-              ))}
-              <option value="__add_new__">+ Add Site Information</option>
-            </select>
+            />
             <p className="mt-1 text-xs text-slate-400">
               Optional — shown as a description card on PPT templates that support it (e.g. Adinn-Direct-Client-format).
             </p>
@@ -751,7 +741,7 @@ export default function SiteFormModal({
                   if (s === 'booked') setBookingRows((rows) => (rows.length ? rows : [newBookingRow()]));
                 }}
                 className={`rounded-lg border px-4 py-2 text-sm font-medium capitalize ${
-                  form.mediaStatus === s ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200'
+                  form.mediaStatus === s ? 'bg-red-600 text-white border-red-600' : 'bg-white text-slate-600 border-slate-200'
                 }`}
               >
                 {s}
@@ -763,11 +753,11 @@ export default function SiteFormModal({
         {form.mediaStatus === 'booked' && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-blue-700">Booking Details</h4>
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-red-700">Booking Details</h4>
               <button
                 type="button"
                 onClick={addBookingRow}
-                className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:underline"
+                className="flex items-center gap-1 text-xs font-medium text-red-600 hover:underline"
               >
                 <Plus className="h-3.5 w-3.5" /> Add Booking
               </button>
@@ -779,10 +769,10 @@ export default function SiteFormModal({
               const bookingAmount = calcBookingAmount(monthlyTotalCost, durationDays);
               const readOnly = row.status === 'completed';
               return (
-                <div key={row.bookingId || index} className="space-y-3 rounded-lg bg-blue-50 border border-blue-100 p-4">
+                <div key={row.bookingId || index} className="space-y-3 rounded-lg bg-red-50 border border-red-100 p-4">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold text-blue-700">
-                      Booking #{index + 1} {row.status && <span className="capitalize font-normal text-blue-500">({row.status})</span>}
+                    <p className="text-xs font-semibold text-red-700">
+                      Booking #{index + 1} {row.status && <span className="capitalize font-normal text-red-500">({row.status})</span>}
                     </p>
                     {!readOnly && bookingRows.length > 0 && (
                       <button
@@ -807,9 +797,9 @@ export default function SiteFormModal({
                           key={t}
                           type="button"
                           disabled={readOnly}
-                          onClick={() => updateBookingRow(index, { customerType: t })}
+                          onClick={() => updateBookingRow(index, { customerType: t, clientId: '' })}
                           className={`rounded-lg border px-4 py-2 text-sm font-medium capitalize disabled:opacity-60 ${
-                            row.customerType === t ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200'
+                            row.customerType === t ? 'bg-red-600 text-white border-red-600' : 'bg-white text-slate-600 border-slate-200'
                           }`}
                         >
                           {t}
@@ -819,20 +809,17 @@ export default function SiteFormModal({
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">{row.customerType === 'agency' ? 'Agency' : 'Client'} *</label>
-                    <select
+                    <CustomSelect
                       id={`site-field-booking-${index}`}
                       value={row.clientId}
                       disabled={readOnly}
-                      onChange={(e) => updateBookingRow(index, { clientId: e.target.value })}
-                      className={`${fieldCls(!!errors[`booking-${index}`])} disabled:opacity-60`}
-                    >
-                      <option value="">Select {row.customerType === 'agency' ? 'agency' : 'client'}</option>
-                      {clients.map((c) => (
-                        <option key={c._id} value={c._id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(val) => updateBookingRow(index, { clientId: val })}
+                      placeholder={`Select ${row.customerType === 'agency' ? 'agency' : 'client'}`}
+                      options={clients
+                        .filter((c) => (row.customerType === 'agency' ? c.customerType === 'agency' : c.customerType !== 'agency'))
+                        .map((c) => ({ value: c._id, label: c.name }))}
+                      className={fieldCls(!!errors[`booking-${index}`])}
+                    />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -873,7 +860,7 @@ export default function SiteFormModal({
                     </div>
                   </div>
                   {errors[`booking-${index}`] && <p className="text-xs font-medium text-red-600">{errors[`booking-${index}`]}</p>}
-                  <div className="rounded-lg bg-white border border-blue-200 p-3 text-sm space-y-1">
+                  <div className="rounded-lg bg-white border border-red-200 p-3 text-sm space-y-1">
                     <p className="text-slate-600">Monthly Cost: <span className="font-semibold text-slate-800">{formatINR(monthlyTotalCost)}</span></p>
                     <p className="text-slate-600">Duration: <span className="font-semibold text-slate-800">{durationDays} Days</span></p>
                     <p className="text-slate-600">Booking Amount: <span className="font-semibold text-emerald-600">{formatINR(bookingAmount)}</span></p>
@@ -932,12 +919,12 @@ export default function SiteFormModal({
               type="button"
               disabled={saving}
               onClick={() => save(true)}
-              className="rounded-lg border border-blue-300 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
+              className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
             >
               Save & Add Another
             </button>
           )}
-          <button type="submit" disabled={saving} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60">
+          <button type="submit" disabled={saving} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60">
             {saving ? 'Saving...' : 'Save'}
           </button>
         </div>
@@ -983,7 +970,7 @@ export default function SiteFormModal({
                 placeholder="e.g. Client rejected the booking"
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100"
                 rows={3}
                 required
               />
@@ -1095,7 +1082,7 @@ function SiteInfoQuickAddModal({
             type="button"
             disabled={saving}
             onClick={save}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60"
           >
             {saving ? 'Saving...' : 'Save'}
           </button>
@@ -1106,7 +1093,7 @@ function SiteInfoQuickAddModal({
 }
 
 const inputCls =
-  'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100';
+  'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100';
 
 function fieldCls(hasError: boolean) {
   return hasError

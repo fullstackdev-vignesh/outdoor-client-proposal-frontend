@@ -37,7 +37,7 @@ export default function SettingsPage() {
             <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
             <input disabled value={user?.role} className={`${inputCls} bg-slate-50 capitalize`} />
           </div>
-          <button type="submit" className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+          <button type="submit" className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">
             Save Changes
           </button>
         </form>
@@ -47,4 +47,4 @@ export default function SettingsPage() {
 }
 
 const inputCls =
-  'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100';
+  'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100';

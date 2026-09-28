@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
-
-const inputCls =
-  'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100';
+import CustomSelect from './CustomSelect';
 
 export function useSiteOwners() {
   const [owners, setOwners] = useState<string[]>([]);
@@ -25,13 +23,12 @@ export function SiteOwnerSelect({
 }) {
   const owners = useSiteOwners();
   return (
-    <select value={value} onChange={(e) => onChange(e.target.value)} className={className || inputCls}>
-      <option value="">All Site Owners</option>
-      {owners.map((o) => (
-        <option key={o} value={o}>
-          {o}
-        </option>
-      ))}
-    </select>
+    <CustomSelect
+      value={value}
+      onChange={onChange}
+      options={owners}
+      placeholder="All Site Owners"
+      className={className}
+    />
   );
 }

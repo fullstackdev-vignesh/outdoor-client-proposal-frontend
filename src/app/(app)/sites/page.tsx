@@ -16,6 +16,7 @@ import SiteViewModal from '@/components/sites/SiteViewModal';
 import { StateSelect, CitySelect } from '@/components/ui/StateCitySelect';
 import { SiteOwnerSelect } from '@/components/ui/SiteOwnerSelect';
 import Loader from '@/components/ui/Loader';
+import CustomSelect from '@/components/ui/CustomSelect';
 import { formatIST } from '@/lib/date';
 import type { Site } from '@/lib/types';
 
@@ -175,7 +176,7 @@ export default function SitesPage() {
                 setEditingSite(null);
                 setFormOpen(true);
               }}
-              className="flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              className="flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
             >
               <Plus className="h-4 w-4" /> Add Site
             </button>
@@ -191,28 +192,32 @@ export default function SitesPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by MediaCode, Type, City, State, Location..."
-              className="w-full rounded-lg border border-slate-300 pl-9 pr-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              className="w-full rounded-lg border border-slate-300 pl-9 pr-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100"
             />
           </div>
-          <select
-            value={filters.mediaStatus}
-            onChange={(e) => setFilters((f) => ({ ...f, mediaStatus: e.target.value }))}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          >
-            <option value="">All Media Status</option>
-            <option value="available">Available</option>
-            <option value="booked">Booked</option>
-            <option value="blocked">Blocked</option>
-          </select>
-          <select
-            value={filters.isActive}
-            onChange={(e) => setFilters((f) => ({ ...f, isActive: e.target.value }))}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          >
-            <option value="">Active / Inactive</option>
-            <option value="true">Active</option>
-            <option value="false">Inactive</option>
-          </select>
+          <div className="w-40">
+            <CustomSelect
+              value={filters.mediaStatus}
+              onChange={(val) => setFilters((f) => ({ ...f, mediaStatus: val }))}
+              placeholder="All Media Status"
+              options={[
+                { value: 'available', label: 'Available' },
+                { value: 'booked', label: 'Booked' },
+                { value: 'blocked', label: 'Blocked' },
+              ]}
+            />
+          </div>
+          <div className="w-36">
+            <CustomSelect
+              value={filters.isActive}
+              onChange={(val) => setFilters((f) => ({ ...f, isActive: val }))}
+              placeholder="Active / Inactive"
+              options={[
+                { value: 'true', label: 'Active' },
+                { value: 'false', label: 'Inactive' },
+              ]}
+            />
+          </div>
           <StateSelect
             value={filters.state}
             onChange={(state) => setFilters((f) => ({ ...f, state, city: '' }))}
@@ -252,7 +257,7 @@ export default function SitesPage() {
       <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
         <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 border-b border-slate-100">
           <h2 className="text-sm font-semibold text-slate-700">Site / Media List</h2>
-          <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+          <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700">
             {total} {total === 1 ? 'Site' : 'Sites'}
           </span>
         </div>
@@ -357,7 +362,7 @@ export default function SitesPage() {
                                 setEditingSite(site);
                                 setFormOpen(true);
                               }}
-                              className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-blue-600"
+                              className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-red-600"
                             >
                               <Pencil className="h-4 w-4" />
                             </button>

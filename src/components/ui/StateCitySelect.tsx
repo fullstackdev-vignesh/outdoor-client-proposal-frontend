@@ -5,9 +5,46 @@ import { Check, ChevronDown, Plus, X } from 'lucide-react';
 import api from '@/lib/api';
 
 const inputCls =
-  'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100';
+  'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100';
 
-export const STATIC_STATES = ['Tamil Nadu', 'Kerala', 'Karnataka'];
+export const STATIC_STATES = [
+  'Andaman and Nicobar Islands',
+  'Andhra Pradesh',
+  'Arunachal Pradesh',
+  'Assam',
+  'Bihar',
+  'Chandigarh',
+  'Chhattisgarh',
+  'Dadra and Nagar Haveli and Daman and Diu',
+  'Delhi',
+  'Goa',
+  'Gujarat',
+  'Haryana',
+  'Himachal Pradesh',
+  'Jammu and Kashmir',
+  'Jharkhand',
+  'Karnataka',
+  'Kerala',
+  'Ladakh',
+  'Lakshadweep',
+  'Madhya Pradesh',
+  'Maharashtra',
+  'Manipur',
+  'Meghalaya',
+  'Mizoram',
+  'Nagaland',
+  'Odisha',
+  'Puducherry',
+  'Punjab',
+  'Rajasthan',
+  'Sikkim',
+  'Tamil Nadu',
+  'Telangana',
+  'Tripura',
+  'Uttar Pradesh',
+  'Uttarakhand',
+  'West Bengal',
+];
 
 export function useStates() {
   const [states, setStates] = useState<string[]>(STATIC_STATES);
@@ -16,7 +53,8 @@ export function useStates() {
       .get('/locations/states')
       .then((res) => {
         if (Array.isArray(res.data) && res.data.length > 0) {
-          setStates(res.data);
+          const combined = Array.from(new Set([...STATIC_STATES, ...res.data]));
+          setStates(combined);
         } else {
           setStates(STATIC_STATES);
         }
@@ -58,27 +96,127 @@ export function StateSelect({
   onChange,
   required,
   className,
+  containerClassName,
+  placeholder,
 }: {
   value: string;
   onChange: (state: string) => void;
   required?: boolean;
   className?: string;
+  containerClassName?: string;
+  placeholder?: string;
 }) {
   const states = useStates();
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState(value || '');
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Sync internal search term when external value changes
+  useEffect(() => {
+    setSearchTerm(value || '');
+  }, [value]);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filteredStates = useMemo(() => {
+    if (!searchTerm.trim()) return states;
+    return states.filter((s) => s.toLowerCase().includes(searchTerm.trim().toLowerCase()));
+  }, [states, searchTerm]);
+
+  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const newVal = e.target.value;
+    setSearchTerm(newVal);
+    onChange(newVal);
+    setIsOpen(true);
+  }
+
+  function handleSelectState(state: string) {
+    setSearchTerm(state);
+    onChange(state);
+    setIsOpen(false);
+  }
+
+  function handleClear(e: React.MouseEvent) {
+    e.stopPropagation();
+    setSearchTerm('');
+    onChange('');
+    setIsOpen(true);
+  }
+
+  // Extract layout/width classes (w-*, min-w-*, max-w-*, flex-*) for outer container div
+  const containerCls =
+    containerClassName ||
+    (className
+      ? className.match(/\b(w-\S+|min-w-\S+|max-w-\S+|flex-\S+)\b/g)?.join(' ') || 'w-full'
+      : 'w-full');
+
+  // Input className: remove width classes from input styling since width is handled by container,
+  // but retain all border, rounded, background, text, and focus styles
+  const inputStyleCls = className
+    ? className.replace(/\b(w-\S+|min-w-\S+|max-w-\S+)\b/g, '').trim() + ' w-full'
+    : inputCls;
+
   return (
-    <select
-      required={required}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className={className || inputCls}
-    >
-      <option value="">Select State</option>
-      {states.map((s) => (
-        <option key={s} value={s}>
-          {s}
-        </option>
-      ))}
-    </select>
+    <div ref={containerRef} className={`relative ${containerCls}`}>
+      <div className="relative flex items-center w-full">
+        <input
+          type="text"
+          required={required}
+          value={searchTerm}
+          onChange={handleInputChange}
+          onFocus={() => setIsOpen(true)}
+          placeholder={placeholder || 'Search or select state'}
+          className={`${inputStyleCls} pr-8`}
+        />
+        <div className="absolute right-2.5 flex items-center gap-1 text-slate-400">
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={handleClear}
+              className="p-0.5 rounded-full hover:bg-slate-100 hover:text-slate-600"
+              title="Clear state"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+          <ChevronDown
+            className={`h-4 w-4 transition-transform cursor-pointer ${isOpen ? 'rotate-180' : ''}`}
+            onClick={() => setIsOpen((prev) => !prev)}
+          />
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className="absolute left-0 z-50 mt-1 min-w-[200px] w-full max-h-60 overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg text-sm">
+          {filteredStates.map((state) => (
+            <button
+              type="button"
+              key={state}
+              onClick={() => handleSelectState(state)}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-red-50 flex items-center justify-between ${
+                value === state ? 'bg-red-50 text-red-700 font-medium' : 'text-slate-700'
+              }`}
+            >
+              <span>{state}</span>
+              {value === state && <Check className="h-4 w-4 text-red-600" />}
+            </button>
+          ))}
+
+          {filteredStates.length === 0 && (
+            <div className="px-3 py-2 text-xs text-slate-400">No matching states found</div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -146,7 +284,7 @@ function AddCityModal({
               }
             }}
             placeholder="e.g. Salem"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100"
           />
           {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
         </div>
@@ -161,7 +299,7 @@ function AddCityModal({
           <button
             type="button"
             onClick={handleSave}
-            className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
+            className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700"
           >
             Add & Select
           </button>
@@ -318,7 +456,7 @@ export function CitySelect({
                 <button
                   type="button"
                   onClick={() => handleSelectCity(searchTerm.trim())}
-                  className="w-full text-left px-3 py-2 text-xs font-semibold text-blue-600 hover:bg-blue-50 flex items-center gap-1.5 border-b border-slate-100"
+                  className="w-full text-left px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center gap-1.5 border-b border-slate-100"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   <span>Add &quot;{searchTerm.trim()}&quot; as new city</span>
@@ -331,12 +469,12 @@ export function CitySelect({
                   type="button"
                   key={city}
                   onClick={() => handleSelectCity(city)}
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-blue-50 flex items-center justify-between ${
-                    value === city ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700'
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-red-50 flex items-center justify-between ${
+                    value === city ? 'bg-red-50 text-red-700 font-medium' : 'text-slate-700'
                   }`}
                 >
                   <span>{city}</span>
-                  {value === city && <Check className="h-4 w-4 text-blue-600" />}
+                  {value === city && <Check className="h-4 w-4 text-red-600" />}
                 </button>
               ))}
 
@@ -352,7 +490,7 @@ export function CitySelect({
                     setIsOpen(false);
                     setAddModalOpen(true);
                   }}
-                  className="w-full text-left px-3 py-2 text-xs font-semibold text-blue-600 hover:bg-blue-50 flex items-center gap-1.5 border-t border-slate-100 bg-slate-50/50 sticky bottom-0"
+                  className="w-full text-left px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center gap-1.5 border-t border-slate-100 bg-slate-50/50 sticky bottom-0"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   <span>+ Add New City for {state}</span>

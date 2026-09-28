@@ -146,7 +146,7 @@ export default function UserManager({ role, title, subtitle }: { role: Role; tit
             <input
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100"
             />
           </div>
 
@@ -159,7 +159,7 @@ export default function UserManager({ role, title, subtitle }: { role: Role; tit
                 const val = e.target.value.replace(/\D/g, '').slice(0, 10);
                 setForm((f) => ({ ...f, phone: val }));
               }}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100"
             />
           </div>
 
@@ -176,7 +176,7 @@ export default function UserManager({ role, title, subtitle }: { role: Role; tit
             >
               Cancel
             </button>
-            <button type="submit" className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 cursor-pointer">
+            <button type="submit" className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 cursor-pointer">
               Save
             </button>
           </div>

@@ -10,6 +10,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import ClientSelect from '@/components/ui/ClientSelect';
 import DatePicker from '@/components/ui/DatePicker';
 import Loader from '@/components/ui/Loader';
+import CustomSelect from '@/components/ui/CustomSelect';
 import type { Proposal } from '@/lib/types';
 
 const PAGE_SIZE = 20;
@@ -150,7 +151,7 @@ export default function ProposalsPage() {
         </div>
         <Link
           href="/proposals/new"
-          className="flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          className="flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
         >
           <Plus className="h-4 w-4" /> Create Proposal
         </Link>
@@ -178,18 +179,20 @@ export default function ProposalsPage() {
           <DatePicker value={fromDate} onChange={handleFromDateChange} max={toDate || undefined} placeholder="From Date" />
           <DatePicker value={toDate} onChange={handleToDateChange} min={fromDate || undefined} placeholder="To Date" />
           <div className="flex items-center gap-3">
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            >
-              <option value="">All Statuses</option>
-              <option value="draft">Draft</option>
-              <option value="generated">Generated</option>
-              <option value="completed">Completed</option>
-            </select>
+            <div className="w-36">
+              <CustomSelect
+                value={status}
+                onChange={setStatus}
+                placeholder="All Statuses"
+                options={[
+                  { value: 'draft', label: 'Draft' },
+                  { value: 'generated', label: 'Generated' },
+                  { value: 'completed', label: 'Completed' },
+                ]}
+              />
+            </div>
             {hasActiveFilters && (
-              <button onClick={clearFilters} className="text-xs font-medium text-blue-600 hover:underline whitespace-nowrap">
+              <button onClick={clearFilters} className="text-xs font-medium text-red-600 hover:underline whitespace-nowrap">
                 Clear Filters
               </button>
             )}

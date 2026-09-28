@@ -47,7 +47,7 @@ export default function BookingDetailsPage() {
         <ul className="divide-y divide-slate-100">
           {booking.sites?.map((s: any) => (
             <li key={s._id} className="flex items-center justify-between py-2.5 text-sm">
-              <Link href={`/sites/${s._id}`} className="font-medium text-blue-600 hover:underline">
+              <Link href={`/sites/${s._id}`} className="font-medium text-red-600 hover:underline">
                 {s.mediaName}
               </Link>
               <StatusBadge status={s.mediaStatus} />

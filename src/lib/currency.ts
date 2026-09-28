@@ -27,10 +27,30 @@ export function formatIndianGroups(raw: string): string {
 }
 
 // Strips ₹/commas/whitespace from a display string back down to a plain numeric string,
-// suitable for parsing with Number(...) before sending to the API. Returns '' for empty
-// or non-numeric input so callers can treat it the same as an untouched field.
+// suitable for parsing with Number(...) before sending to the API.
+// Also converts shorthand multipliers like 'k'/'K' (thousands), 'l'/'L'/'lakh' (lakhs),
+// and 'cr'/'CR'/'crore' (crores) so expressions like "52k", "2k", "3k" expand correctly.
 export function parseINRInput(value: string): string {
-  const cleaned = value.replace(/[₹,\s]/g, '');
+  if (!value) return '';
+  const cleaned = value.replace(/[₹,\s]/g, '').trim();
   if (cleaned === '') return '';
+
+  const match = cleaned.match(/^(-?\d+(?:\.\d+)?)\s*([kKlL]|lakhs?|crores?|cr)?$/i);
+  if (match) {
+    const num = parseFloat(match[1]);
+    if (isNaN(num)) return '';
+    const unit = (match[2] || '').toLowerCase();
+    let multiplier = 1;
+    if (unit === 'k') {
+      multiplier = 1000;
+    } else if (unit === 'l' || unit.startsWith('lakh')) {
+      multiplier = 100000;
+    } else if (unit === 'cr' || unit.startsWith('crore')) {
+      multiplier = 10000000;
+    }
+    const result = Math.round((num * multiplier + Number.EPSILON) * 100) / 100;
+    return String(result);
+  }
+
   return isNaN(Number(cleaned)) ? '' : cleaned;
 }

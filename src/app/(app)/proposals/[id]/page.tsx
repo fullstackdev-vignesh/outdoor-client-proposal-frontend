@@ -264,7 +264,7 @@ function Info({ label, value }: { label: string; value?: string }) {
 }
 
 const TILE_COLORS = {
-  blue: { icon: 'text-blue-600', bg: 'bg-blue-50', bar: 'bg-blue-600', ring: 'ring-blue-100' },
+  blue: { icon: 'text-red-600', bg: 'bg-red-50', bar: 'bg-red-600', ring: 'ring-red-100' },
   emerald: { icon: 'text-emerald-600', bg: 'bg-emerald-50', bar: 'bg-emerald-600', ring: 'ring-emerald-100' },
 } as const;
 

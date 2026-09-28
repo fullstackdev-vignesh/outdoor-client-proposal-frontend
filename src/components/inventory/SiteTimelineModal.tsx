@@ -62,7 +62,7 @@ export default function SiteTimelineModal({
               <div key={h.eventKey} className="relative">
                 <span
                   className={`absolute -left-5 top-1 h-3 w-3 rounded-full border-2 border-white ring-2 ${
-                    index === 0 ? 'bg-emerald-500 ring-emerald-100' : 'bg-blue-500 ring-blue-100'
+                    index === 0 ? 'bg-emerald-500 ring-emerald-100' : 'bg-red-500 ring-red-100'
                   }`}
                 />
                 <div className="flex items-center gap-2">

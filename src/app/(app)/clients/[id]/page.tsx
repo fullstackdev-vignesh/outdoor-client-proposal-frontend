@@ -49,7 +49,7 @@ export default function ClientDetailsPage() {
             key={t}
             onClick={() => setTab(t)}
             className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${
-              tab === t ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'
+              tab === t ? 'border-red-600 text-red-600' : 'border-transparent text-slate-500 hover:text-slate-700'
             }`}
           >
             {t}

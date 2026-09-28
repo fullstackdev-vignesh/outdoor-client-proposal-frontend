@@ -238,7 +238,7 @@ export default function DatePicker({
           disabled
             ? 'bg-slate-50 text-slate-400 cursor-not-allowed border-slate-200'
             : `bg-white cursor-pointer focus:outline-none focus:ring-2 ${
-                error ? 'border-red-400 hover:border-red-500 focus:border-red-500 focus:ring-red-100' : 'border-slate-300 hover:border-blue-400 focus:border-blue-500 focus:ring-blue-100'
+                error ? 'border-red-400 hover:border-red-500 focus:border-red-500 focus:ring-red-100' : 'border-slate-300 hover:border-red-400 focus:border-red-500 focus:ring-red-100'
               }`
         } ${className || ''}`}
       >
@@ -298,7 +298,7 @@ export default function DatePicker({
                         className={`block w-full px-3 py-1.5 text-left text-sm ${
                           dis
                             ? 'text-slate-300 cursor-not-allowed'
-                            : `hover:bg-blue-50 ${idx + 1 === viewM ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700'}`
+                            : `hover:bg-red-50 ${idx + 1 === viewM ? 'bg-red-50 text-red-700 font-medium' : 'text-slate-700'}`
                         }`}
                       >
                         {label}
@@ -334,8 +334,8 @@ export default function DatePicker({
                         setViewY(y);
                         setYearMenuOpen(false);
                       }}
-                      className={`block w-full px-3 py-1.5 text-left text-sm hover:bg-blue-50 ${
-                        y === viewY ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700'
+                      className={`block w-full px-3 py-1.5 text-left text-sm hover:bg-red-50 ${
+                        y === viewY ? 'bg-red-50 text-red-700 font-medium' : 'text-slate-700'
                       }`}
                     >
                       {y}
@@ -383,9 +383,9 @@ export default function DatePicker({
                       ? 'text-slate-300 cursor-not-allowed'
                       : c.outside
                       ? 'text-slate-300 hover:bg-slate-100'
-                      : 'text-slate-700 hover:bg-blue-50'
-                  } ${isSelected ? '!bg-blue-600 !text-white font-semibold' : ''} ${
-                    isToday && !isSelected ? 'ring-1 ring-blue-400' : ''
+                      : 'text-slate-700 hover:bg-red-50'
+                  } ${isSelected ? '!bg-red-600 !text-white font-semibold' : ''} ${
+                    isToday && !isSelected ? 'ring-1 ring-red-400' : ''
                   }`}
                 >
                   {c.d}

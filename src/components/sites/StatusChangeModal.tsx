@@ -8,6 +8,7 @@ import api from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import { todayISO } from '@/lib/date';
 import DatePicker from '@/components/ui/DatePicker';
+import CustomSelect from '@/components/ui/CustomSelect';
 import type { Site, Client, MediaStatus } from '@/lib/types';
 
 function calcDurationDays(start: string, end: string) {
@@ -198,7 +199,7 @@ export default function StatusChangeModal({
                   key={s}
                   onClick={() => setNewStatus(s)}
                   className={`rounded-lg border px-4 py-2 text-sm font-medium capitalize ${
-                    newStatus === s ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200'
+                    newStatus === s ? 'bg-red-600 text-white border-red-600' : 'bg-white text-slate-600 border-slate-200'
                   }`}
                 >
                   {s}
@@ -265,9 +266,9 @@ export default function StatusChangeModal({
           )}
 
           {newStatus === 'booked' && (
-            <div className="space-y-3 rounded-lg bg-blue-50 border border-blue-100 p-3">
+            <div className="space-y-3 rounded-lg bg-red-50 border border-red-100 p-3">
               {openBookings.length > 0 && (
-                <div className="rounded-lg bg-white border border-blue-200 p-2.5">
+                <div className="rounded-lg bg-white border border-red-200 p-2.5">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1.5">Existing Bookings</p>
                   <ul className="space-y-1 text-xs text-slate-600">
                     {openBookings.map((b) => (
@@ -278,7 +279,7 @@ export default function StatusChangeModal({
                         </span>
                         <span>
                           {formatDay(b.startDate)} → {formatDay(b.endDate)}
-                          <span className="ml-1.5 capitalize text-blue-600">{b.status}</span>
+                          <span className="ml-1.5 capitalize text-red-600">{b.status}</span>
                         </span>
                       </li>
                     ))}
@@ -296,7 +297,7 @@ export default function StatusChangeModal({
                       type="button"
                       onClick={() => switchBookingMode(mode)}
                       className={`rounded-lg border px-3 py-1.5 text-xs font-medium ${
-                        bookingMode === mode ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200'
+                        bookingMode === mode ? 'bg-red-600 text-white border-red-600' : 'bg-white text-slate-600 border-slate-200'
                       }`}
                     >
                       {label}
@@ -314,9 +315,12 @@ export default function StatusChangeModal({
                     <button
                       key={t}
                       type="button"
-                      onClick={() => setCustomerType(t)}
+                      onClick={() => {
+                        setCustomerType(t);
+                        setClientId('');
+                      }}
                       className={`rounded-lg border px-4 py-2 text-sm font-medium capitalize ${
-                        customerType === t ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200'
+                        customerType === t ? 'bg-red-600 text-white border-red-600' : 'bg-white text-slate-600 border-slate-200'
                       }`}
                     >
                       {t}
@@ -328,14 +332,15 @@ export default function StatusChangeModal({
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   {customerType === 'agency' ? 'Agency' : 'Client'} *
                 </label>
-                <select value={clientId} onChange={(e) => setClientId(e.target.value)} className={inputCls} required>
-                  <option value="">Select {customerType === 'agency' ? 'agency' : 'client'}</option>
-                  {clients.map((c) => (
-                    <option key={c._id} value={c._id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                <CustomSelect
+                  value={clientId}
+                  onChange={setClientId}
+                  placeholder={`Select ${customerType === 'agency' ? 'agency' : 'client'}`}
+                  options={clients
+                    .filter((c) => (customerType === 'agency' ? c.customerType === 'agency' : c.customerType !== 'agency'))
+                    .map((c) => ({ value: c._id, label: c.name }))}
+                  className={inputCls}
+                />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -367,7 +372,7 @@ export default function StatusChangeModal({
                 </div>
               </div>
               {!validDateRange && <p className="text-xs text-red-500">End Date must be on or after Start Date</p>}
-              <div className="rounded-lg bg-white border border-blue-200 p-3 text-sm space-y-1">
+              <div className="rounded-lg bg-white border border-red-200 p-3 text-sm space-y-1">
                 <p className="text-slate-600">Monthly Cost: <span className="font-semibold text-slate-800">₹{monthlyTotalCost.toLocaleString()}</span></p>
                 <p className="text-slate-600">Duration: <span className="font-semibold text-slate-800">{durationDays} Days</span></p>
                 <p className="text-slate-600">Booking Amount: <span className="font-semibold text-emerald-600">₹{bookingAmount.toLocaleString()}</span></p>
@@ -382,7 +387,7 @@ export default function StatusChangeModal({
             <button
               onClick={() => setConfirmOpen(true)}
               disabled={!canSubmit}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
             >
               Update Status
             </button>
@@ -403,4 +408,4 @@ export default function StatusChangeModal({
 }
 
 const inputCls =
-  'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100';
+  'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100';

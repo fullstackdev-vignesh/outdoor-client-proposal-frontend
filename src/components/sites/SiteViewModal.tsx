@@ -105,7 +105,7 @@ export default function SiteViewModal({ open, onClose, site: siteProp }: { open:
             key={t}
             onClick={() => setTab(t)}
             className={`px-4 py-2 text-sm font-semibold border-b-2 -mb-px ${
-              tab === t ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500 hover:text-slate-700'
+              tab === t ? 'border-red-600 text-red-700' : 'border-transparent text-slate-500 hover:text-slate-700'
             }`}
           >
             {t === 'view' ? 'View' : 'Edit History'}
@@ -220,7 +220,7 @@ export default function SiteViewModal({ open, onClose, site: siteProp }: { open:
                 {site.bookings.map((b) => (
                   <div key={b.bookingId} className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-100 px-3 py-2 text-xs">
                     <span className={`font-semibold capitalize px-2 py-0.5 rounded-full ${
-                      b.status === 'active' ? 'bg-blue-100 text-blue-700' :
+                      b.status === 'active' ? 'bg-red-100 text-red-700' :
                       b.status === 'upcoming' ? 'bg-amber-100 text-amber-700' :
                       b.status === 'cancelled' ? 'bg-slate-200 text-slate-500' : 'bg-slate-100 text-slate-500'
                     }`}>

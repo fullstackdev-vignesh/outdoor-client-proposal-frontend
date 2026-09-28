@@ -76,7 +76,7 @@ function MpinBoxInput({
           className={`w-12 h-12 text-center text-lg font-bold rounded-xl border transition focus:outline-none focus:ring-2 ${
             hasError
               ? 'border-red-500 focus:border-red-500 focus:ring-red-100 bg-red-50/20 text-red-600'
-              : 'border-slate-300 focus:border-blue-500 focus:ring-blue-100 text-slate-900 bg-slate-50/50 focus:bg-white'
+              : 'border-slate-300 focus:border-red-500 focus:ring-red-100 text-slate-900 bg-slate-50/50 focus:bg-white'
           }`}
         />
       ))}
@@ -176,7 +176,7 @@ export default function ForgotPasswordPage() {
       />
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
-          <div className="h-14 w-14 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-200">
+          <div className="h-14 w-14 rounded-2xl bg-red-600 flex items-center justify-center shadow-lg shadow-red-200">
             <Building2 className="h-7 w-7 text-white" />
           </div>
           <h1 className="mt-4 text-2xl font-bold text-slate-900">Outdoor</h1>
@@ -186,7 +186,7 @@ export default function ForgotPasswordPage() {
           {step === 1 && (
             <>
               <div className="flex items-center gap-2 mb-1">
-                <KeyRound className="h-5 w-5 text-blue-600" />
+                <KeyRound className="h-5 w-5 text-red-600" />
                 <h2 className="text-lg font-semibold text-slate-900">Reset your MPIN</h2>
               </div>
               <p className="text-xs text-slate-500 mb-6">
@@ -203,7 +203,7 @@ export default function ForgotPasswordPage() {
                     value={identifier}
                     onChange={handleIdentifierChange}
                     placeholder="Registered phone or email"
-                    className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 transition"
+                    className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100 transition"
                   />
                 </div>
 
@@ -216,7 +216,7 @@ export default function ForgotPasswordPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-blue-600 py-3.5 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-60 transition shadow-md shadow-blue-200 cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-red-600 py-3.5 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-60 transition shadow-md shadow-red-200 cursor-pointer"
                 >
                   {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
                   Send Temporary PIN
@@ -228,7 +228,7 @@ export default function ForgotPasswordPage() {
           {step === 2 && (
             <>
               <div className="flex items-center gap-2 mb-1">
-                <KeyRound className="h-5 w-5 text-blue-600" />
+                <KeyRound className="h-5 w-5 text-red-600" />
                 <h2 className="text-lg font-semibold text-slate-900">Create New MPIN</h2>
               </div>
               <p className="text-xs text-slate-500 mb-4">
@@ -280,7 +280,7 @@ export default function ForgotPasswordPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-blue-600 py-3.5 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-60 transition shadow-md shadow-blue-200 cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-red-600 py-3.5 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-60 transition shadow-md shadow-red-200 cursor-pointer"
                 >
                   {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
                   Reset MPIN
@@ -298,7 +298,7 @@ export default function ForgotPasswordPage() {
               </p>
               <Link
                 href="/login"
-                className="inline-block w-full rounded-2xl bg-blue-600 py-3.5 text-sm font-bold text-white hover:bg-blue-700 transition shadow-md shadow-blue-200"
+                className="inline-block w-full rounded-2xl bg-red-600 py-3.5 text-sm font-bold text-white hover:bg-red-700 transition shadow-md shadow-red-200"
               >
                 Sign In Now
               </Link>
@@ -306,7 +306,7 @@ export default function ForgotPasswordPage() {
           )}
 
           {step !== 3 && (
-            <Link href="/login" className="mt-6 flex items-center justify-center gap-1.5 text-xs text-blue-600 hover:underline font-bold">
+            <Link href="/login" className="mt-6 flex items-center justify-center gap-1.5 text-xs text-red-600 hover:underline font-bold">
               <ArrowLeft className="h-3.5 w-3.5" /> Back to login
             </Link>
           )}

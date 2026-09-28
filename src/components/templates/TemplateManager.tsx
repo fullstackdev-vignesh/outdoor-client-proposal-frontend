@@ -10,6 +10,7 @@ import Modal from '@/components/ui/Modal';
 import EmptyState from '@/components/ui/EmptyState';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Loader from '@/components/ui/Loader';
+import CustomSelect from '@/components/ui/CustomSelect';
 import type { Template } from '@/lib/types';
 
 export default function TemplateManager({
@@ -163,7 +164,7 @@ export default function TemplateManager({
         {canManage && (
           <button
             onClick={() => openForm(null)}
-            className="flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            className="flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
           >
             <Plus className="h-4 w-4" /> Upload Template
           </button>
@@ -225,10 +226,10 @@ export default function TemplateManager({
                     <td className="px-4 py-3">
                       {canManage && (
                         <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => toggleStatus(t)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-blue-600" title="Toggle Status">
+                          <button onClick={() => toggleStatus(t)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-red-600" title="Toggle Status">
                             <Power className="h-4 w-4" />
                           </button>
-                          <button onClick={() => openForm(t)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-blue-600" title="Edit">
+                          <button onClick={() => openForm(t)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-red-600" title="Edit">
                             <Pencil className="h-4 w-4" />
                           </button>
                           <button onClick={() => setDeleteTarget(t)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-red-600" title="Delete">
@@ -279,7 +280,7 @@ export default function TemplateManager({
               File {pptxOnly ? '(.pptx)' : excelOnly ? '(.xlsx / .xls)' : '(.pptx / .xlsx)'}
               {(pptxOnly || excelOnly) && !editing ? ' *' : ''}
             </label>
-            <label className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 py-6 text-sm text-slate-500 cursor-pointer hover:border-blue-400">
+            <label className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 py-6 text-sm text-slate-500 cursor-pointer hover:border-red-400">
               <UploadCloud className="h-4 w-4" />
               {selectedFile ? selectedFile.name : form.fileUrl ? form.fileUrl : 'Click to select file'}
               <input
@@ -314,29 +315,34 @@ export default function TemplateManager({
           {formatOptions && (
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Template Format</label>
-              <select value={form.formatKey} onChange={(e) => setForm((f) => ({ ...f, formatKey: e.target.value }))} className={inputCls}>
-                <option value="">Generic (auto)</option>
-                {formatOptions.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
+              <CustomSelect
+                value={form.formatKey}
+                onChange={(val) => setForm((f) => ({ ...f, formatKey: val }))}
+                placeholder="Generic (auto)"
+                options={formatOptions}
+                className={inputCls}
+              />
               <p className="mt-1 text-xs text-slate-400">Selects which layout mapping is used to populate this exact file during proposal generation.</p>
             </div>
           )}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
-            <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))} className={inputCls}>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
+            <CustomSelect
+              value={form.status}
+              onChange={(val) => setForm((f) => ({ ...f, status: val }))}
+              placeholder=""
+              options={[
+                { value: 'active', label: 'Active' },
+                { value: 'inactive', label: 'Inactive' },
+              ]}
+              className={inputCls}
+            />
           </div>
           <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
             <button type="button" onClick={() => setFormOpen(false)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
               Cancel
             </button>
-            <button type="submit" className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+            <button type="submit" className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">
               Save
             </button>
           </div>
@@ -357,4 +363,4 @@ export default function TemplateManager({
 }
 
 const inputCls =
-  'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100';
+  'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100';

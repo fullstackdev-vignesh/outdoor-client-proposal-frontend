@@ -11,6 +11,7 @@ import { getBookingSummary } from '@/components/ui/BookingStatusSummary';
 import { StateSelect, CitySelect } from '@/components/ui/StateCitySelect';
 import { SiteOwnerSelect } from '@/components/ui/SiteOwnerSelect';
 import MediaPreviewModal from '@/components/inventory/MediaPreviewModal';
+import CustomSelect from '@/components/ui/CustomSelect';
 import type { Client, MediaStatus, Site, Template } from '@/lib/types';
 
 const STEPS = ['Customer Details', 'Site Details', 'PPT Template', 'Excel Template', 'Preview'] as const;
@@ -66,9 +67,9 @@ function BookingScheduleStrip({ site }: { site: Site }) {
   return (
     <div className="mt-1.5 flex flex-wrap items-center gap-2 pl-12 text-[11px]">
       {active && (
-        <div className="flex items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-2 py-1">
-          <span className="rounded bg-blue-600 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-white">Active</span>
-          <span className="font-medium text-blue-700 whitespace-nowrap">
+        <div className="flex items-center gap-1.5 rounded-md border border-red-200 bg-red-50 px-2 py-1">
+          <span className="rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-white">Active</span>
+          <span className="font-medium text-red-700 whitespace-nowrap">
             {bookingDateLabel(active.startDate)} → {bookingDateLabel(active.endDate)}
           </span>
         </div>
@@ -330,14 +331,14 @@ export default function NewProposalPage() {
             <div className="flex items-center gap-2">
               <div
                 className={`h-7 w-7 shrink-0 rounded-full flex items-center justify-center text-xs font-semibold ${
-                  i < step ? 'bg-blue-600 text-white' : i === step ? 'bg-blue-100 text-blue-700 border-2 border-blue-600' : 'bg-slate-100 text-slate-400'
+                  i < step ? 'bg-red-600 text-white' : i === step ? 'bg-red-100 text-red-700 border-2 border-red-600' : 'bg-slate-100 text-slate-400'
                 }`}
               >
                 {i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}
               </div>
               <span className={`text-xs font-medium whitespace-nowrap ${i <= step ? 'text-slate-800' : 'text-slate-400'}`}>{s}</span>
             </div>
-            {i < STEPS.length - 1 && <div className={`h-0.5 flex-1 ${i < step ? 'bg-blue-600' : 'bg-slate-200'}`} />}
+            {i < STEPS.length - 1 && <div className={`h-0.5 flex-1 ${i < step ? 'bg-red-600' : 'bg-slate-200'}`} />}
           </div>
         ))}
       </div>
@@ -354,7 +355,7 @@ export default function NewProposalPage() {
                     setCustomerId('');
                   }}
                   className={`rounded-lg border px-4 py-2 text-sm font-medium capitalize ${
-                    customerType === t ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600 hover:border-blue-300'
+                    customerType === t ? 'border-red-600 bg-red-50 text-red-700' : 'border-slate-200 text-slate-600 hover:border-red-300'
                   }`}
                 >
                   {t}
@@ -376,7 +377,7 @@ export default function NewProposalPage() {
                   key={c._id}
                   onClick={() => setCustomerId(c._id)}
                   className={`text-left rounded-lg border p-3 text-sm ${
-                    customerId === c._id ? 'border-blue-600 bg-blue-50' : 'border-slate-200 hover:border-blue-300'
+                    customerId === c._id ? 'border-red-600 bg-red-50' : 'border-slate-200 hover:border-red-300'
                   }`}
                 >
                   <p className="font-medium text-slate-800">{c.name}</p>
@@ -414,25 +415,27 @@ export default function NewProposalPage() {
               <CitySelect state={siteState} value={siteCity} onChange={setSiteCity} />
             </div>
             <div className="flex items-center gap-2 mb-3">
-              <select
-                value={siteStatus}
-                onChange={(e) => setSiteStatus(e.target.value as any)}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              >
-                <option value="">All Statuses</option>
-                <option value="available">Available</option>
-                <option value="booked">Booked</option>
-                <option value="blocked">Blocked</option>
-              </select>
+              <div className="w-36">
+                <CustomSelect
+                  value={siteStatus}
+                  onChange={(val) => setSiteStatus(val as any)}
+                  placeholder="All Statuses"
+                  options={[
+                    { value: 'available', label: 'Available' },
+                    { value: 'booked', label: 'Booked' },
+                    { value: 'blocked', label: 'Blocked' },
+                  ]}
+                />
+              </div>
               <SiteOwnerSelect value={siteOwner} onChange={setSiteOwner} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
               {activeSiteFilterCount > 0 && (
-                <button onClick={clearSiteFilters} className="ml-auto text-xs font-medium text-blue-600 hover:underline">
+                <button onClick={clearSiteFilters} className="ml-auto text-xs font-medium text-red-600 hover:underline">
                   Clear Filters
                 </button>
               )}
             </div>
 
-            <p className="mb-2 text-sm font-medium text-blue-600">
+            <p className="mb-2 text-sm font-medium text-red-600">
               {selectedSites.size} Sites Selected · Showing {sites.length} of {siteTotal}
             </p>
 
@@ -467,7 +470,7 @@ export default function NewProposalPage() {
                           disabled
                             ? 'opacity-50'
                             : s.mediaStatus === 'booked'
-                              ? 'cursor-pointer bg-blue-50/40 hover:bg-blue-50/70'
+                              ? 'cursor-pointer bg-red-50/40 hover:bg-red-50/70'
                               : 'cursor-pointer hover:bg-slate-50'
                         }`}
                       >
@@ -539,7 +542,7 @@ export default function NewProposalPage() {
               <button
                 onClick={() => setPreviewTab('ppt')}
                 className={`flex items-center gap-1.5 px-3 py-2 text-sm font-semibold border-b-2 -mb-px ${
-                  previewTab === 'ppt' ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500'
+                  previewTab === 'ppt' ? 'border-red-600 text-red-700' : 'border-transparent text-slate-500'
                 }`}
               >
                 <Presentation className="h-4 w-4" /> PowerPoint Preview
@@ -547,7 +550,7 @@ export default function NewProposalPage() {
               <button
                 onClick={() => setPreviewTab('excel')}
                 className={`flex items-center gap-1.5 px-3 py-2 text-sm font-semibold border-b-2 -mb-px ${
-                  previewTab === 'excel' ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500'
+                  previewTab === 'excel' ? 'border-red-600 text-red-700' : 'border-transparent text-slate-500'
                 }`}
               >
                 <FileSpreadsheet className="h-4 w-4" /> Excel Preview
@@ -574,7 +577,7 @@ export default function NewProposalPage() {
                     );
                   })}
                 </div>
-                <button onClick={() => goToStep(2)} className="text-xs font-medium text-blue-600 hover:underline">
+                <button onClick={() => goToStep(2)} className="text-xs font-medium text-red-600 hover:underline">
                   Edit PPT Template
                 </button>
               </div>
@@ -608,7 +611,7 @@ export default function NewProposalPage() {
                     </tbody>
                   </table>
                 </div>
-                <button onClick={() => goToStep(3)} className="text-xs font-medium text-blue-600 hover:underline">
+                <button onClick={() => goToStep(3)} className="text-xs font-medium text-red-600 hover:underline">
                   Edit Excel Template
                 </button>
               </div>
@@ -618,21 +621,21 @@ export default function NewProposalPage() {
               {/* <button
                 disabled={generating === 'ppt'}
                 onClick={() => handleDownload('ppt')}
-                className="flex items-center gap-1.5 rounded-lg border border-blue-300 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 disabled:opacity-60"
+                className="flex items-center gap-1.5 rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
               >
                 <Download className="h-4 w-4" /> {generating === 'ppt' ? 'Generating PPT...' : 'Download PPT'}
               </button> */}
               {/* <button
                 disabled={generating === 'excel'}
                 onClick={() => handleDownload('excel')}
-                className="flex items-center gap-1.5 rounded-lg border border-blue-300 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 disabled:opacity-60"
+                className="flex items-center gap-1.5 rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
               >
                 <Download className="h-4 w-4" /> {generating === 'excel' ? 'Generating Excel...' : 'Download Excel'}
               </button> */}
               {createdProposal && (
                 <button
                   onClick={() => router.push(`/proposals/${createdProposal._id}`)}
-                  className="ml-auto rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                  className="ml-auto rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
                 >
                   View Proposal
                 </button>
@@ -654,7 +657,7 @@ export default function NewProposalPage() {
           <button
             disabled={!canNext}
             onClick={() => setStep((s) => s + 1)}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
           >
             Next
           </button>
@@ -672,7 +675,7 @@ export default function NewProposalPage() {
             <button
               disabled={saving}
               onClick={generateProposal}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60"
             >
               {saving ? 'Creating...' : 'Generate Proposal'}
             </button>
@@ -704,12 +707,12 @@ function TemplateGrid({ items, selected, onSelect }: { items: Template[]; select
           key={t._id}
           onClick={() => onSelect(t._id)}
           className={`text-left rounded-lg border p-3 text-sm ${
-            selected === t._id ? 'border-blue-600 bg-blue-50' : 'border-slate-200 hover:border-blue-300'
+            selected === t._id ? 'border-red-600 bg-red-50' : 'border-slate-200 hover:border-red-300'
           }`}
         >
           <div className="flex items-center justify-between">
             <p className="font-medium text-slate-800">{t.name}</p>
-            {selected === t._id && <Check className="h-4 w-4 text-blue-600" />}
+            {selected === t._id && <Check className="h-4 w-4 text-red-600" />}
           </div>
           <p className="text-xs text-slate-400">{t.description}</p>
         </button>
@@ -726,7 +729,7 @@ function Row({ label, value, action, capitalize }: { label: string; value: strin
       <span className="flex items-center gap-2">
         <span className={`font-medium text-slate-800 ${capitalize ? 'capitalize' : ''}`}>{value}</span>
         {action && (
-          <button onClick={action} className="text-xs font-medium text-blue-600 hover:underline">
+          <button onClick={action} className="text-xs font-medium text-red-600 hover:underline">
             Edit
           </button>
         )}

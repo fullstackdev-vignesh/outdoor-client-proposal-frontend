@@ -86,7 +86,7 @@ function MpinBoxInput({
           className={`w-14 h-14 text-center text-xl font-bold rounded-2xl border transition focus:outline-none focus:ring-2 ${
             hasError
               ? 'border-red-500 focus:border-red-500 focus:ring-red-100 bg-red-50/20 text-red-600'
-              : 'border-slate-300 focus:border-blue-500 focus:ring-blue-100 text-slate-900 bg-slate-50/50 focus:bg-white'
+              : 'border-slate-300 focus:border-red-500 focus:ring-red-100 text-slate-900 bg-slate-50/50 focus:bg-white'
           }`}
         />
       ))}
@@ -248,7 +248,7 @@ function RegisterContent() {
       />
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-6">
-          <div className="h-14 w-14 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-200">
+          <div className="h-14 w-14 rounded-2xl bg-red-600 flex items-center justify-center shadow-lg shadow-red-200">
             <Building2 className="h-7 w-7 text-white" />
           </div>
           <h1 className="mt-4 text-2xl font-bold text-slate-900">Outdoor</h1>
@@ -278,8 +278,8 @@ function RegisterContent() {
                         }}
                         className={`rounded-xl border px-2 py-2 text-xs font-semibold transition cursor-pointer ${
                           userType === r.type
-                            ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                            : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'
+                            ? 'bg-red-600 text-white border-red-600 shadow-sm'
+                            : 'bg-white text-slate-600 border-slate-200 hover:border-red-300'
                         }`}
                       >
                         {r.label}
@@ -304,7 +304,7 @@ function RegisterContent() {
                     className={`w-full rounded-2xl border px-4 py-3 text-sm focus:outline-none focus:ring-2 transition ${
                       formErrors.userName
                         ? 'border-red-500 focus:border-red-500 focus:ring-red-100 bg-red-50/20'
-                        : 'border-slate-300 focus:border-blue-500 focus:ring-blue-100'
+                        : 'border-slate-300 focus:border-red-500 focus:ring-red-100'
                     }`}
                   />
                   {formErrors.userName && <p className="mt-1 text-xs text-red-600 font-medium">{formErrors.userName}</p>}
@@ -322,7 +322,7 @@ function RegisterContent() {
                     className={`w-full rounded-2xl border px-4 py-3 text-sm focus:outline-none focus:ring-2 transition ${
                       formErrors.userPhone
                         ? 'border-red-500 focus:border-red-500 focus:ring-red-100 bg-red-50/20'
-                        : 'border-slate-300 focus:border-blue-500 focus:ring-blue-100'
+                        : 'border-slate-300 focus:border-red-500 focus:ring-red-100'
                     }`}
                   />
                   {formErrors.userPhone && <p className="mt-1 text-xs text-red-600 font-medium">{formErrors.userPhone}</p>}
@@ -344,7 +344,7 @@ function RegisterContent() {
                     className={`w-full rounded-2xl border px-4 py-3 text-sm focus:outline-none focus:ring-2 transition ${
                       formErrors.userEmail
                         ? 'border-red-500 focus:border-red-500 focus:ring-red-100 bg-red-50/20'
-                        : 'border-slate-300 focus:border-blue-500 focus:ring-blue-100'
+                        : 'border-slate-300 focus:border-red-500 focus:ring-red-100'
                     }`}
                   />
                   {formErrors.userEmail && <p className="mt-1 text-xs text-red-600 font-medium">{formErrors.userEmail}</p>}
@@ -367,7 +367,7 @@ function RegisterContent() {
                       className={`w-full rounded-2xl border px-4 py-3 text-sm focus:outline-none focus:ring-2 pr-10 transition ${
                         formErrors.registerPassword
                           ? 'border-red-500 focus:border-red-500 focus:ring-red-100 bg-red-50/20'
-                          : 'border-slate-300 focus:border-blue-500 focus:ring-blue-100'
+                          : 'border-slate-300 focus:border-red-500 focus:ring-red-100'
                       }`}
                     />
                     <button
@@ -387,7 +387,7 @@ function RegisterContent() {
                 <button
                   type="button"
                   onClick={handleContinueStep1}
-                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-blue-600 py-3.5 text-sm font-bold text-white hover:bg-blue-700 transition shadow-md shadow-blue-200 cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-red-600 py-3.5 text-sm font-bold text-white hover:bg-red-700 transition shadow-md shadow-red-200 cursor-pointer"
                 >
                   Continue
                 </button>
@@ -455,7 +455,7 @@ function RegisterContent() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-blue-600 py-3.5 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-60 transition shadow-md shadow-blue-200 cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-red-600 py-3.5 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-60 transition shadow-md shadow-red-200 cursor-pointer"
                 >
                   {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
                   Register
@@ -466,7 +466,7 @@ function RegisterContent() {
 
           <div className="mt-6 text-center text-xs text-slate-500 border-t border-slate-100 pt-4">
             Already have an account?{' '}
-            <Link href="/login" className="font-bold text-blue-600 hover:underline">
+            <Link href="/login" className="font-bold text-red-600 hover:underline">
               Sign in
             </Link>
           </div>

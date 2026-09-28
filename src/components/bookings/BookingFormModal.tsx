@@ -5,6 +5,8 @@ import Modal from '@/components/ui/Modal';
 import api from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import { todayISO } from '@/lib/date';
+import { parseINRInput } from '@/lib/currency';
+import CustomSelect from '@/components/ui/CustomSelect';
 import type { Client, Site } from '@/lib/types';
 
 export default function BookingFormModal({
@@ -50,7 +52,9 @@ export default function BookingFormModal({
     });
   }
 
-  const totalAmount = (Number(amount) || 0) + (Number(gstAmount) || 0);
+  const parsedAmount = Number(parseINRInput(amount)) || 0;
+  const parsedGstAmount = Number(parseINRInput(gstAmount)) || 0;
+  const totalAmount = parsedAmount + parsedGstAmount;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -61,8 +65,8 @@ export default function BookingFormModal({
         sites: Array.from(siteIds),
         startDate,
         endDate,
-        amount: Number(amount) || undefined,
-        gstAmount: Number(gstAmount) || undefined,
+        amount: parsedAmount || undefined,
+        gstAmount: parsedGstAmount || undefined,
         totalAmount,
         notes,
       });
@@ -80,14 +84,13 @@ export default function BookingFormModal({
     <Modal open={open} onClose={onClose} title="Create Media Booking" size="lg">
       <form onSubmit={submit} className="space-y-4">
         <Field label="Client" required>
-          <select required value={clientId} onChange={(e) => setClientId(e.target.value)} className={inputCls}>
-            <option value="">Select client</option>
-            {clients.map((c) => (
-              <option key={c._id} value={c._id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
+          <CustomSelect
+            value={clientId}
+            onChange={setClientId}
+            placeholder="Select client"
+            options={clients.map((c) => ({ value: c._id, label: c.name }))}
+            className={inputCls}
+          />
         </Field>
 
         <Field label="Available Media / Sites" required>
@@ -138,7 +141,7 @@ export default function BookingFormModal({
           <button
             type="submit"
             disabled={saving || siteIds.size === 0}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60"
           >
             {saving ? 'Confirming...' : 'Confirm Booking'}
           </button>
@@ -149,7 +152,7 @@ export default function BookingFormModal({
 }
 
 const inputCls =
-  'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100';
+  'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100';
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (

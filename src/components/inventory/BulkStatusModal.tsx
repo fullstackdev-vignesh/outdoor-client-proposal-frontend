@@ -7,6 +7,7 @@ import api from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import { todayISO } from '@/lib/date';
 import DatePicker from '@/components/ui/DatePicker';
+import CustomSelect from '@/components/ui/CustomSelect';
 import type { Site, Client, MediaStatus } from '@/lib/types';
 
 function calcDurationDays(start: string, end: string) {
@@ -20,7 +21,7 @@ function calcBookingAmount(monthlyTotalCost: number, durationDays: number) {
 }
 
 const inputCls =
-  'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100';
+  'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100';
 
 export default function BulkStatusModal({
   open,
@@ -122,7 +123,7 @@ export default function BulkStatusModal({
           )}
 
           {status === 'booked' && (
-            <div className="space-y-3 rounded-lg bg-blue-50 border border-blue-100 p-3">
+            <div className="space-y-3 rounded-lg bg-red-50 border border-red-100 p-3">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Customer Type *</label>
                 <div className="flex gap-2">
@@ -132,7 +133,7 @@ export default function BulkStatusModal({
                       type="button"
                       onClick={() => setCustomerType(t)}
                       className={`rounded-lg border px-4 py-2 text-sm font-medium capitalize ${
-                        customerType === t ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200'
+                        customerType === t ? 'bg-red-600 text-white border-red-600' : 'bg-white text-slate-600 border-slate-200'
                       }`}
                     >
                       {t}
@@ -142,14 +143,13 @@ export default function BulkStatusModal({
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">{customerType === 'agency' ? 'Agency' : 'Client'} *</label>
-                <select value={clientId} onChange={(e) => setClientId(e.target.value)} className={inputCls} required>
-                  <option value="">Select {customerType === 'agency' ? 'agency' : 'client'}</option>
-                  {clients.map((c) => (
-                    <option key={c._id} value={c._id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                <CustomSelect
+                  value={clientId}
+                  onChange={setClientId}
+                  placeholder={`Select ${customerType === 'agency' ? 'agency' : 'client'}`}
+                  options={clients.map((c) => ({ value: c._id, label: c.name }))}
+                  className={inputCls}
+                />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -164,7 +164,7 @@ export default function BulkStatusModal({
               {!validDateRange && <p className="text-xs text-red-500">End Date must be on or after Start Date</p>}
               <p className="text-sm text-slate-600">Duration: <span className="font-semibold text-slate-800">{durationDays} Days</span> · Selected Sites: <span className="font-semibold text-slate-800">{sites.length}</span></p>
 
-              <div className="max-h-48 overflow-y-auto rounded-lg border border-blue-200 bg-white divide-y divide-slate-100">
+              <div className="max-h-48 overflow-y-auto rounded-lg border border-red-200 bg-white divide-y divide-slate-100">
                 {perSite.map(({ site, monthlyTotalCost, bookingAmount }) => (
                   <div key={site._id} className="flex items-center justify-between px-3 py-2 text-xs">
                     <span className="font-mono text-slate-500">{site.mediaCode || site.mediaId}</span>
@@ -184,7 +184,7 @@ export default function BulkStatusModal({
             <button
               onClick={() => setConfirmOpen(true)}
               disabled={!canSubmit}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
             >
               Apply to Selected
             </button>

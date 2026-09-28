@@ -82,7 +82,7 @@ function MpinInput({
           className={`w-14 h-14 text-center text-xl font-bold rounded-2xl border transition focus:outline-none focus:ring-2 ${
             hasError
               ? 'border-red-500 focus:border-red-500 focus:ring-red-100 bg-red-50/20 text-red-600'
-              : 'border-slate-300 focus:border-blue-500 focus:ring-blue-100 text-slate-900 bg-slate-50/50 focus:bg-white'
+              : 'border-slate-300 focus:border-red-500 focus:ring-red-100 text-slate-900 bg-slate-50/50 focus:bg-white'
           }`}
         />
       ))}
@@ -198,7 +198,7 @@ export default function LoginPage() {
                 </div>
 
                 <div className="mb-5">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full bg-blue-50 text-blue-600 border border-blue-100">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full bg-red-50 text-red-600 border border-red-100">
                     <Building2 className="h-3.5 w-3.5" />
                     {currentRoleObj.fullLabel}
                   </span>
@@ -217,8 +217,8 @@ export default function LoginPage() {
                         }}
                         className={`rounded-xl border px-2 py-2 text-xs font-semibold transition cursor-pointer ${
                           role === r.key
-                            ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                            : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'
+                            ? 'bg-red-600 text-white border-red-600 shadow-sm'
+                            : 'bg-white text-slate-600 border-slate-200 hover:border-red-300'
                         }`}
                       >
                         {r.label}
@@ -239,7 +239,7 @@ export default function LoginPage() {
                     className={`w-full rounded-2xl border px-4 py-3 text-sm focus:outline-none focus:ring-2 transition ${
                       identifierError
                         ? 'border-red-500 focus:border-red-500 focus:ring-red-100 bg-red-50/20'
-                        : 'border-slate-300 focus:border-blue-500 focus:ring-blue-100'
+                        : 'border-slate-300 focus:border-red-500 focus:ring-red-100'
                     }`}
                   />
                   {identifierError && (
@@ -256,7 +256,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={handleContinueStep1}
-                  className="w-full rounded-2xl bg-blue-600 py-3.5 text-sm font-bold text-white hover:bg-blue-700 transition shadow-md shadow-blue-200 cursor-pointer"
+                  className="w-full rounded-2xl bg-red-600 py-3.5 text-sm font-bold text-white hover:bg-red-700 transition shadow-md shadow-red-200 cursor-pointer"
                 >
                   Continue as {currentRoleObj.fullLabel}
                 </button>
@@ -264,7 +264,7 @@ export default function LoginPage() {
                 {role !== 'admin' && (
                   <div className="mt-6 text-center text-xs text-slate-500">
                     Didn&apos;t have an account?{' '}
-                    <Link href={`/register?role=${role}`} className="font-bold text-blue-600 hover:underline">
+                    <Link href={`/register?role=${role}`} className="font-bold text-red-600 hover:underline">
                       Register
                     </Link>
                   </div>
@@ -301,7 +301,7 @@ export default function LoginPage() {
                 />
 
                 <div className="text-right mb-6">
-                  <Link href="/forgot-password" className="text-xs font-bold text-blue-600 hover:underline">
+                  <Link href="/forgot-password" className="text-xs font-bold text-red-600 hover:underline">
                     Forgot MPIN?
                   </Link>
                 </div>
@@ -315,7 +315,7 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-blue-600 py-3.5 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-60 transition shadow-md shadow-blue-200 cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-red-600 py-3.5 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-60 transition shadow-md shadow-red-200 cursor-pointer"
                 >
                   {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
                   Login

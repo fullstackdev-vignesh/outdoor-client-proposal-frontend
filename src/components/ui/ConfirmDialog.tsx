@@ -25,7 +25,7 @@ export default function ConfirmDialog({
       <div className="flex gap-3">
         <div
           className={`h-10 w-10 shrink-0 rounded-full flex items-center justify-center ${
-            danger ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
+            danger ? 'bg-red-50 text-red-600' : 'bg-red-50 text-red-600'
           }`}
         >
           <AlertTriangle className="h-5 w-5" />
@@ -42,7 +42,7 @@ export default function ConfirmDialog({
         <button
           onClick={onConfirm}
           className={`rounded-lg px-4 py-2 text-sm font-medium text-white ${
-            danger ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
+            danger ? 'bg-red-600 hover:bg-red-700' : 'bg-red-600 hover:bg-red-700'
           }`}
         >
           {confirmLabel}

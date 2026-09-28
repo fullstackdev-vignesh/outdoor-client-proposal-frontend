@@ -39,7 +39,7 @@ export default function BookingStatusSummary({ site }: { site: Site }) {
     <div className="flex flex-col items-start gap-0.5">
       <StatusBadge status={site.mediaStatus} />
       {showBookingLines && site.mediaStatus === 'booked' && active && (
-        <span className="text-[10px] font-medium text-blue-600 whitespace-nowrap">Active: {periodLabel(active)}</span>
+        <span className="text-[10px] font-medium text-red-600 whitespace-nowrap">Active: {periodLabel(active)}</span>
       )}
       {showBookingLines && upcoming && (
         <span className="text-[10px] font-medium text-amber-600 whitespace-nowrap">Upcoming: {periodLabel(upcoming)}</span>

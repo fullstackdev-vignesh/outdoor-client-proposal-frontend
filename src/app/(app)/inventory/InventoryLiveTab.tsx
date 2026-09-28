@@ -13,6 +13,7 @@ import SiteViewModal from '@/components/sites/SiteViewModal';
 import BulkStatusModal from '@/components/inventory/BulkStatusModal';
 import MediaPreviewModal from '@/components/inventory/MediaPreviewModal';
 import StatusDetailsPopover from '@/components/inventory/StatusDetailsPopover';
+import CustomSelect from '@/components/ui/CustomSelect';
 import Loader from '@/components/ui/Loader';
 import { formatIST } from '@/lib/date';
 import type { Site, MediaStatus } from '@/lib/types';
@@ -163,7 +164,7 @@ export default function InventoryLiveTab() {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <button onClick={() => selectStatusCard('')} className={`${cardBase} ${filters.mediaStatus === '' ? 'ring-blue-400 border-blue-300' : 'border-slate-200'}`}>
+        <button onClick={() => selectStatusCard('')} className={`${cardBase} ${filters.mediaStatus === '' ? 'ring-red-400 border-red-300' : 'border-slate-200'}`}>
           <div>
             <p className="text-xs font-medium text-slate-500">Total Sites</p>
             <p className="mt-1 text-2xl font-bold text-slate-900">{summary.total}</p>
@@ -186,13 +187,13 @@ export default function InventoryLiveTab() {
         </button>
         <button
           onClick={() => selectStatusCard('booked')}
-          className={`${cardBase} ${filters.mediaStatus === 'booked' ? 'ring-blue-400 border-blue-300' : 'border-slate-200'}`}
+          className={`${cardBase} ${filters.mediaStatus === 'booked' ? 'ring-red-400 border-red-300' : 'border-slate-200'}`}
         >
           <div>
             <p className="text-xs font-medium text-slate-500">Booked Sites</p>
             <p className="mt-1 text-2xl font-bold text-slate-900">{summary.booked}</p>
           </div>
-          <div className="h-10 w-10 rounded-lg flex items-center justify-center bg-blue-50 text-blue-600">
+          <div className="h-10 w-10 rounded-lg flex items-center justify-center bg-red-50 text-red-600">
             <CalendarCheck className="h-5 w-5" />
           </div>
         </button>
@@ -218,28 +219,32 @@ export default function InventoryLiveTab() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search MediaCode, Type, City, State..."
-              className="w-full rounded-lg border border-slate-300 pl-9 pr-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              className="w-full rounded-lg border border-slate-300 pl-9 pr-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100"
             />
           </div>
-          <select
-            value={filters.mediaStatus}
-            onChange={(e) => setFilters((f) => ({ ...f, mediaStatus: e.target.value }))}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          >
-            <option value="">All Media Status</option>
-            <option value="available">Available</option>
-            <option value="booked">Booked</option>
-            <option value="blocked">Blocked</option>
-          </select>
-          <select
-            value={filters.isActive}
-            onChange={(e) => setFilters((f) => ({ ...f, isActive: e.target.value }))}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          >
-            <option value="">Active / Inactive</option>
-            <option value="true">Active</option>
-            <option value="false">Inactive</option>
-          </select>
+          <div className="w-40">
+            <CustomSelect
+              value={filters.mediaStatus}
+              onChange={(val) => setFilters((f) => ({ ...f, mediaStatus: val }))}
+              placeholder="All Media Status"
+              options={[
+                { value: 'available', label: 'Available' },
+                { value: 'booked', label: 'Booked' },
+                { value: 'blocked', label: 'Blocked' },
+              ]}
+            />
+          </div>
+          <div className="w-36">
+            <CustomSelect
+              value={filters.isActive}
+              onChange={(val) => setFilters((f) => ({ ...f, isActive: val }))}
+              placeholder="Active / Inactive"
+              options={[
+                { value: 'true', label: 'Active' },
+                { value: 'false', label: 'Inactive' },
+              ]}
+            />
+          </div>
           <StateSelect
             value={filters.state}
             onChange={(state) => setFilters((f) => ({ ...f, state, city: '' }))}
@@ -291,21 +296,23 @@ export default function InventoryLiveTab() {
               <span>Select all</span>
             )}
           </label>
-          <select
-            value={bulkStatus}
-            disabled={selected.size === 0}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-50 disabled:text-slate-400"
-            onChange={(e) => setBulkStatus(e.target.value as MediaStatus | '')}
-          >
-            <option value="">Set Status</option>
-            <option value="available">Available</option>
-            <option value="booked">Booked</option>
-            <option value="blocked">Blocked</option>
-          </select>
+          <div className="w-36">
+            <CustomSelect
+              value={bulkStatus}
+              disabled={selected.size === 0}
+              onChange={(val) => setBulkStatus(val as MediaStatus | '')}
+              placeholder="Set Status"
+              options={[
+                { value: 'available', label: 'Available' },
+                { value: 'booked', label: 'Booked' },
+                { value: 'blocked', label: 'Blocked' },
+              ]}
+            />
+          </div>
           <button
             disabled={!bulkStatus || selected.size === 0}
             onClick={() => setBulkModalOpen(true)}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400"
+            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:bg-slate-200 disabled:text-slate-400"
           >
             Apply to Selected
           </button>
@@ -315,7 +322,7 @@ export default function InventoryLiveTab() {
       <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
         <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 border-b border-slate-100">
           <h2 className="text-sm font-semibold text-slate-700">Inventory Sites</h2>
-          <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+          <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700">
             {total} {total === 1 ? 'Site' : 'Sites'}
           </span>
         </div>
@@ -360,7 +367,7 @@ export default function InventoryLiveTab() {
                   const pending = rowPending[site._id];
                   const hasChange = !!pending && pending !== site.mediaStatus;
                   return (
-                    <tr key={site._id} className={`hover:bg-slate-50 ${selected.has(site._id) ? 'bg-blue-50/50' : ''}`}>
+                    <tr key={site._id} className={`hover:bg-slate-50 ${selected.has(site._id) ? 'bg-red-50/50' : ''}`}>
                       <td className="px-4 py-3">
                         <input type="checkbox" checked={selected.has(site._id)} onChange={() => toggleSelect(site._id)} />
                       </td>
@@ -391,24 +398,24 @@ export default function InventoryLiveTab() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <select
+                        <CustomSelect
                           value={pending || site.mediaStatus}
-                          onChange={(e) => setRowPending((prev) => ({ ...prev, [site._id]: e.target.value as MediaStatus }))}
-                          className="rounded-lg border border-slate-300 px-2 py-1.5 text-xs capitalize w-28"
-                        >
-                          {(['available', 'booked', 'blocked'] as MediaStatus[]).map((s) => (
-                            <option key={s} value={s}>
-                              {s}
-                            </option>
-                          ))}
-                        </select>
+                          onChange={(val) => setRowPending((prev) => ({ ...prev, [site._id]: val as MediaStatus }))}
+                          options={[
+                            { value: 'available', label: 'Available' },
+                            { value: 'booked', label: 'Booked' },
+                            { value: 'blocked', label: 'Blocked' },
+                          ]}
+                          placeholder=""
+                          className="w-28 text-xs capitalize"
+                        />
                         {/* Booked → Booked isn't a status "change", so the Save button stays off —
                             this lets a Booked site take another booking (another client/dates). */}
                         {site.mediaStatus === 'booked' && !hasChange && (
                           <button
                             type="button"
                             onClick={() => setRowModal({ site, status: 'booked' })}
-                            className="mt-1 block text-[11px] font-medium text-blue-600 hover:underline"
+                            className="mt-1 block text-[11px] font-medium text-red-600 hover:underline"
                           >
                             + Add Booking
                           </button>

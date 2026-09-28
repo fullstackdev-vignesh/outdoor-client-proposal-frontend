@@ -254,11 +254,11 @@ export default function BulkUploadPage() {
       </Panel> */}
 
       <Panel>
-        <div className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-slate-300 rounded-xl py-10 text-center hover:border-blue-400 transition">
+        <div className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-slate-300 rounded-xl py-10 text-center hover:border-red-400 transition">
           <UploadCloud className="h-8 w-8 text-slate-400" />
           <p className="text-sm font-medium text-slate-600">Drag & Drop Excel File Here</p>
           <div className="flex gap-2">
-            <label className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white cursor-pointer hover:bg-blue-700">
+            <label className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white cursor-pointer hover:bg-red-700">
               Choose File
               <input
                 type="file"
@@ -333,7 +333,7 @@ export default function BulkUploadPage() {
               <button
                 disabled={validCount === 0 || importing}
                 onClick={importValid}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
               >
                 {importing ? 'Importing...' : `Import ${validCount} Valid Records`}
               </button>

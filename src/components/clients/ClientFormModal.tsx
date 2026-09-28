@@ -232,7 +232,7 @@ export default function ClientFormModal({
                 type="button"
                 onClick={() => update('customerType', t)}
                 className={`rounded-lg border px-4 py-2 text-sm font-medium capitalize cursor-pointer ${
-                  form.customerType === t ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200'
+                  form.customerType === t ? 'bg-red-600 text-white border-red-600' : 'bg-white text-slate-600 border-slate-200'
                 }`}
               >
                 {t}
@@ -330,7 +330,7 @@ export default function ClientFormModal({
                 className="w-full h-full object-contain cursor-pointer"
               />
               <div className="absolute top-2 right-2 flex gap-1">
-                <label className="bg-white/90 border border-slate-200 rounded-full p-1.5 shadow text-slate-600 hover:text-blue-600 cursor-pointer" title="Change Image">
+                <label className="bg-white/90 border border-slate-200 rounded-full p-1.5 shadow text-slate-600 hover:text-red-600 cursor-pointer" title="Change Image">
                   <Pencil className="h-3.5 w-3.5" />
                   <input
                     type="file"
@@ -350,7 +350,7 @@ export default function ClientFormModal({
               </div>
             </div>
           ) : (
-            <label className="flex flex-col items-center justify-center w-full h-32 rounded-lg border-2 border-dashed border-slate-300 cursor-pointer hover:border-blue-400 text-slate-500 hover:text-blue-600 transition bg-slate-50/50">
+            <label className="flex flex-col items-center justify-center w-full h-32 rounded-lg border-2 border-dashed border-slate-300 cursor-pointer hover:border-red-400 text-slate-500 hover:text-red-600 transition bg-slate-50/50">
               <ImagePlus className="h-6 w-6 mb-1 text-slate-400" />
               <span className="text-xs font-medium">Upload Client Location Pin Image</span>
               <span className="text-[10px] text-slate-400">JPG, JPEG, PNG or WEBP only</span>
@@ -403,8 +403,8 @@ export default function ClientFormModal({
                 update('gst', nextGst);
                 setFormErrors((prev) => ({ ...prev, gst: undefined }));
               }}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                Number(form.gst) > 0 ? 'bg-blue-600' : 'bg-slate-300'
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 ${
+                Number(form.gst) > 0 ? 'bg-red-600' : 'bg-slate-300'
               }`}
             >
               <span
@@ -436,7 +436,7 @@ export default function ClientFormModal({
           <button
             type="submit"
             disabled={saving}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60 cursor-pointer"
+            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60 cursor-pointer"
           >
             {saving ? 'Saving...' : 'Save'}
           </button>
@@ -462,6 +462,6 @@ function getInputCls(hasError?: boolean) {
   return `w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 transition ${
     hasError
       ? 'border-red-500 focus:border-red-500 focus:ring-red-100 bg-red-50/20'
-      : 'border-slate-300 focus:border-blue-500 focus:ring-blue-100'
+      : 'border-slate-300 focus:border-red-500 focus:ring-red-100'
   }`;
 }

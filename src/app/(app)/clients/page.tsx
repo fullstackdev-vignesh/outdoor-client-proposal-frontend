@@ -66,7 +66,7 @@ export default function ClientsPage() {
             setEditing(null);
             setFormOpen(true);
           }}
-          className="flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          className="flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
         >
           <Plus className="h-4 w-4" /> Add Client
         </button>
@@ -82,7 +82,7 @@ export default function ClientsPage() {
               setPage(1);
             }}
             placeholder="Search by name, phone, email..."
-            className="w-full rounded-lg border border-slate-300 pl-9 pr-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+            className="w-full rounded-lg border border-slate-300 pl-9 pr-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100"
           />
         </div>
       </div>
@@ -139,7 +139,7 @@ export default function ClientsPage() {
                             setEditing(c);
                             setFormOpen(true);
                           }}
-                          className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-blue-600"
+                          className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-red-600"
                         >
                           <Pencil className="h-4 w-4" />
                         </button>

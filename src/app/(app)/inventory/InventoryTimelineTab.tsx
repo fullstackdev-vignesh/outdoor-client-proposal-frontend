@@ -13,6 +13,7 @@ import SiteTimelineModal from '@/components/inventory/SiteTimelineModal';
 import MediaPreviewModal from '@/components/inventory/MediaPreviewModal';
 import { formatIST, formatISTDate, todayISO } from '@/lib/date';
 import type { InventoryHistoryEntry, MediaStatus } from '@/lib/types';
+import CustomSelect from '@/components/ui/CustomSelect';
 import Loader from '@/components/ui/Loader';
 
 const PAGE_SIZE = 20;
@@ -127,7 +128,7 @@ export default function InventoryTimelineTab() {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <button onClick={() => selectStatusCard('')} className={`${cardBase} ${filters.mediaStatus === '' ? 'ring-blue-400 border-blue-300' : 'border-slate-200'}`}>
+        <button onClick={() => selectStatusCard('')} className={`${cardBase} ${filters.mediaStatus === '' ? 'ring-red-400 border-red-300' : 'border-slate-200'}`}>
           <div>
             <p className="text-xs font-medium text-slate-500">Total Sites</p>
             <p className="mt-1 text-2xl font-bold text-slate-900">{summary.total}</p>
@@ -145,12 +146,12 @@ export default function InventoryTimelineTab() {
             <CheckCircle2 className="h-5 w-5" />
           </div>
         </button>
-        <button onClick={() => selectStatusCard('booked')} className={`${cardBase} ${filters.mediaStatus === 'booked' ? 'ring-blue-400 border-blue-300' : 'border-slate-200'}`}>
+        <button onClick={() => selectStatusCard('booked')} className={`${cardBase} ${filters.mediaStatus === 'booked' ? 'ring-red-400 border-red-300' : 'border-slate-200'}`}>
           <div>
             <p className="text-xs font-medium text-slate-500">Booked Sites</p>
             <p className="mt-1 text-2xl font-bold text-slate-900">{summary.booked}</p>
           </div>
-          <div className="h-10 w-10 rounded-lg flex items-center justify-center bg-blue-50 text-blue-600">
+          <div className="h-10 w-10 rounded-lg flex items-center justify-center bg-red-50 text-red-600">
             <CalendarCheck className="h-5 w-5" />
           </div>
         </button>
@@ -173,7 +174,7 @@ export default function InventoryTimelineTab() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search MediaCode, Type, City, State..."
-              className="w-full rounded-lg border border-slate-300 pl-9 pr-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              className="w-full rounded-lg border border-slate-300 pl-9 pr-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100"
             />
           </div>
           <div className="w-40">
@@ -184,25 +185,29 @@ export default function InventoryTimelineTab() {
             <label className="block text-xs text-slate-500 mb-1">To Date</label>
             <DatePicker value={filters.to} onChange={(v) => setFilters((f) => ({ ...f, to: v }))} min={filters.from || undefined} max={todayISO()} />
           </div>
-          <select
-            value={filters.mediaStatus}
-            onChange={(e) => setFilters((f) => ({ ...f, mediaStatus: e.target.value }))}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          >
-            <option value="">All Status</option>
-            <option value="available">Available</option>
-            <option value="booked">Booked</option>
-            <option value="blocked">Blocked</option>
-          </select>
-          <select
-            value={filters.isActive}
-            onChange={(e) => setFilters((f) => ({ ...f, isActive: e.target.value }))}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          >
-            <option value="">Active / Inactive</option>
-            <option value="true">Active</option>
-            <option value="false">Inactive</option>
-          </select>
+          <div className="w-36">
+            <CustomSelect
+              value={filters.mediaStatus}
+              onChange={(val) => setFilters((f) => ({ ...f, mediaStatus: val }))}
+              placeholder="All Status"
+              options={[
+                { value: 'available', label: 'Available' },
+                { value: 'booked', label: 'Booked' },
+                { value: 'blocked', label: 'Blocked' },
+              ]}
+            />
+          </div>
+          <div className="w-36">
+            <CustomSelect
+              value={filters.isActive}
+              onChange={(val) => setFilters((f) => ({ ...f, isActive: val }))}
+              placeholder="Active / Inactive"
+              options={[
+                { value: 'true', label: 'Active' },
+                { value: 'false', label: 'Inactive' },
+              ]}
+            />
+          </div>
           <StateSelect value={filters.state} onChange={(state) => setFilters((f) => ({ ...f, state, city: '' }))} className="rounded-lg border border-slate-300 px-3 py-2 text-sm w-36" />
           <CitySelect state={filters.state} value={filters.city} onChange={(city) => setFilters((f) => ({ ...f, city }))} className="rounded-lg border border-slate-300 px-3 py-2 text-sm w-36" />
           <SiteOwnerSelect
@@ -234,7 +239,7 @@ export default function InventoryTimelineTab() {
       <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
         <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 border-b border-slate-100">
           <h2 className="text-sm font-semibold text-slate-700">Inventory Timeline</h2>
-          <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+          <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700">
             {distinctSiteCount} {distinctSiteCount === 1 ? 'Site' : 'Sites'}
           </span>
         </div>
@@ -318,7 +323,7 @@ export default function InventoryTimelineTab() {
                         >
                           <History className="h-3.5 w-3.5" /> View
                           {h.changeCount && h.changeCount > 1 ? (
-                            <span className="ml-0.5 rounded-full bg-blue-50 px-1.5 text-[10px] font-semibold text-blue-700">{h.changeCount}</span>
+                            <span className="ml-0.5 rounded-full bg-red-50 px-1.5 text-[10px] font-semibold text-red-700">{h.changeCount}</span>
                           ) : null}
                         </button>
                       </td>

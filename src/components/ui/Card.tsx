@@ -12,7 +12,7 @@ export function StatCard({
   accent?: 'blue' | 'emerald' | 'red' | 'amber' | 'slate';
 }) {
   const accents: Record<string, string> = {
-    blue: 'bg-blue-50 text-blue-600',
+    blue: 'bg-red-50 text-red-600',
     emerald: 'bg-emerald-50 text-emerald-600',
     red: 'bg-red-50 text-red-600',
     amber: 'bg-amber-50 text-amber-600',

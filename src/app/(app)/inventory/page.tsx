@@ -22,7 +22,7 @@ export default function InventoryPage() {
             key={t}
             onClick={() => setTab(t)}
             className={`px-4 py-2 text-sm font-semibold border-b-2 -mb-px ${
-              tab === t ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500 hover:text-slate-700'
+              tab === t ? 'border-red-600 text-red-700' : 'border-transparent text-slate-500 hover:text-slate-700'
             }`}
           >
             {t === 'inventory' ? 'Inventory' : 'Inventory Timeline'}

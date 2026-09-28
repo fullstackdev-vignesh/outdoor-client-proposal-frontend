@@ -33,7 +33,7 @@ export default function GeneratedFilesPage() {
                 <p className="text-xs text-slate-400">{typeof p.client === 'object' ? p.client?.name : ''}</p>
               </div>
               <div className="flex gap-2">
-                {p.generatedPptUrl && <Presentation className="h-4 w-4 text-blue-600" />}
+                {p.generatedPptUrl && <Presentation className="h-4 w-4 text-red-600" />}
                 {p.generatedExcelUrl && <FileSpreadsheet className="h-4 w-4 text-emerald-600" />}
               </div>
             </Link>

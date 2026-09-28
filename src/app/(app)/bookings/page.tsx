@@ -12,6 +12,7 @@ import EmptyState from '@/components/ui/EmptyState';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import BookingFormModal from '@/components/bookings/BookingFormModal';
 import Loader from '@/components/ui/Loader';
+import CustomSelect from '@/components/ui/CustomSelect';
 import type { Booking, PaginatedResponse } from '@/lib/types';
 
 export default function BookingsPage() {
@@ -66,7 +67,7 @@ export default function BookingsPage() {
         {canManage && (
           <button
             onClick={() => setFormOpen(true)}
-            className="flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            className="flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
           >
             <Plus className="h-4 w-4" /> Create Booking
           </button>
@@ -74,19 +75,21 @@ export default function BookingsPage() {
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-4 flex gap-3">
-        <select
-          value={status}
-          onChange={(e) => {
-            setStatus(e.target.value);
-            setPage(1);
-          }}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-        >
-          <option value="">All Statuses</option>
-          <option value="active">Active</option>
-          <option value="completed">Completed</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
+        <div className="w-40">
+          <CustomSelect
+            value={status}
+            onChange={(val) => {
+              setStatus(val);
+              setPage(1);
+            }}
+            placeholder="All Statuses"
+            options={[
+              { value: 'active', label: 'Active' },
+              { value: 'completed', label: 'Completed' },
+              { value: 'cancelled', label: 'Cancelled' },
+            ]}
+          />
+        </div>
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
@@ -167,7 +170,7 @@ export default function BookingsPage() {
 
 function StatusPill({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    active: 'bg-blue-50 text-blue-700 border-blue-200',
+    active: 'bg-red-50 text-red-700 border-red-200',
     completed: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     cancelled: 'bg-slate-100 text-slate-500 border-slate-200',
   };

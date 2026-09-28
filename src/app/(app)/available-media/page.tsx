@@ -50,7 +50,7 @@ export default function AvailableMediaPage() {
         {selected.size > 0 && (
           <button
             onClick={() => showToast(`${selected.size} media selected for proposal`)}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
           >
             {selected.size} Media Selected — Continue
           </button>
@@ -67,7 +67,7 @@ export default function AvailableMediaPage() {
               setPage(1);
             }}
             placeholder="Search by Media Name, ID, Location..."
-            className="w-full rounded-lg border border-slate-300 pl-9 pr-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+            className="w-full rounded-lg border border-slate-300 pl-9 pr-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100"
           />
         </div>
         <StateSelect
@@ -108,7 +108,7 @@ export default function AvailableMediaPage() {
           <div
             key={site._id}
             className={`rounded-xl border bg-white overflow-hidden shadow-sm transition ${
-              selected.has(site._id) ? 'border-blue-500 ring-2 ring-blue-100' : 'border-slate-200'
+              selected.has(site._id) ? 'border-red-500 ring-2 ring-red-100' : 'border-slate-200'
             }`}
           >
             <div className="h-32 bg-slate-100 flex items-center justify-center overflow-hidden">
@@ -139,7 +139,7 @@ export default function AvailableMediaPage() {
                 onClick={() => toggleSelect(site._id)}
                 className={`w-full rounded-lg px-3 py-2 text-sm font-medium ${
                   selected.has(site._id)
-                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                    ? 'bg-red-600 text-white hover:bg-red-700'
                     : 'border border-slate-300 text-slate-700 hover:bg-slate-50'
                 }`}
               >

@@ -96,7 +96,7 @@ export default function DashboardPage() {
           {(
             [
               ['available', 'Available', mediaStatusSummary.available, 'bg-emerald-500'],
-              ['booked', 'Booked', mediaStatusSummary.booked, 'bg-blue-500'],
+              ['booked', 'Booked', mediaStatusSummary.booked, 'bg-red-500'],
               ['blocked', 'Blocked', mediaStatusSummary.blocked, 'bg-red-500'],
             ] as const
           ).map(([key, label, value, color]) => (
@@ -126,9 +126,9 @@ export default function DashboardPage() {
               <Link
                 key={a.label}
                 href={a.href}
-                className="flex flex-col items-center gap-2 rounded-lg border border-slate-200 p-4 text-center text-xs font-medium text-slate-600 hover:border-blue-300 hover:bg-blue-50/50 transition"
+                className="flex flex-col items-center gap-2 rounded-lg border border-slate-200 p-4 text-center text-xs font-medium text-slate-600 hover:border-red-300 hover:bg-red-50/50 transition"
               >
-                <a.icon className="h-5 w-5 text-blue-600" />
+                <a.icon className="h-5 w-5 text-red-600" />
                 {a.label}
               </Link>
             ))}
@@ -194,7 +194,7 @@ export default function DashboardPage() {
                     className={`text-xs font-semibold capitalize px-2 py-0.5 rounded border ${
                       b.status === 'cancelled'
                         ? 'bg-red-50 text-red-700 border-red-100'
-                        : 'bg-blue-50 text-blue-700 border-blue-100'
+                        : 'bg-red-50 text-red-700 border-red-100'
                     }`}
                   >
                     {b.status || 'booked'}
