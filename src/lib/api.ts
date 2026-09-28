@@ -10,7 +10,11 @@ export const fileBaseURL = API_URL.replace(/\/api\/?$/, '');
 export function resolveImageUrl(image?: string | null) {
   if (!image) return '';
   if (/^(data:|blob:|https:)/.test(image)) return image;
-  if (image.startsWith('http:')) return `${API_URL}/image-proxy?url=${encodeURIComponent(image)}`;
+  if (image.startsWith('http:')) {
+    // Only an https page blocks http images — on http (e.g. localhost) load them directly.
+    const pageIsHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+    return pageIsHttps ? `${API_URL}/image-proxy?url=${encodeURIComponent(image)}` : image;
+  }
   return `${fileBaseURL}${image}`;
 }
 
