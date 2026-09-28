@@ -3,14 +3,9 @@
 import { useEffect, useState } from 'react';
 import Modal from '@/components/ui/Modal';
 import StatusBadge from '@/components/ui/StatusBadge';
-import api, { fileBaseURL } from '@/lib/api';
+import api, { resolveImageUrl } from '@/lib/api';
 import { formatIST, formatISTDate } from '@/lib/date';
 import type { Site, SiteHistoryEntry } from '@/lib/types';
-
-function resolveImageUrl(image?: string) {
-  if (!image) return '';
-  return /^(https?:|data:|blob:)/.test(image) ? image : `${fileBaseURL}${image}`;
-}
 
 function label(field: string) {
   const map: Record<string, string> = {

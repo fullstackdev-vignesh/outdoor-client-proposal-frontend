@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { ImagePlus, Plus, Trash2, X } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import { StateSelect, CitySelect } from '@/components/ui/StateCitySelect';
-import api, { fileBaseURL } from '@/lib/api';
+import api, { resolveImageUrl } from '@/lib/api';
 import type { BookingRecord, Site, Client, MediaStatus, SiteInfo } from '@/lib/types';
 import { useToast } from '@/components/ui/Toast';
 import { todayISO } from '@/lib/date';
@@ -98,11 +98,6 @@ function formatDateLabel(value: string) {
   if (isNaN(d.getTime())) return '';
   const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   return `${String(d.getUTCDate()).padStart(2, '0')}-${MONTHS[d.getUTCMonth()]}-${d.getUTCFullYear()}`;
-}
-
-function resolveImageUrl(image?: string) {
-  if (!image) return '';
-  return /^(https?:|data:|blob:)/.test(image) ? image : `${fileBaseURL}${image}`;
 }
 
 export default function SiteFormModal({

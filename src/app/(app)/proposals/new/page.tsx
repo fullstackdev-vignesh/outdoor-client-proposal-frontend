@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Check, Search, ImageOff, Download, Presentation, FileSpreadsheet } from 'lucide-react';
-import api, { fileBaseURL } from '@/lib/api';
+import api, { fileBaseURL, resolveImageUrl } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import { Panel } from '@/components/ui/Card';
 import StatusBadge from '@/components/ui/StatusBadge';
@@ -16,11 +16,6 @@ import type { Client, MediaStatus, Site, Template } from '@/lib/types';
 
 const STEPS = ['Customer Details', 'Site Details', 'PPT Template', 'Excel Template', 'Preview'] as const;
 const PAGE_SIZE = 20;
-
-function resolveImageUrl(image?: string) {
-  if (!image) return '';
-  return /^(https?:|data:|blob:)/.test(image) ? image : `${fileBaseURL}${image}`;
-}
 
 // Indian comma grouping (lakhs/crores), rounded to a whole number — matches how the generated
 // Excel itself displays Total Cost (e.g. 592050.84 -> "5,92,051"), instead of the default

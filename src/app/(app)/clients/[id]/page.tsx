@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Building2, CheckCircle2, CalendarCheck, FileText } from 'lucide-react';
-import api, { fileBaseURL } from '@/lib/api';
+import api, { resolveImageUrl } from '@/lib/api';
 import { StatCard, Panel } from '@/components/ui/Card';
 import EmptyState from '@/components/ui/EmptyState';
 
@@ -69,7 +69,7 @@ export default function ClientDetailsPage() {
             <div className="mt-4 pt-4 border-t border-slate-100">
               <p className="text-xs font-medium text-slate-400 mb-2">Location Pin Image</p>
               <img
-                src={client.clientLocationPinImage.startsWith('http') ? client.clientLocationPinImage : `${fileBaseURL}${client.clientLocationPinImage}`}
+                src={resolveImageUrl(client.clientLocationPinImage)}
                 alt="Location Pin"
                 className="max-h-60 rounded-lg border border-slate-200 object-contain"
               />

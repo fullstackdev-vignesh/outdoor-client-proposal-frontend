@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Search, Plus, Upload, Download, Eye, Pencil, Trash2, RefreshCcw, X, ImageOff } from 'lucide-react';
-import api, { fileBaseURL } from '@/lib/api';
+import api, { resolveImageUrl } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useToast } from '@/components/ui/Toast';
 import BookingStatusSummary from '@/components/ui/BookingStatusSummary';
@@ -21,11 +21,6 @@ import { formatIST } from '@/lib/date';
 import type { Site } from '@/lib/types';
 
 const PAGE_SIZE = 20;
-
-function resolveImageUrl(image?: string) {
-  if (!image) return '';
-  return /^(https?:|data:|blob:)/.test(image) ? image : `${fileBaseURL}${image}`;
-}
 
 const emptyFilters = { mediaType: '', state: '', city: '', mediaStatus: '', isActive: '', siteOwner: '' };
 

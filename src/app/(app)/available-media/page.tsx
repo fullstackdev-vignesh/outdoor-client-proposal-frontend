@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { Search, MapPin } from 'lucide-react';
-import api from '@/lib/api';
+import api, { resolveImageUrl } from '@/lib/api';
 import Pagination from '@/components/ui/Pagination';
 import EmptyState from '@/components/ui/EmptyState';
 import StatusBadge from '@/components/ui/StatusBadge';
@@ -113,7 +113,7 @@ export default function AvailableMediaPage() {
           >
             <div className="h-32 bg-slate-100 flex items-center justify-center overflow-hidden">
               {site.mediaImage ? (
-                <img src={site.mediaImage} alt={site.mediaName || site.mediaId} className="w-full h-full object-cover" />
+                <img src={resolveImageUrl(site.mediaImage)} alt={site.mediaName || site.mediaId} className="w-full h-full object-cover" />
               ) : (
                 <span className="text-xs text-slate-400">No image</span>
               )}

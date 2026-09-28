@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Search, Download, X, ImageOff, Building2, CheckCircle2, CalendarCheck, Ban, History } from 'lucide-react';
-import api, { fileBaseURL } from '@/lib/api';
+import api, { resolveImageUrl } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import StatusBadge from '@/components/ui/StatusBadge';
 import EmptyState from '@/components/ui/EmptyState';
@@ -18,11 +18,6 @@ import Loader from '@/components/ui/Loader';
 
 const PAGE_SIZE = 20;
 const emptyFilters = { state: '', city: '', mediaStatus: '', isActive: '', from: '', to: '', siteOwner: '' };
-
-function resolveImageUrl(image?: string) {
-  if (!image) return '';
-  return /^(https?:|data:|blob:)/.test(image) ? image : `${fileBaseURL}${image}`;
-}
 
 export default function InventoryTimelineTab() {
   const { showToast } = useToast();

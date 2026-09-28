@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
-import api from '@/lib/api';
+import api, { resolveImageUrl } from '@/lib/api';
 import { Panel } from '@/components/ui/Card';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { formatISTDate, formatIST } from '@/lib/date';
@@ -36,7 +36,7 @@ export default function SiteDetailsPage() {
         <StatusBadge status={site.mediaStatus} />
       </div>
 
-      {site.mediaImage && <img src={site.mediaImage} alt={site.mediaName} className="w-full max-w-lg rounded-xl border border-slate-200" />}
+      {site.mediaImage && <img src={resolveImageUrl(site.mediaImage)} alt={site.mediaName} className="w-full max-w-lg rounded-xl border border-slate-200" />}
 
       <Panel title="Basic Information">
         <dl className="grid grid-cols-2 gap-4 text-sm">

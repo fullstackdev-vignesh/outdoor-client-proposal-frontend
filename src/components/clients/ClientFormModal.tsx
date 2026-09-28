@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { ImagePlus, Pencil, X } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
-import api, { fileBaseURL } from '@/lib/api';
+import api, { resolveImageUrl } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import type { Client } from '@/lib/types';
 
@@ -28,11 +28,6 @@ interface FormErrors {
   longitude?: string;
   agencyComm?: string;
   gst?: string;
-}
-
-function resolveImageUrl(image?: string | null) {
-  if (!image) return '';
-  return /^(https?:|data:|blob:)/.test(image) ? image : `${fileBaseURL}${image}`;
 }
 
 export default function ClientFormModal({

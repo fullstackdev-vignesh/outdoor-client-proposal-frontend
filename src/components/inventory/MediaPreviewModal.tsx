@@ -3,12 +3,7 @@
 import { useState } from 'react';
 import { ImageOff } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
-import { fileBaseURL } from '@/lib/api';
-
-function resolveImageUrl(image?: string) {
-  if (!image) return '';
-  return /^(https?:|data:|blob:)/.test(image) ? image : `${fileBaseURL}${image}`;
-}
+import { resolveImageUrl } from '@/lib/api';
 
 export default function MediaPreviewModal({
   open,
