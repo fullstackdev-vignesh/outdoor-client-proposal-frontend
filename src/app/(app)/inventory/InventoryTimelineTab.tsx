@@ -146,12 +146,12 @@ export default function InventoryTimelineTab() {
             <CheckCircle2 className="h-5 w-5" />
           </div>
         </button>
-        <button onClick={() => selectStatusCard('booked')} className={`${cardBase} ${filters.mediaStatus === 'booked' ? 'ring-red-400 border-red-300' : 'border-slate-200'}`}>
+        <button onClick={() => selectStatusCard('booked')} className={`${cardBase} ${filters.mediaStatus === 'booked' ? 'ring-yellow-400 border-yellow-300' : 'border-slate-200'}`}>
           <div>
             <p className="text-xs font-medium text-slate-500">Booked Sites</p>
             <p className="mt-1 text-2xl font-bold text-slate-900">{summary.booked}</p>
           </div>
-          <div className="h-10 w-10 rounded-lg flex items-center justify-center bg-red-50 text-red-600">
+          <div className="h-10 w-10 rounded-lg flex items-center justify-center bg-yellow-50 text-yellow-600">
             <CalendarCheck className="h-5 w-5" />
           </div>
         </button>

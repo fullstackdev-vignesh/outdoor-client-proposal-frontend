@@ -67,9 +67,9 @@ function BookingScheduleStrip({ site }: { site: Site }) {
   return (
     <div className="mt-1.5 flex flex-wrap items-center gap-2 pl-12 text-[11px]">
       {active && (
-        <div className="flex items-center gap-1.5 rounded-md border border-red-200 bg-red-50 px-2 py-1">
-          <span className="rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-white">Active</span>
-          <span className="font-medium text-red-700 whitespace-nowrap">
+        <div className="flex items-center gap-1.5 rounded-md border border-yellow-300 bg-yellow-50 px-2 py-1">
+          <span className="rounded bg-yellow-500 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-white">Active</span>
+          <span className="font-medium text-yellow-700 whitespace-nowrap">
             {bookingDateLabel(active.startDate)} → {bookingDateLabel(active.endDate)}
           </span>
         </div>
@@ -470,7 +470,7 @@ export default function NewProposalPage() {
                           disabled
                             ? 'opacity-50'
                             : s.mediaStatus === 'booked'
-                              ? 'cursor-pointer bg-red-50/40 hover:bg-red-50/70'
+                              ? 'cursor-pointer bg-yellow-50/60 hover:bg-yellow-50'
                               : 'cursor-pointer hover:bg-slate-50'
                         }`}
                       >

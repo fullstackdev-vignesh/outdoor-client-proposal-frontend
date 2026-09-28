@@ -4,7 +4,7 @@ type BadgeStatus = MediaStatus | 'cancelled';
 
 const STYLES: Record<BadgeStatus, string> = {
   available: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  booked: 'bg-red-50 text-red-700 border-red-200',
+  booked: 'bg-yellow-50 text-yellow-700 border-yellow-300',
   blocked: 'bg-rose-50 text-rose-700 border-rose-200',
   cancelled: 'bg-slate-100 text-slate-500 border-slate-200',
 };
@@ -18,7 +18,7 @@ const LABELS: Record<BadgeStatus, string> = {
 
 const DOT_STYLES: Record<BadgeStatus, string> = {
   available: 'bg-emerald-500',
-  booked: 'bg-red-500',
+  booked: 'bg-yellow-400',
   blocked: 'bg-rose-500',
   cancelled: 'bg-slate-400',
 };

@@ -96,7 +96,7 @@ export default function DashboardPage() {
           {(
             [
               ['available', 'Available', mediaStatusSummary.available, 'bg-emerald-500'],
-              ['booked', 'Booked', mediaStatusSummary.booked, 'bg-red-500'],
+              ['booked', 'Booked', mediaStatusSummary.booked, 'bg-yellow-400'],
               ['blocked', 'Blocked', mediaStatusSummary.blocked, 'bg-red-500'],
             ] as const
           ).map(([key, label, value, color]) => (
@@ -194,7 +194,7 @@ export default function DashboardPage() {
                     className={`text-xs font-semibold capitalize px-2 py-0.5 rounded border ${
                       b.status === 'cancelled'
                         ? 'bg-red-50 text-red-700 border-red-100'
-                        : 'bg-red-50 text-red-700 border-red-100'
+                        : 'bg-yellow-50 text-yellow-700 border-yellow-200'
                     }`}
                   >
                     {b.status || 'booked'}
