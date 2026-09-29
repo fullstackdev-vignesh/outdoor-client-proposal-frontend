@@ -15,6 +15,7 @@ export default function CustomSelect({
   placeholder = 'Select option',
   disabled = false,
   className = '',
+  containerClassName,
   id,
 }: {
   value: string;
@@ -23,6 +24,7 @@ export default function CustomSelect({
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  containerClassName?: string;
   id?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -44,8 +46,20 @@ export default function CustomSelect({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Extract layout/width classes (w-*, min-w-*, max-w-*, flex-*) for outer container div
+  const containerCls =
+    containerClassName ||
+    (className
+      ? className.match(/\b(w-\S+|min-w-\S+|max-w-\S+|flex-\S+)\b/g)?.join(' ') || 'w-full'
+      : 'w-full');
+
+  // Button className: remove width classes from button styling since width is handled by container
+  const buttonStyleCls = className
+    ? className.replace(/\b(w-\S+|min-w-\S+|max-w-\S+)\b/g, '').trim()
+    : '';
+
   return (
-    <div className="relative w-full" ref={containerRef} id={id}>
+    <div className={`relative ${containerCls}`} ref={containerRef} id={id}>
       <button
         type="button"
         disabled={disabled}
@@ -54,7 +68,7 @@ export default function CustomSelect({
           disabled
             ? 'bg-slate-50 text-slate-400 cursor-not-allowed border-slate-200'
             : 'bg-white cursor-pointer border-slate-300 hover:border-red-400 focus:border-red-500 focus:ring-red-100'
-        } ${className}`}
+        } ${buttonStyleCls}`}
       >
         <span className={`truncate ${selectedOpt?.value ? 'text-slate-800 font-medium' : 'text-slate-400'}`}>
           {selectedOpt ? selectedOpt.label : placeholder}

@@ -227,7 +227,7 @@ export default function SitesPage() {
           <SiteOwnerSelect
             value={filters.siteOwner}
             onChange={(siteOwner) => setFilters((f) => ({ ...f, siteOwner }))}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm w-44"
+            className="w-44"
           />
           {filtersActive && (
             <button

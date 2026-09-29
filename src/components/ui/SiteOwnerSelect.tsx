@@ -16,10 +16,12 @@ export function SiteOwnerSelect({
   value,
   onChange,
   className,
+  containerClassName,
 }: {
   value: string;
   onChange: (owner: string) => void;
   className?: string;
+  containerClassName?: string;
 }) {
   const owners = useSiteOwners();
   return (
@@ -29,6 +31,7 @@ export function SiteOwnerSelect({
       options={owners}
       placeholder="All Site Owners"
       className={className}
+      containerClassName={containerClassName}
     />
   );
 }
