@@ -120,7 +120,7 @@ export default function SiteInfoManager() {
               {loading && (
                 <tr>
                   <td colSpan={4} className="px-4 py-10 text-center">
-                    <Loader text="Loading site info..." />
+                    <Loader overlay text="Loading site info..." />
                   </td>
                 </tr>
               )}

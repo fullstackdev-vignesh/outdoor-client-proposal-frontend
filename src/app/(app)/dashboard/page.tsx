@@ -56,7 +56,7 @@ export default function DashboardPage() {
   }, []);
 
   if (loading || !stats) {
-    return <Loader fullPage size="lg" text="Loading dashboard..." />;
+    return <Loader overlay size="lg" text="Loading dashboard..." />;
   }
 
   const { cards, mediaStatusSummary, recent } = stats;

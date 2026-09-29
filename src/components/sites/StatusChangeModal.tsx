@@ -249,16 +249,6 @@ export default function StatusChangeModal({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Additional Notes</label>
-                <textarea
-                  placeholder="Optional notes"
-                  value={blockNotes}
-                  onChange={(e) => setBlockNotes(e.target.value)}
-                  className={inputCls}
-                  rows={2}
-                />
-              </div>
-              <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Blocked Date</label>
                 <DatePicker value={todayISO()} disabled />
               </div>
@@ -375,7 +365,10 @@ export default function StatusChangeModal({
               <div className="rounded-lg bg-white border border-red-200 p-3 text-sm space-y-1">
                 <p className="text-slate-600">Monthly Cost: <span className="font-semibold text-slate-800">₹{monthlyTotalCost.toLocaleString()}</span></p>
                 <p className="text-slate-600">Duration: <span className="font-semibold text-slate-800">{durationDays} Days</span></p>
-                <p className="text-slate-600">Booking Amount: <span className="font-semibold text-emerald-600">₹{bookingAmount.toLocaleString()}</span></p>
+                <p className="text-slate-600">
+                  Booking Amount: <span className="font-semibold text-emerald-600">₹{bookingAmount.toLocaleString()}</span>{' '}
+                  <span className="text-xs font-medium text-slate-500">(Excluding GST)</span>
+                </p>
               </div>
             </div>
           )}

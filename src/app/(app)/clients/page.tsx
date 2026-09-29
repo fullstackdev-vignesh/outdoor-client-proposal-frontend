@@ -105,7 +105,7 @@ export default function ClientsPage() {
               {loading && (
                 <tr>
                   <td colSpan={7} className="px-4 py-10 text-center">
-                    <Loader text="Loading clients..." />
+                    <Loader overlay text="Loading clients..." />
                   </td>
                 </tr>
               )}

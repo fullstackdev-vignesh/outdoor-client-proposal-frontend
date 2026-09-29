@@ -233,7 +233,6 @@ export default function SiteViewModal({ open, onClose, site: siteProp }: { open:
           {site.mediaStatus === 'blocked' && site.blockInfo && (
             <ViewSection title="Block Details">
               <Row label="Block Reason" value={site.blockInfo.reason} />
-              <Row label="Additional Notes" value={site.blockInfo.notes} />
               <Row label="Blocked Date" value={formatIST(site.blockInfo.blockedDate)} />
               <Row label="Blocked By" value={typeof site.blockInfo.blockedBy === 'object' ? site.blockInfo.blockedBy?.name : undefined} />
             </ViewSection>

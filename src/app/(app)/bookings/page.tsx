@@ -111,7 +111,7 @@ export default function BookingsPage() {
               {loading && (
                 <tr>
                   <td colSpan={8} className="px-4 py-10 text-center">
-                    <Loader text="Loading bookings..." />
+                    <Loader overlay text="Loading bookings..." />
                   </td>
                 </tr>
               )}

@@ -190,7 +190,7 @@ export default function TemplateManager({
               {loading && (
                 <tr>
                   <td colSpan={formatOptions ? 8 : 7} className="px-4 py-10 text-center">
-                    <Loader text="Loading templates..." />
+                    <Loader overlay text="Loading templates..." />
                   </td>
                 </tr>
               )}

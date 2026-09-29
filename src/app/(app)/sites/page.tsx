@@ -3,22 +3,23 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Search, Plus, Upload, Download, Eye, Pencil, Trash2, RefreshCcw, X, ImageOff } from 'lucide-react';
+import { Search, Plus, Upload, Download, Eye, Pencil, Trash2, RefreshCcw, X, ImageOff, Save } from 'lucide-react';
 import api, { resolveImageUrl } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useToast } from '@/components/ui/Toast';
-import BookingStatusSummary from '@/components/ui/BookingStatusSummary';
 import EmptyState from '@/components/ui/EmptyState';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import SiteFormModal from '@/components/sites/SiteFormModal';
 import StatusChangeModal from '@/components/sites/StatusChangeModal';
 import SiteViewModal from '@/components/sites/SiteViewModal';
+import StatusDetailsPopover from '@/components/inventory/StatusDetailsPopover';
+import CancelUpcomingBookingModal from '@/components/inventory/CancelUpcomingBookingModal';
 import { StateSelect, CitySelect } from '@/components/ui/StateCitySelect';
 import { SiteOwnerSelect } from '@/components/ui/SiteOwnerSelect';
 import Loader from '@/components/ui/Loader';
 import CustomSelect from '@/components/ui/CustomSelect';
 import { formatIST } from '@/lib/date';
-import type { Site } from '@/lib/types';
+import type { Site, MediaStatus } from '@/lib/types';
 
 const PAGE_SIZE = 20;
 
@@ -43,7 +44,10 @@ export default function SitesPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingSite, setEditingSite] = useState<Site | null>(null);
   const [statusSite, setStatusSite] = useState<Site | null>(null);
+  const [statusInitial, setStatusInitial] = useState<MediaStatus | undefined>(undefined);
+  const [rowPending, setRowPending] = useState<Record<string, MediaStatus>>({});
   const [viewSite, setViewSite] = useState<Site | null>(null);
+  const [cancelUpcomingSite, setCancelUpcomingSite] = useState<Site | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Site | null>(null);
   const [previewImage, setPreviewImage] = useState('');
 
@@ -102,7 +106,13 @@ export default function SitesPage() {
     return () => observer.disconnect();
   }, [items.length, total, fetchPage]);
 
+  function openStatusChange(site: Site, status: MediaStatus) {
+    setStatusInitial(status);
+    setStatusSite(site);
+  }
+
   function refresh() {
+    setRowPending({});
     nextPageRef.current = 1;
     fetchPage(1, false);
   }
@@ -265,10 +275,12 @@ export default function SitesPage() {
                 <th className="px-4 py-3">MediaCode</th>
                 <th className="px-4 py-3">Type</th>
                 <th className="px-4 py-3">City / State</th>
+                <th className="px-4 py-3">Area</th>
                 <th className="px-4 py-3">Site Owner</th>
                 <th className="px-4 py-3">Size</th>
                 <th className="px-4 py-3">Total Cost</th>
                 <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Media Status</th>
                 <th className="px-4 py-3">Active</th>
                 <th className="px-4 py-3">Inventory Updated</th>
                 <th className="px-4 py-3">Site Updated</th>
@@ -279,14 +291,14 @@ export default function SitesPage() {
             <tbody className="divide-y divide-slate-100">
               {loading && (
                 <tr>
-                  <td colSpan={14} className="px-4 py-10 text-center">
-                    <Loader text="Loading sites..." />
+                  <td colSpan={16} className="px-4 py-10 text-center">
+                    <Loader overlay text="Loading sites..." />
                   </td>
                 </tr>
               )}
               {!loading && items.length === 0 && (
                 <tr>
-                  <td colSpan={14}>
+                  <td colSpan={16}>
                     <EmptyState title="No sites found" subtitle="Try adjusting your filters or add a new site." />
                   </td>
                 </tr>
@@ -315,21 +327,72 @@ export default function SitesPage() {
                     <td className="px-4 py-3 text-slate-600">
                       {site.city}, {site.state}
                     </td>
+                    <td className="px-4 py-3 text-slate-600">{site.areaName || '-'}</td>
                     <td className="px-4 py-3 text-slate-600">{site.siteOwner || '-'}</td>
-                    <td className="px-4 py-3 text-slate-600">
+                    <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
                       {site.width && site.height ? `${site.width}x${site.height} ${site.sizeUnit}` : '-'}
                     </td>
-                    <td className="px-4 py-3 text-slate-600">
+                    <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
                       {site.totalCost ? `₹${site.totalCost.toLocaleString()}` : '-'}
                     </td>
+                    {/* Status + Media Status columns work the same as Inventory's. */}
                     <td className="px-4 py-3">
-                      <button
-                        disabled={!canManage}
-                        onClick={() => setStatusSite(site)}
-                        className="disabled:cursor-default"
-                      >
-                        <BookingStatusSummary site={site} />
-                      </button>
+                      {canManage ? (
+                        (() => {
+                          const pending = rowPending[site._id];
+                          const hasChange = !!pending && pending !== site.mediaStatus;
+                          return (
+                            <>
+                              <div className="flex items-center gap-1.5">
+                                <CustomSelect
+                                  value={pending || site.mediaStatus}
+                                  onChange={(val) => setRowPending((prev) => ({ ...prev, [site._id]: val as MediaStatus }))}
+                                  options={[
+                                    { value: 'available', label: 'Available' },
+                                    { value: 'booked', label: 'Booked' },
+                                    { value: 'blocked', label: 'Blocked' },
+                                  ]}
+                                  placeholder=""
+                                  className="w-28 text-xs capitalize"
+                                />
+                                <button
+                                  disabled={!hasChange}
+                                  onClick={() => hasChange && openStatusChange(site, pending)}
+                                  title={hasChange ? 'Save status change' : 'Change status to enable'}
+                                  className={`inline-flex items-center justify-center rounded-lg p-2 ${
+                                    hasChange ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-slate-50 text-slate-300'
+                                  }`}
+                                >
+                                  <Save className="h-4 w-4" />
+                                </button>
+                              </div>
+                              {site.mediaStatus === 'booked' && !hasChange && (
+                                <button
+                                  type="button"
+                                  onClick={() => openStatusChange(site, 'booked')}
+                                  className="mt-1 block text-[11px] font-medium text-red-600 hover:underline"
+                                >
+                                  + Add Booking
+                                </button>
+                              )}
+                              {site.mediaStatus === 'available' && !hasChange && site.bookings?.some((b) => b.status === 'upcoming') && (
+                                <button
+                                  type="button"
+                                  onClick={() => setCancelUpcomingSite(site)}
+                                  className="mt-1 block text-[11px] font-medium text-amber-700 hover:underline"
+                                >
+                                  Cancel Upcoming Booking
+                                </button>
+                              )}
+                            </>
+                          );
+                        })()
+                      ) : (
+                        <span className="text-xs capitalize text-slate-600">{site.mediaStatus}</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <StatusDetailsPopover site={site} onViewFullDetails={() => setViewSite(site)} />
                     </td>
                     <td className="px-4 py-3">
                       <span className={`text-xs font-medium ${site.isActive ? 'text-emerald-600' : 'text-slate-400'}`}>
@@ -385,8 +448,9 @@ export default function SitesPage() {
       </div>
 
       <SiteFormModal open={formOpen} onClose={() => setFormOpen(false)} site={editingSite} onSaved={refresh} />
-      <StatusChangeModal open={!!statusSite} onClose={() => setStatusSite(null)} site={statusSite} onSaved={refresh} />
+      <StatusChangeModal open={!!statusSite} onClose={() => setStatusSite(null)} site={statusSite} initialStatus={statusInitial} onSaved={refresh} />
       <SiteViewModal open={!!viewSite} onClose={() => setViewSite(null)} site={viewSite} />
+      <CancelUpcomingBookingModal open={!!cancelUpcomingSite} onClose={() => setCancelUpcomingSite(null)} site={cancelUpcomingSite} onSaved={refresh} />
       <ConfirmDialog
         open={!!deleteTarget}
         title="Delete Site"

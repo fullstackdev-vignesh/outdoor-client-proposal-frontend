@@ -219,7 +219,7 @@ export default function ProposalsPage() {
               {loading && (
                 <tr>
                   <td colSpan={8} className="px-4 py-10 text-center">
-                    <Loader text="Loading proposals..." />
+                    <Loader overlay text="Loading proposals..." />
                   </td>
                 </tr>
               )}

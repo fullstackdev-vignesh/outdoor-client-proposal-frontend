@@ -99,7 +99,7 @@ export default function UserManager({ role, title, subtitle }: { role: Role; tit
               {loading && (
                 <tr>
                   <td colSpan={6} className="px-4 py-10 text-center">
-                    <Loader text="Loading users..." />
+                    <Loader overlay text="Loading users..." />
                   </td>
                 </tr>
               )}

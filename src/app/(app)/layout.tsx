@@ -22,7 +22,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (loading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 w-full">
-        <Loader fullPage size="lg" text="Loading application..." />
+        <Loader overlay size="lg" text="Loading application..." />
       </div>
     );
   }

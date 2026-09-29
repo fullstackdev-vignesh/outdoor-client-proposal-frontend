@@ -262,7 +262,7 @@ export default function InventoryTimelineTab() {
               {loading && (
                 <tr>
                   <td colSpan={14} className="px-4 py-10 text-center">
-                    <Loader text="Loading timeline..." />
+                    <Loader overlay text="Loading timeline..." />
                   </td>
                 </tr>
               )}

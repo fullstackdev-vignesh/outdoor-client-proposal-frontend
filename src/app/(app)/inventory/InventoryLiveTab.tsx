@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Search, Download, X, ImageOff, Building2, CheckCircle2, CalendarCheck, Ban, Save } from 'lucide-react';
+import { Search, Download, X, ImageOff, Building2, CheckCircle2, CalendarCheck, Ban, Save, History } from 'lucide-react';
 import api, { resolveImageUrl } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import EmptyState from '@/components/ui/EmptyState';
@@ -13,6 +13,8 @@ import SiteViewModal from '@/components/sites/SiteViewModal';
 import BulkStatusModal from '@/components/inventory/BulkStatusModal';
 import MediaPreviewModal from '@/components/inventory/MediaPreviewModal';
 import StatusDetailsPopover from '@/components/inventory/StatusDetailsPopover';
+import SiteTimelineModal from '@/components/inventory/SiteTimelineModal';
+import CancelUpcomingBookingModal from '@/components/inventory/CancelUpcomingBookingModal';
 import CustomSelect from '@/components/ui/CustomSelect';
 import Loader from '@/components/ui/Loader';
 import { formatIST } from '@/lib/date';
@@ -40,6 +42,8 @@ export default function InventoryLiveTab() {
   const [rowModal, setRowModal] = useState<{ site: Site; status: MediaStatus } | null>(null);
   const [previewSite, setPreviewSite] = useState<Site | null>(null);
   const [viewSite, setViewSite] = useState<Site | null>(null);
+  const [timelineSite, setTimelineSite] = useState<Site | null>(null);
+  const [cancelUpcomingSite, setCancelUpcomingSite] = useState<Site | null>(null);
 
   const sentinelRef = useRef<HTMLDivElement>(null);
   const nextPageRef = useRef(1);
@@ -332,27 +336,31 @@ export default function InventoryLiveTab() {
                 <th className="px-4 py-3">Image</th>
                 <th className="px-4 py-3">MediaCode</th>
                 <th className="px-4 py-3">City / State</th>
+                <th className="px-4 py-3">Area</th>
                 <th className="px-4 py-3">Site Owner</th>
+                <th className="px-4 py-3">Size</th>
+                <th className="px-4 py-3">Total Cost</th>
                 <th className="px-4 py-3">Active</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Media Status</th>
                 <th className="px-4 py-3">Inventory Updated</th>
                 <th className="px-4 py-3">Site Last Updated</th>
                 <th className="px-4 py-3">Updated By</th>
+                <th className="px-4 py-3 text-center">Timeline</th>
                 <th className="px-4 py-3 text-center">Save</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading && (
                 <tr>
-                  <td colSpan={13} className="px-4 py-10 text-center">
-                    <Loader text="Loading inventory..." />
+                  <td colSpan={17} className="px-4 py-10 text-center">
+                    <Loader overlay text="Loading inventory..." />
                   </td>
                 </tr>
               )}
               {!loading && items.length === 0 && (
                 <tr>
-                  <td colSpan={13}>
+                  <td colSpan={17}>
                     <EmptyState title="No sites found" subtitle="Try adjusting your filters." />
                   </td>
                 </tr>
@@ -386,7 +394,14 @@ export default function InventoryLiveTab() {
                       <td className="px-4 py-3 text-slate-600">
                         {site.city}, {site.state}
                       </td>
+                      <td className="px-4 py-3 text-slate-600">{site.areaName || '-'}</td>
                       <td className="px-4 py-3 text-slate-600">{site.siteOwner || '-'}</td>
+                      <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                        {site.width && site.height ? `${site.width}x${site.height} ${site.sizeUnit}` : '-'}
+                      </td>
+                      <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                        {site.totalCost ? `₹${site.totalCost.toLocaleString()}` : '-'}
+                      </td>
                       <td className="px-4 py-3">
                         <span className={`text-xs font-medium ${site.isActive ? 'text-emerald-600' : 'text-slate-400'}`}>
                           {site.isActive ? 'Active' : 'Inactive'}
@@ -415,6 +430,17 @@ export default function InventoryLiveTab() {
                             + Add Booking
                           </button>
                         )}
+                        {/* Available → Available isn't a status change either, so an Available site's
+                            Upcoming booking is cancelled from its own popup instead of Save. */}
+                        {site.mediaStatus === 'available' && !hasChange && site.bookings?.some((b) => b.status === 'upcoming') && (
+                          <button
+                            type="button"
+                            onClick={() => setCancelUpcomingSite(site)}
+                            className="mt-1 block text-[11px] font-medium text-amber-700 hover:underline"
+                          >
+                            Cancel Upcoming Booking
+                          </button>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <StatusDetailsPopover site={site} onViewFullDetails={() => setViewSite(site)} />
@@ -427,6 +453,14 @@ export default function InventoryLiveTab() {
                       </td>
                       <td className="px-4 py-3 text-xs text-slate-500">
                         {site.inventoryUpdatedBy || site.updatedBy || 'System'}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          onClick={() => setTimelineSite(site)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50"
+                        >
+                          <History className="h-3.5 w-3.5" /> View
+                        </button>
                       </td>
                       <td className="px-4 py-3 text-center">
                         <button
@@ -476,6 +510,20 @@ export default function InventoryLiveTab() {
         mediaCode={previewSite?.mediaCode || previewSite?.mediaId}
         mediaType={previewSite?.mediaType}
         location={previewSite ? [previewSite.location, previewSite.areaName, previewSite.city, previewSite.state].filter(Boolean).join(', ') : undefined}
+      />
+
+      <SiteTimelineModal
+        open={!!timelineSite}
+        onClose={() => setTimelineSite(null)}
+        siteId={timelineSite?._id || null}
+        mediaCode={timelineSite?.mediaCode || timelineSite?.mediaId}
+      />
+
+      <CancelUpcomingBookingModal
+        open={!!cancelUpcomingSite}
+        onClose={() => setCancelUpcomingSite(null)}
+        site={cancelUpcomingSite}
+        onSaved={refresh}
       />
 
       <SiteViewModal open={!!viewSite} onClose={() => setViewSite(null)} site={viewSite} />

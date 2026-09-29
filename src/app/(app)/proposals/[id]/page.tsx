@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Presentation, FileSpreadsheet, Download, CheckCircle2, type LucideIcon } from 'lucide-react';
 import api, { fileBaseURL } from '@/lib/api';
@@ -187,7 +187,11 @@ export default function ProposalDetailsPage() {
           <Info label="Media Count" value={proposal.sites?.length?.toString()} />
           <Info label="PPT Template" value={proposal.pptTemplate?.name || '-'} />
           <Info label="Excel Template" value={proposal.excelTemplate?.name || '-'} />
-          <Info label="Total Amount" value={proposal.totalAmount ? `₹${formatINR(proposal.totalAmount)}` : '-'} />
+          {/* The saved totalAmount includes GST only when the proposal saved a GST amount (client had a GST %). */}
+          <Info
+            label={<>Total Amount{' '}<span className={`text-xs font-semibold ${proposal.gstAmount ? 'text-emerald-600' : 'text-amber-600'}`}>({proposal.gstAmount ? 'Including' : 'Excluding'} GST)</span></>}
+            value={proposal.totalAmount ? `₹${formatINR(proposal.totalAmount)}` : '-'}
+          />
           {/* <Info label="Monthly Amount" value={proposal.monthlyAmount ? `₹${formatINR(proposal.monthlyAmount)}` : '-'} /> */}
         </dl>
       </Panel>
@@ -254,7 +258,7 @@ export default function ProposalDetailsPage() {
   );
 }
 
-function Info({ label, value }: { label: string; value?: string }) {
+function Info({ label, value }: { label: ReactNode; value?: string }) {
   return (
     <div>
       <dt className="text-xs text-slate-400">{label}</dt>

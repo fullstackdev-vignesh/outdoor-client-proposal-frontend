@@ -5,6 +5,7 @@ import { ImagePlus, Plus, Trash2, X } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import { StateSelect, CitySelect } from '@/components/ui/StateCitySelect';
 import api, { resolveImageUrl } from '@/lib/api';
+import { SiteOwnerInput } from '@/components/ui/SiteOwnerSelect';
 import type { BookingRecord, Site, Client, MediaStatus, SiteInfo } from '@/lib/types';
 import { useToast } from '@/components/ui/Toast';
 import { todayISO } from '@/lib/date';
@@ -388,7 +389,6 @@ export default function SiteFormModal({
 
     if (form.mediaStatus === 'blocked') {
       if (!blockReason.trim()) errs.blockReason = 'Block Reason is required';
-      if (!blockNotes.trim()) errs.blockNotes = 'Additional Notes is required';
     }
 
     return errs;
@@ -534,11 +534,10 @@ export default function SiteFormModal({
             />
           </Field>
           <Field label="Site Owner">
-            <input
+            <SiteOwnerInput
               id="site-field-siteOwner"
-              placeholder="ex: Adinn"
               value={form.siteOwner}
-              onChange={(e) => update('siteOwner', e.target.value)}
+              onChange={(owner) => update('siteOwner', owner)}
               className={fieldCls(false)}
             />
           </Field>
@@ -882,21 +881,6 @@ export default function SiteFormModal({
                 className={fieldCls(!!errors.blockReason)}
               />
               {errors.blockReason && <p className="mt-1 text-xs font-medium text-red-600">{errors.blockReason}</p>}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Additional Notes *</label>
-              <textarea
-                id="site-field-blockNotes"
-                placeholder="Enter additional notes"
-                value={blockNotes}
-                onChange={(e) => {
-                  setBlockNotes(e.target.value);
-                  clearError('blockNotes');
-                }}
-                className={fieldCls(!!errors.blockNotes)}
-                rows={2}
-              />
-              {errors.blockNotes && <p className="mt-1 text-xs font-medium text-red-600">{errors.blockNotes}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Blocked Date *</label>

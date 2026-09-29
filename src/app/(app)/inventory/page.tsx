@@ -1,22 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+// import { useState } from 'react';
 import InventoryLiveTab from './InventoryLiveTab';
-import InventoryTimelineTab from './InventoryTimelineTab';
+// Inventory Timeline tab is hidden for now — uncomment this import, the tab state and the
+// tab bar below to bring it back.
+// import InventoryTimelineTab from './InventoryTimelineTab';
 
 export default function InventoryPage() {
-  const [tab, setTab] = useState<'inventory' | 'timeline'>('inventory');
+  // const [tab, setTab] = useState<'inventory' | 'timeline'>('inventory');
 
   return (
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-bold text-slate-900">Inventory Management</h1>
         <p className="text-sm text-slate-500">
-          {tab === 'inventory' ? 'Bulk manage media status across all sites' : 'Read-only history of every status change and period'}
+          Bulk manage media status across all sites
+          {/* {tab === 'inventory' ? 'Bulk manage media status across all sites' : 'Read-only history of every status change and period'} */}
         </p>
       </div>
 
-      <div className="flex gap-2 border-b border-slate-200">
+      {/* <div className="flex gap-2 border-b border-slate-200">
         {(['inventory', 'timeline'] as const).map((t) => (
           <button
             key={t}
@@ -28,9 +31,10 @@ export default function InventoryPage() {
             {t === 'inventory' ? 'Inventory' : 'Inventory Timeline'}
           </button>
         ))}
-      </div>
+      </div> */}
 
-      {tab === 'inventory' ? <InventoryLiveTab /> : <InventoryTimelineTab />}
+      <InventoryLiveTab />
+      {/* {tab === 'inventory' ? <InventoryLiveTab /> : <InventoryTimelineTab />} */}
     </div>
   );
 }

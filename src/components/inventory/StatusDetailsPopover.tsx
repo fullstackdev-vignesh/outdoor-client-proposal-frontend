@@ -40,7 +40,6 @@ export default function StatusDetailsPopover({ site, onViewFullDetails }: { site
             <dl className="space-y-2">
               <Row label="Reason" value={bl?.reason || '-'} />
               <Row label="Blocked Date" value={bl?.blockedDate ? formatISTDate(bl.blockedDate) : '-'} />
-              <Row label="Notes" value={bl?.notes || '-'} />
               <Row label="Updated" value={formatIST(site.inventoryUpdatedAt)} />
             </dl>
           )}

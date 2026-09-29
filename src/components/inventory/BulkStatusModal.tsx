@@ -66,7 +66,6 @@ export default function BulkStatusModal({
     return { site: s, monthlyTotalCost, bookingAmount: calcBookingAmount(monthlyTotalCost, durationDays) };
   });
   const grandTotal = perSite.reduce((sum, p) => sum + p.bookingAmount, 0);
-
   const canSubmit =
     status === 'available' ||
     (status === 'blocked' && !!blockReason) ||
@@ -110,10 +109,6 @@ export default function BulkStatusModal({
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Block Reason *</label>
                 <input placeholder="Enter reason for blocking" value={blockReason} onChange={(e) => setBlockReason(e.target.value)} className={inputCls} required />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Additional Notes</label>
-                <textarea placeholder="Optional notes" value={blockNotes} onChange={(e) => setBlockNotes(e.target.value)} className={inputCls} rows={2} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Blocked Date</label>
@@ -173,7 +168,11 @@ export default function BulkStatusModal({
                   </div>
                 ))}
               </div>
-              <p className="text-sm font-semibold text-slate-800">Grand Booking Amount: ₹{grandTotal.toLocaleString()}</p>
+              {/* Booking amounts never include GST (saved as-is). */}
+              <p className="text-sm font-semibold text-slate-800">
+                Grand Booking Amount <span className="text-xs font-semibold text-amber-600">(Excluding GST)</span>: ₹
+                {grandTotal.toLocaleString()}
+              </p>
             </div>
           )}
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Check, Search, ImageOff, Download, Presentation, FileSpreadsheet } from 'lucide-react';
 import api, { fileBaseURL, resolveImageUrl } from '@/lib/api';
@@ -529,7 +529,11 @@ export default function NewProposalPage() {
               <Row label="Selected Site Count" value={`${selectedSites.size} sites`} action={() => goToStep(1)} />
               <Row label="PPT Template" value={selectedPpt?.name || '-'} action={() => goToStep(2)} />
               <Row label="Excel Template" value={selectedExcel?.name || '-'} action={() => goToStep(3)} />
-              <Row label="Total Amount" value={`₹${formatINR(totalAmount)}`} />
+              {/* totalAmount already adds GST only when the selected client has a GST % — label it to match. */}
+              <Row
+                label={<>Total Amount{' '}<span className={`text-xs font-semibold ${selectedCustomer?.gst ? 'text-emerald-600' : 'text-amber-600'}`}>({selectedCustomer?.gst ? 'Including' : 'Excluding'} GST)</span></>}
+                value={`₹${formatINR(totalAmount)}`}
+              />
               {/* <Row label="Monthly Amount" value={`₹${formatINR(monthlyAmount)}`} /> */}
             </div>
 
@@ -717,7 +721,7 @@ function TemplateGrid({ items, selected, onSelect }: { items: Template[]; select
   );
 }
 
-function Row({ label, value, action, capitalize }: { label: string; value: string; action?: () => void; capitalize?: boolean }) {
+function Row({ label, value, action, capitalize }: { label: ReactNode; value: string; action?: () => void; capitalize?: boolean }) {
   return (
     <div className="flex justify-between items-center border-b border-slate-100 pb-2">
       <span className="text-slate-500">{label}</span>

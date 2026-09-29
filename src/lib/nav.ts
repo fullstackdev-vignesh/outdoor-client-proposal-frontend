@@ -26,13 +26,14 @@ export interface NavItem {
 const NAV: Record<Role, NavItem[]> = {
   admin: [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { label: 'Users', href: '/users', icon: Users },
+    { label: 'User Management', href: '/users', icon: Users },
     { label: 'TL Management', href: '/tl-management', icon: UserCog },
     { label: 'BD Management', href: '/bd-management', icon: UserCheck },
-    { label: 'Site / Media', href: '/sites', icon: Building2 },
-    { label: 'Site Info', href: '/site-info', icon: ClipboardList },
-    { label: 'Inventory', href: '/inventory', icon: ClipboardList },
     { label: 'Clients', href: '/clients', icon: Contact2 },
+    { label: 'Media Master', href: '/sites', icon: Building2 },
+    { label: 'Site Quotes Master', href: '/site-info', icon: ClipboardList },
+    { label: 'Inventory Master', href: '/inventory', icon: ClipboardList },
+    
     // { label: 'PPT Master', href: '/ppt-master', icon: Presentation },
     // { label: 'Excel Templates', href: '/excel-templates', icon: FileSpreadsheet },
     { label: 'Proposals', href: '/proposals', icon: FileText },
