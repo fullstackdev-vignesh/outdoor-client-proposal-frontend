@@ -15,15 +15,16 @@ type TimelineEvent = InventoryHistoryEntry & {
   endedEarlyAt?: string;
   // Booked step of a booking that was later cancelled manually (its own Cancelled step follows).
   cancelled?: boolean;
+  // A change to an existing booking's client/dates: bookingSnapshot is the booking after the
+  // change, previousBooking is what it was before.
+  eventType?: 'edited';
+  previousBooking?: InventoryHistoryEntry['bookingSnapshot'];
+  edits?: unknown[];
 };
 
-// What each history entry means, shown next to its status badge.
-const CHANGE_LABEL: Record<string, string> = {
-  available: 'Made Available',
-  booked: 'Booked',
-  blocked: 'Blocked',
-  cancelled: 'Booking Cancelled',
-};
+function periodLabel(start?: string | null, end?: string | null) {
+  return `${formatISTDate(start || undefined)}${end ? ` → ${formatISTDate(end)}` : ''}`;
+}
 
 export default function SiteTimelineModal({
   open,
@@ -58,6 +59,10 @@ export default function SiteTimelineModal({
           <div className="absolute left-1.5 top-1 bottom-1 w-px bg-slate-200" />
           {items.map((h, index) => {
             const changedByName = typeof h.changedBy === 'object' ? h.changedBy?.name : undefined;
+            const isEdit = h.eventType === 'edited';
+            const before = h.previousBooking;
+            const after = h.bookingSnapshot;
+            const customerLabel = after?.customerType === 'agency' ? 'Agency Name' : 'Client Name';
             return (
               <div key={h.eventKey} className="relative">
                 <span
@@ -66,16 +71,42 @@ export default function SiteTimelineModal({
                   }`}
                 />
                 <div className="flex items-center gap-2">
-                  <StatusBadge status={h.status} />
-                  <span className="text-sm font-medium text-slate-700">{CHANGE_LABEL[h.status] || h.status}</span>
+                  <StatusBadge status={isEdit ? 'updated' : h.status} />
                   {index === 0 && <span className="text-[10px] font-semibold uppercase text-emerald-600">Latest</span>}
                 </div>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {h.status === 'cancelled' ? 'Was booked' : 'Period'}: {formatISTDate(h.effectiveFrom)}
-                  {h.effectiveTo ? ` → ${formatISTDate(h.effectiveTo)}` : ''}
-                  {!h.effectiveTo && <span className="text-emerald-600 font-medium"> · Ongoing</span>}
-                </p>
-                {h.status === 'booked' && h.bookingSnapshot && (
+                {isEdit ? (
+                  <div className="mt-2 overflow-hidden rounded-lg border border-slate-200 text-xs">
+                    <div className="grid grid-cols-[88px_1fr_1fr] bg-slate-50 font-semibold uppercase tracking-wide text-[10px]">
+                      <span className="px-2.5 py-1.5 text-slate-400" />
+                      <span className="px-2.5 py-1.5 text-slate-500">Old</span>
+                      <span className="px-2.5 py-1.5 text-sky-700">New</span>
+                    </div>
+                    {(
+                      [
+                        ['Period', periodLabel(before?.startDate, before?.endDate), periodLabel(after?.startDate, after?.endDate)],
+                        [customerLabel, before?.customerName || '-', after?.customerName || '-'],
+                        ['Duration', `${before?.durationDays || 0} Days`, `${after?.durationDays || 0} Days`],
+                        ['Amount', `₹${(before?.amount || 0).toLocaleString()}`, `₹${(after?.amount || 0).toLocaleString()}`],
+                      ] as const
+                    ).map(([label, oldVal, newVal]) => {
+                      const changed = oldVal !== newVal;
+                      return (
+                        <div key={label} className="grid grid-cols-[88px_1fr_1fr] border-t border-slate-100">
+                          <span className="px-2.5 py-1.5 text-slate-400">{label}</span>
+                          <span className="px-2.5 py-1.5 text-slate-500">{oldVal}</span>
+                          <span className={`px-2.5 py-1.5 ${changed ? 'bg-sky-50 font-semibold text-sky-700' : 'text-slate-600'}`}>{newVal}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {h.status === 'cancelled' ? 'Was booked' : 'Period'}: {formatISTDate(h.effectiveFrom)}
+                    {h.effectiveTo ? ` → ${formatISTDate(h.effectiveTo)}` : ''}
+                    {!h.effectiveTo && <span className="text-emerald-600 font-medium"> · Ongoing</span>}
+                  </p>
+                )}
+                {!isEdit && h.status === 'booked' && h.bookingSnapshot && (
                   <div className="text-sm text-slate-600 mt-1 space-y-0.5">
                     <p>
                       {h.bookingSnapshot.customerType === 'agency' ? 'Agency Name' : 'Client Name'}:{' '}
@@ -86,10 +117,13 @@ export default function SiteTimelineModal({
                     </p>
                   </div>
                 )}
-                {h.status === 'booked' && h.endedEarlyAt && (
+                {!isEdit && h.status === 'booked' && !!h.edits?.length && (
+                  <p className="text-xs text-sky-600 mt-0.5">Booking dates/details later updated (see above)</p>
+                )}
+                {!isEdit && h.status === 'booked' && h.endedEarlyAt && (
                   <p className="text-xs text-amber-600 mt-0.5">Ended early on {formatIST(h.endedEarlyAt)} — site was blocked</p>
                 )}
-                {h.status === 'booked' && h.cancelled && <p className="text-xs text-slate-500 mt-0.5">Later cancelled (see above)</p>}
+                {!isEdit && h.status === 'booked' && h.cancelled && <p className="text-xs text-slate-500 mt-0.5">Later cancelled (see above)</p>}
                 {h.status === 'cancelled' && (
                   <div className="text-sm text-slate-600 mt-1 space-y-0.5">
                     {h.bookingSnapshot?.customerName && (
@@ -112,7 +146,7 @@ export default function SiteTimelineModal({
                   </div>
                 )}
                 <p className="text-xs text-slate-400 mt-1">
-                  {h.status === 'booked' ? 'Booked' : 'Changed'}: {formatIST(h.eventAt || h.changedAt)} {changedByName ? `· by ${changedByName}` : ''} · via {h.source === 'inventory' ? 'Inventory' : 'Sites'}
+                  {isEdit ? 'Updated' : h.status === 'booked' ? 'Booked' : 'Changed'}: {formatIST(h.eventAt || h.changedAt)} {changedByName ? `· by ${changedByName}` : ''} · via {h.source === 'inventory' ? 'Inventory' : 'Sites'}
                 </p>
               </div>
             );

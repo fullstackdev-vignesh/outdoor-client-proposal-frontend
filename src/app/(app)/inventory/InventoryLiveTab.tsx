@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Search, Download, X, ImageOff, Building2, CheckCircle2, CalendarCheck, Ban, Save, History } from 'lucide-react';
+import { Search, Download, X, ImageOff, Building2, CheckCircle2, CalendarCheck, Ban, Save, History, Plus, CalendarX } from 'lucide-react';
 import api, { resolveImageUrl } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import EmptyState from '@/components/ui/EmptyState';
@@ -21,6 +21,8 @@ import { formatIST } from '@/lib/date';
 import type { Site, MediaStatus } from '@/lib/types';
 
 const PAGE_SIZE = 20;
+const rowActionCls =
+  'inline-flex w-full items-center justify-center gap-1 whitespace-nowrap rounded-md border px-2 py-1 text-[11px] font-medium transition-colors';
 const emptyFilters = { state: '', city: '', mediaStatus: '', isActive: '', siteOwner: '' };
 
 export default function InventoryLiveTab() {
@@ -419,28 +421,39 @@ export default function InventoryLiveTab() {
                           placeholder=""
                           className="w-28 text-xs capitalize"
                         />
-                        {/* Booked → Booked isn't a status "change", so the Save button stays off —
-                            this lets a Booked site take another booking (another client/dates). */}
-                        {site.mediaStatus === 'booked' && !hasChange && (
-                          <button
-                            type="button"
-                            onClick={() => setRowModal({ site, status: 'booked' })}
-                            className="mt-1 block text-[11px] font-medium text-red-600 hover:underline"
-                          >
-                            + Add Booking
-                          </button>
-                        )}
-                        {/* Available → Available isn't a status change either, so an Available site's
-                            Upcoming booking is cancelled from its own popup instead of Save. */}
-                        {site.mediaStatus === 'available' && !hasChange && site.bookings?.some((b) => b.status === 'upcoming') && (
-                          <button
-                            type="button"
-                            onClick={() => setCancelUpcomingSite(site)}
-                            className="mt-1 block text-[11px] font-medium text-amber-700 hover:underline"
-                          >
-                            Cancel Upcoming Booking
-                          </button>
-                        )}
+                        {!hasChange && (() => {
+                          // Booked → Booked isn't a status "change", so the Save button stays off —
+                          // this lets a Booked site take another booking (another client/dates).
+                          const canAddBooking = site.mediaStatus === 'booked';
+                          // Cancelling an Upcoming booking doesn't change the site's status (Available or
+                          // Booked), so it's done from its own popup instead of Save.
+                          const canCancelUpcoming =
+                            site.mediaStatus !== 'blocked' && !!site.bookings?.some((b) => b.status === 'upcoming');
+                          if (!canAddBooking && !canCancelUpcoming) return null;
+                          return (
+                            <div className="mt-1.5 flex flex-col gap-1">
+                              {canAddBooking && (
+                                <button
+                                  type="button"
+                                  onClick={() => setRowModal({ site, status: 'booked' })}
+                                  className={`${rowActionCls} border-red-100 bg-red-50 text-red-600 hover:bg-red-100`}
+                                >
+                                  <Plus className="h-3 w-3 shrink-0" /> Add Booking
+                                </button>
+                              )}
+                              {canCancelUpcoming && (
+                                <button
+                                  type="button"
+                                  onClick={() => setCancelUpcomingSite(site)}
+                                  title="Cancel an upcoming booking"
+                                  className={`${rowActionCls} border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100`}
+                                >
+                                  <CalendarX className="h-3 w-3 shrink-0" /> Cancel Upcoming
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td className="px-4 py-3">
                         <StatusDetailsPopover site={site} onViewFullDetails={() => setViewSite(site)} />

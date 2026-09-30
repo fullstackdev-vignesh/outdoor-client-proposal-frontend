@@ -15,7 +15,6 @@ export default function StatusDetailsPopover({ site, onViewFullDetails }: { site
 
   const b = site.bookingInfo;
   const bl = site.blockInfo;
-  const customerName = b && typeof b.client === 'object' ? b.client?.name : undefined;
 
   return (
     <>
@@ -27,7 +26,6 @@ export default function StatusDetailsPopover({ site, onViewFullDetails }: { site
         <div className="space-y-3 text-sm">
           {site.mediaStatus === 'booked' && (
             <dl className="space-y-2">
-              <Row label="Customer" value={customerName || '-'} />
               <Row label="Type" value={b?.customerType ? b.customerType.charAt(0).toUpperCase() + b.customerType.slice(1) : '-'} />
               <Row label="Period" value={b?.startDate && b?.endDate ? `${formatISTDate(b.startDate)} → ${formatISTDate(b.endDate)}` : '-'} />
               <Row label="Duration" value={b?.durationDays ? `${b.durationDays} Days` : '-'} />

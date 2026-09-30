@@ -7,8 +7,8 @@ import { useToast } from '@/components/ui/Toast';
 import { formatISTDate } from '@/lib/date';
 import type { BookingRecord, Site } from '@/lib/types';
 
-// Cancels ONE Upcoming booking on a site that is currently Available (Available → Available isn't
-// a status change, so the row's Save button can't do it). Uses the same per-booking cancel
+// Cancels ONE Upcoming booking on a site (Available or Booked) without touching the current
+// booking — the row's Save button can't do it, since the status doesn't change. Uses the same per-booking cancel
 // endpoint as Edit Site → Booking Details; the backend then recalculates the site's status.
 export default function CancelUpcomingBookingModal({
   open,
@@ -98,7 +98,12 @@ export default function CancelUpcomingBookingModal({
           />
         </div>
 
-        <p className="text-xs text-slate-500">The site stays Available. The cancelled booking is kept in the site&apos;s timeline.</p>
+        <p className="text-xs text-slate-500">
+          {site.mediaStatus === 'booked'
+            ? 'Only the selected upcoming booking is cancelled — the current booking stays as it is.'
+            : 'The site stays Available.'}{' '}
+          The cancelled booking is kept in the site&apos;s timeline.
+        </p>
 
         <div className="flex justify-end gap-2 pt-2">
           <button onClick={onClose} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">

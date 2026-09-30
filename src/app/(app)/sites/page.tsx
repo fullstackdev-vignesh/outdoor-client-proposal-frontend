@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Search, Plus, Upload, Download, Eye, Pencil, Trash2, RefreshCcw, X, ImageOff, Save } from 'lucide-react';
+import { Search, Plus, Upload, Download, Eye, Pencil, Trash2, RefreshCcw, X, ImageOff, Save, CalendarX } from 'lucide-react';
 import api, { resolveImageUrl } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useToast } from '@/components/ui/Toast';
@@ -22,6 +22,8 @@ import { formatIST } from '@/lib/date';
 import type { Site, MediaStatus } from '@/lib/types';
 
 const PAGE_SIZE = 20;
+const rowActionCls =
+  'inline-flex w-full items-center justify-center gap-1 whitespace-nowrap rounded-md border px-2 py-1 text-[11px] font-medium transition-colors';
 
 const emptyFilters = { mediaType: '', state: '', city: '', mediaStatus: '', isActive: '', siteOwner: '' };
 
@@ -341,6 +343,9 @@ export default function SitesPage() {
                         (() => {
                           const pending = rowPending[site._id];
                           const hasChange = !!pending && pending !== site.mediaStatus;
+                          const canAddBooking = site.mediaStatus === 'booked';
+                          const canCancelUpcoming =
+                            site.mediaStatus !== 'blocked' && !!site.bookings?.some((b) => b.status === 'upcoming');
                           return (
                             <>
                               <div className="flex items-center gap-1.5">
@@ -366,23 +371,28 @@ export default function SitesPage() {
                                   <Save className="h-4 w-4" />
                                 </button>
                               </div>
-                              {site.mediaStatus === 'booked' && !hasChange && (
-                                <button
-                                  type="button"
-                                  onClick={() => openStatusChange(site, 'booked')}
-                                  className="mt-1 block text-[11px] font-medium text-red-600 hover:underline"
-                                >
-                                  + Add Booking
-                                </button>
-                              )}
-                              {site.mediaStatus === 'available' && !hasChange && site.bookings?.some((b) => b.status === 'upcoming') && (
-                                <button
-                                  type="button"
-                                  onClick={() => setCancelUpcomingSite(site)}
-                                  className="mt-1 block text-[11px] font-medium text-amber-700 hover:underline"
-                                >
-                                  Cancel Upcoming Booking
-                                </button>
+                              {!hasChange && (canAddBooking || canCancelUpcoming) && (
+                                <div className="mt-1.5 inline-flex min-w-28 flex-col gap-1">
+                                  {canAddBooking && (
+                                    <button
+                                      type="button"
+                                      onClick={() => openStatusChange(site, 'booked')}
+                                      className={`${rowActionCls} border-red-100 bg-red-50 text-red-600 hover:bg-red-100`}
+                                    >
+                                      <Plus className="h-3 w-3 shrink-0" /> Add Booking
+                                    </button>
+                                  )}
+                                  {canCancelUpcoming && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setCancelUpcomingSite(site)}
+                                      title="Cancel an upcoming booking"
+                                      className={`${rowActionCls} border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100`}
+                                    >
+                                      <CalendarX className="h-3 w-3 shrink-0" /> Cancel Upcoming
+                                    </button>
+                                  )}
+                                </div>
                               )}
                             </>
                           );
