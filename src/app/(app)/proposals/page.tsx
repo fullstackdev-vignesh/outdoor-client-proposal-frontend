@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { Plus, Eye, Trash2, Search } from 'lucide-react';
+import { Plus, Eye, Trash2, Search, X } from 'lucide-react';
 import api from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import EmptyState from '@/components/ui/EmptyState';
@@ -178,8 +178,9 @@ export default function ProposalsPage() {
           />
           <DatePicker value={fromDate} onChange={handleFromDateChange} max={toDate || undefined} placeholder="From Date" />
           <DatePicker value={toDate} onChange={handleToDateChange} min={fromDate || undefined} placeholder="To Date" />
-          <div className="flex items-center gap-3">
-            <div className="w-36">
+          <div className="flex min-w-0 items-center gap-2">
+            {/* Takes whatever width is left in the grid cell so Clear Filters never overflows it. */}
+            <div className="min-w-0 flex-1">
               <CustomSelect
                 value={status}
                 onChange={setStatus}
@@ -192,8 +193,12 @@ export default function ProposalsPage() {
               />
             </div>
             {hasActiveFilters && (
-              <button onClick={clearFilters} className="text-xs font-medium text-red-600 hover:underline whitespace-nowrap">
-                Clear Filters
+              <button
+                onClick={clearFilters}
+                title="Clear Filters"
+                className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
+              >
+                <X className="h-3.5 w-3.5" /> Clear
               </button>
             )}
           </div>

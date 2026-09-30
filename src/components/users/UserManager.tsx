@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { Pencil, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Pencil, Trash2, Search, X } from 'lucide-react';
 import api from '@/lib/api';
+import { useInfiniteList, useDebounced } from '@/lib/useInfiniteList';
 import { useToast } from '@/components/ui/Toast';
 import Modal from '@/components/ui/Modal';
 import EmptyState from '@/components/ui/EmptyState';
@@ -12,25 +13,19 @@ import type { Role } from '@/lib/types';
 
 export default function UserManager({ role, title, subtitle }: { role: Role; title: string; subtitle: string }) {
   const { showToast } = useToast();
-  const [items, setItems] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
 
   const [form, setForm] = useState({ name: '', phone: '', isActive: true });
 
-  const fetchItems = useCallback(() => {
-    setLoading(true);
-    api
-      .get('/users', { params: { role } })
-      .then((res) => setItems(res.data))
-      .finally(() => setLoading(false));
-  }, [role]);
-
-  useEffect(() => {
-    fetchItems();
-  }, [fetchItems]);
+  // Lazy loading like Media Master, with a debounced name search sent to the API.
+  const [search, setSearch] = useState('');
+  const query = useDebounced(search.trim());
+  const { items, total, loading, loadingMore, reload: fetchItems, sentinelRef } = useInfiniteList<any>('/users', {
+    role,
+    search: query || undefined,
+  });
 
   function openEdit(item: any) {
     setEditing(item);
@@ -77,8 +72,37 @@ export default function UserManager({ role, title, subtitle }: { role: Role; tit
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">{title}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-slate-900">{title}</h1>
+            {!loading && (
+              <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700">
+                {total} {total === 1 ? roleLabel : `${roleLabel}s`}
+              </span>
+            )}
+          </div>
           <p className="text-sm text-slate-500">{subtitle}</p>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-4">
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={`Search ${roleLabel} by name...`}
+            className="w-full rounded-lg border border-slate-300 pl-9 pr-8 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              title="Clear search"
+              className="absolute right-2 top-2 rounded p-0.5 text-slate-400 hover:text-slate-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -106,7 +130,7 @@ export default function UserManager({ role, title, subtitle }: { role: Role; tit
               {!loading && items.length === 0 && (
                 <tr>
                   <td colSpan={6}>
-                    <EmptyState title="No records found" />
+                    <EmptyState title={query ? `No ${roleLabel}s match "${query}"` : 'No records found'} />
                   </td>
                 </tr>
               )}
@@ -136,6 +160,10 @@ export default function UserManager({ role, title, subtitle }: { role: Role; tit
                 ))}
             </tbody>
           </table>
+        </div>
+        <div ref={sentinelRef} className="py-4 text-center text-xs text-slate-400">
+          {loadingMore && <Loader size="sm" text="Loading more..." />}
+          {!loading && !loadingMore && total > 0 && `Showing ${items.length} of ${total} ${total === 1 ? roleLabel : `${roleLabel}s`}`}
         </div>
       </div>
 

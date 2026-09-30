@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, Pencil, Trash2, Search, X } from 'lucide-react';
 import api from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/lib/auth-context';
@@ -10,37 +10,34 @@ import Modal from '@/components/ui/Modal';
 import EmptyState from '@/components/ui/EmptyState';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Loader from '@/components/ui/Loader';
+import { useInfiniteList, useDebounced } from '@/lib/useInfiniteList';
 import type { SiteInfo } from '@/lib/types';
+
+const PAGE_SIZE = 10;
 
 // Site Info Management — a reusable master list of Title/Description cards. Sites optionally
 // link to one via `siteInfoId`; the description shows up on PPT templates that support it
-// (e.g. Adinn-Direct-Client-format). CRUD here is intentionally simple (no pagination/search)
-// since this is a small lookup list, not a high-volume table like Sites/Clients.
+// (e.g. Adinn-Direct-Client-format). The table lazy-loads GET /site-info?page=&limit= pages;
+// the site form's dropdown calls it without `page` to get the full list.
 export default function SiteInfoManager() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const canManage = user?.role === 'admin' || user?.role === 'tl' || user?.role === 'user';
 
-  const [items, setItems] = useState<SiteInfo[]>([]);
-  const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<SiteInfo | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SiteInfo | null>(null);
   const [form, setForm] = useState({ title: '', description: '' });
   const [errors, setErrors] = useState<{ title?: string; description?: string }>({});
   const [saving, setSaving] = useState(false);
-
-  const fetchItems = useCallback(() => {
-    setLoading(true);
-    api
-      .get('/site-info')
-      .then((res) => setItems(res.data))
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    fetchItems();
-  }, [fetchItems]);
+  // Lazy loading like Media Master, with a debounced title search sent to the API.
+  const [search, setSearch] = useState('');
+  const query = useDebounced(search.trim());
+  const { items, total, loading, loadingMore, reload: fetchItems, sentinelRef } = useInfiniteList<SiteInfo>(
+    '/site-info',
+    { search: query || undefined },
+    PAGE_SIZE
+  );
 
   function openForm(item: SiteInfo | null) {
     setEditing(item);
@@ -61,15 +58,15 @@ export default function SiteInfoManager() {
     try {
       if (editing) {
         await api.put(`/site-info/${editing._id}`, form);
-        showToast('Site Information updated successfully');
+        showToast('Site Quote updated successfully');
       } else {
         await api.post('/site-info', form);
-        showToast('Site Information saved successfully');
+        showToast('Site Quote saved successfully');
       }
       fetchItems();
       setFormOpen(false);
     } catch (err: any) {
-      showToast(err?.response?.data?.message || 'Failed to save Site Information', 'error');
+      showToast(err?.response?.data?.message || 'Failed to save Site Quote', 'error');
     } finally {
       setSaving(false);
     }
@@ -79,10 +76,10 @@ export default function SiteInfoManager() {
     if (!deleteTarget) return;
     try {
       await api.delete(`/site-info/${deleteTarget._id}`);
-      showToast('Site Information deleted successfully');
+      showToast('Site Quote deleted successfully');
       fetchItems();
     } catch (err: any) {
-      showToast(err?.response?.data?.message || 'Failed to delete Site Information', 'error');
+      showToast(err?.response?.data?.message || 'Failed to delete Site Quote', 'error');
     } finally {
       setDeleteTarget(null);
     }
@@ -92,7 +89,14 @@ export default function SiteInfoManager() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Site Info Management</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-slate-900">Site Quotes</h1>
+            {!loading && (
+              <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700">
+                {total} {total === 1 ? 'Site Quote' : 'Site Quotes'}
+              </span>
+            )}
+          </div>
           <p className="text-sm text-slate-500">Reusable Title/Description cards that can be linked to a site and shown on supported PPT templates.</p>
         </div>
         {canManage && (
@@ -100,9 +104,31 @@ export default function SiteInfoManager() {
             onClick={() => openForm(null)}
             className="flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
           >
-            <Plus className="h-4 w-4" /> Add Site Information
+            <Plus className="h-4 w-4" /> Add Site Quote
           </button>
         )}
+      </div>
+
+      <div className="flex flex-wrap gap-3">
+        <div className="relative flex-1 min-w-[220px] max-w-md">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by Title..."
+            className="w-full rounded-lg border border-slate-300 bg-white pl-9 pr-8 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              title="Clear search"
+              className="absolute right-2 top-2 rounded p-0.5 text-slate-400 hover:text-slate-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
@@ -127,7 +153,7 @@ export default function SiteInfoManager() {
               {!loading && items.length === 0 && (
                 <tr>
                   <td colSpan={4}>
-                    <EmptyState title="No Site Information added yet" />
+                    <EmptyState title={query ? `No Site Quotes match "${query}"` : 'No Site Quotes added yet'} />
                   </td>
                 </tr>
               )}
@@ -153,6 +179,10 @@ export default function SiteInfoManager() {
                 ))}
             </tbody>
           </table>
+        </div>
+        <div ref={sentinelRef} className="py-4 text-center text-xs text-slate-400">
+          {loadingMore && <Loader size="sm" text="Loading more..." />}
+          {!loading && !loadingMore && total > 0 && `Showing ${items.length} of ${total} Site Quotes`}
         </div>
       </div>
 

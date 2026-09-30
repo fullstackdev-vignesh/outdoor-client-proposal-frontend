@@ -1,41 +1,32 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Search, Plus, Eye, Pencil, Trash2 } from 'lucide-react';
 import api from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
-import Pagination from '@/components/ui/Pagination';
 import EmptyState from '@/components/ui/EmptyState';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import ClientFormModal from '@/components/clients/ClientFormModal';
 import Loader from '@/components/ui/Loader';
 import { formatIST } from '@/lib/date';
-import type { Client, PaginatedResponse } from '@/lib/types';
+import { useInfiniteList, useDebounced } from '@/lib/useInfiniteList';
+import type { Client } from '@/lib/types';
 
 export default function ClientsPage() {
   const { showToast } = useToast();
   const params = useSearchParams();
-  const [data, setData] = useState<PaginatedResponse<Client> | null>(null);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Client | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Client | null>(null);
 
-  const fetchClients = useCallback(() => {
-    setLoading(true);
-    api
-      .get('/clients', { params: { page, limit: 20, search } })
-      .then((res) => setData(res.data))
-      .finally(() => setLoading(false));
-  }, [page, search]);
-
-  useEffect(() => {
-    fetchClients();
-  }, [fetchClients]);
+  // Lazy loading like Media Master; the search is debounced so typing doesn't fire a request per key.
+  const query = useDebounced(search.trim());
+  const { items, total, loading, loadingMore, reload: fetchClients, sentinelRef } = useInfiniteList<Client>('/clients', {
+    search: query || undefined,
+  });
 
   useEffect(() => {
     if (params.get('action') === 'add') setFormOpen(true);
@@ -58,7 +49,14 @@ export default function ClientsPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Clients</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-slate-900">Clients</h1>
+            {!loading && (
+              <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700">
+                {total} {total === 1 ? 'Client' : 'Clients'}
+              </span>
+            )}
+          </div>
           <p className="text-sm text-slate-500">Manage client accounts and relationships</p>
         </div>
         <button
@@ -77,10 +75,7 @@ export default function ClientsPage() {
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
           <input
             value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name, phone, email..."
             className="w-full rounded-lg border border-slate-300 pl-9 pr-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100"
           />
@@ -109,7 +104,7 @@ export default function ClientsPage() {
                   </td>
                 </tr>
               )}
-              {!loading && data?.items.length === 0 && (
+              {!loading && items.length === 0 && (
                 <tr>
                   <td colSpan={7}>
                     <EmptyState title="No clients found" />
@@ -117,7 +112,7 @@ export default function ClientsPage() {
                 </tr>
               )}
               {!loading &&
-                data?.items.map((c) => (
+                items.map((c) => (
                   <tr key={c._id} className="hover:bg-slate-50">
                     <td className="px-4 py-3 font-medium text-slate-800">{c.name}</td>
                     <td className="px-4 py-3 text-slate-600">{c.phone || '-'}</td>
@@ -153,7 +148,10 @@ export default function ClientsPage() {
             </tbody>
           </table>
         </div>
-        {data && <Pagination page={data.page} pages={data.pages} total={data.total} onChange={setPage} />}
+        <div ref={sentinelRef} className="py-4 text-center text-xs text-slate-400">
+          {loadingMore && <Loader size="sm" text="Loading more clients..." />}
+          {!loading && !loadingMore && total > 0 && `Showing ${items.length} of ${total} Clients`}
+        </div>
       </div>
 
       <ClientFormModal open={formOpen} onClose={() => setFormOpen(false)} client={editing} onSaved={fetchClients} />
