@@ -160,7 +160,7 @@ export default function SitesPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Site / Media Management</h1>
+          <h1 className="text-xl font-bold text-slate-900">Media Management</h1>
           <p className="text-sm text-slate-500">Manage outdoor media sites and their availability</p>
         </div>
         {canManage && (

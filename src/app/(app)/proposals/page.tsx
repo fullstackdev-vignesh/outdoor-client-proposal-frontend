@@ -146,7 +146,7 @@ export default function ProposalsPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Proposals</h1>
+          <h1 className="text-xl font-bold text-slate-900">Proposals Management</h1>
           <p className="text-sm text-slate-500">Create and manage client media proposals</p>
         </div>
         <Link

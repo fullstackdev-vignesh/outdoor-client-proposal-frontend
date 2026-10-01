@@ -30,28 +30,30 @@ export interface NavItem {
 const NAV: Record<Role, NavItem[]> = {
   admin: [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { label: 'User Management', href: '/users', icon: Users },
-    { label: 'TL Management', href: '/tl-management', icon: UserCog },
-    { label: 'BD Management', href: '/bd-management', icon: UserCheck },
+    { label: 'Inventory Master', href: '/inventory', icon: Boxes },
+    { label: 'Proposal Master', href: '/proposals', icon: Handshake },
     { label: 'Client Master', href: '/clients', icon: Contact2 },
     { label: 'Media Master', href: '/sites', icon: Signpost },
     { label: 'Site Quotes Master', href: '/site-info', icon: ReceiptText },
-    { label: 'Inventory Master', href: '/inventory', icon: Boxes },
-    
+    { label: 'User Management', href: '/users', icon: Users },
+    { label: 'TL Management', href: '/tl-management', icon: UserCog },
+    { label: 'BD Management', href: '/bd-management', icon: UserCheck },
     // { label: 'PPT Master', href: '/ppt-master', icon: Presentation },
     // { label: 'Excel Templates', href: '/excel-templates', icon: FileSpreadsheet },
-    { label: 'Proposal Master', href: '/proposals', icon: Handshake },
+
   ],
   tl: [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { label: 'Inventory Master', href: '/inventory', icon: Boxes },
+    { label: 'Proposal Master', href: '/proposals', icon: Handshake },
     // { label: 'Users', href: '/users', icon: Users },
-     { label: 'Client Master', href: '/clients', icon: Contact2 },
+    { label: 'Client Master', href: '/clients', icon: Contact2 },
     { label: 'Media Master', href: '/sites', icon: Signpost },
     { label: 'Site Quotes Master', href: '/site-info', icon: ReceiptText },
-    { label: 'Inventory Master', href: '/inventory', icon: Boxes },
-   
+
+
     // { label: 'Bookings', href: '/bookings', icon: CalendarCheck },
-    { label: 'Proposal Master', href: '/proposals', icon: Handshake },
+
     //  { label: 'PPT Master', href: '/ppt-master', icon: Presentation },
     // { label: 'Excel Templates', href: '/excel-templates', icon: FileSpreadsheet },
     // { label: 'PPT Master', href: '/ppt-master', icon: Presentation },
@@ -60,11 +62,13 @@ const NAV: Record<Role, NavItem[]> = {
   ],
   user: [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { label: 'Inventory Master', href: '/inventory', icon: Boxes },
+    { label: 'Proposal Master', href: '/proposals', icon: Handshake },
+
     { label: 'Client Master', href: '/clients', icon: Contact2 },
     { label: 'Media Master', href: '/sites', icon: Signpost },
-     { label: 'Site Quotes Master', href: '/site-info', icon: ReceiptText },
-   { label: 'Inventory Master', href: '/inventory', icon: Boxes },
-    { label: 'Proposal Master', href: '/proposals', icon: Handshake },
+    { label: 'Site Quotes Master', href: '/site-info', icon: ReceiptText },
+
     // { label: 'PPT Master', href: '/ppt-master', icon: Presentation },
     // { label: 'Excel Templates', href: '/excel-templates', icon: FileSpreadsheet },
     // { label: 'Generated Files', href: '/generated-files', icon: FolderOutput },
@@ -72,10 +76,11 @@ const NAV: Record<Role, NavItem[]> = {
   ],
   bd: [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { label: 'Inventory Master', href: '/inventory', icon: Boxes },
     // { label: 'Clients', href: '/clients', icon: Contact2 },
     { label: 'Media Master', href: '/sites', icon: Signpost },
     // { label: 'Site Info', href: '/site-info', icon: ClipboardList },
-    { label: 'Inventory Master', href: '/inventory', icon: Boxes },
+
     // { label: 'Available Media', href: '/available-media', icon: Search },
     // { label: 'Proposals', href: '/proposals', icon: FileText },
     // { label: 'PPT Master', href: '/ppt-master', icon: Presentation },

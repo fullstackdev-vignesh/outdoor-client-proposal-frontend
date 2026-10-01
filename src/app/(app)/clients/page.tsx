@@ -50,7 +50,7 @@ export default function ClientsPage() {
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-slate-900">Clients</h1>
+            <h1 className="text-xl font-bold text-slate-900">Clients Management</h1>
             {!loading && (
               <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700">
                 {total} {total === 1 ? 'Client' : 'Clients'}
