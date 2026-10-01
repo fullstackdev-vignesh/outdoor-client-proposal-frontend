@@ -10,6 +10,7 @@ import EmptyState from '@/components/ui/EmptyState';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Loader from '@/components/ui/Loader';
 import type { Role } from '@/lib/types';
+import ScrollTable from '@/components/ui/ScrollTable';
 
 export default function UserManager({ role, title, subtitle }: { role: Role; title: string; subtitle: string }) {
   const { showToast } = useToast();
@@ -106,8 +107,8 @@ export default function UserManager({ role, title, subtitle }: { role: Role; tit
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="rounded-xl border border-slate-200 bg-white overflow-clip">
+        <ScrollTable>
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500 uppercase">
               <tr>
@@ -160,7 +161,7 @@ export default function UserManager({ role, title, subtitle }: { role: Role; tit
                 ))}
             </tbody>
           </table>
-        </div>
+        </ScrollTable>
         <div ref={sentinelRef} className="py-4 text-center text-xs text-slate-400">
           {loadingMore && <Loader size="sm" text="Loading more..." />}
           {!loading && !loadingMore && total > 0 && `Showing ${items.length} of ${total} ${total === 1 ? roleLabel : `${roleLabel}s`}`}

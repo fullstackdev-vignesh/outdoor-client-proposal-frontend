@@ -15,6 +15,7 @@ import { formatIST, formatISTDate, todayISO } from '@/lib/date';
 import type { InventoryHistoryEntry, MediaStatus } from '@/lib/types';
 import CustomSelect from '@/components/ui/CustomSelect';
 import Loader from '@/components/ui/Loader';
+import ScrollTable from '@/components/ui/ScrollTable';
 
 const PAGE_SIZE = 20;
 const emptyFilters = { state: '', city: '', mediaStatus: '', isActive: '', from: '', to: '', siteOwner: '' };
@@ -231,14 +232,14 @@ export default function InventoryTimelineTab() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+      <div className="rounded-xl border border-slate-200 bg-white overflow-clip">
         <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 border-b border-slate-100">
           <h2 className="text-sm font-semibold text-slate-700">Inventory Timeline</h2>
           <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700">
             {distinctSiteCount} {distinctSiteCount === 1 ? 'Site' : 'Sites'}
           </span>
         </div>
-        <div className="overflow-x-auto">
+        <ScrollTable>
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500 uppercase">
               <tr>
@@ -327,7 +328,7 @@ export default function InventoryTimelineTab() {
                 })}
             </tbody>
           </table>
-        </div>
+        </ScrollTable>
         <div ref={sentinelRef} className="py-4 text-center text-xs text-slate-400">
           {loadingMore && <Loader size="sm" text="Loading more..." />}
           {!loading && !loadingMore && `Showing ${items.length} of ${total} Sites • click View to see every change for a site`}

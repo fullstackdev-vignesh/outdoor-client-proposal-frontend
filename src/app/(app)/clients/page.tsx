@@ -13,6 +13,7 @@ import Loader from '@/components/ui/Loader';
 import { formatIST } from '@/lib/date';
 import { useInfiniteList, useDebounced } from '@/lib/useInfiniteList';
 import type { Client } from '@/lib/types';
+import ScrollTable from '@/components/ui/ScrollTable';
 
 export default function ClientsPage() {
   const { showToast } = useToast();
@@ -82,8 +83,8 @@ export default function ClientsPage() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="rounded-xl border border-slate-200 bg-white overflow-clip">
+        <ScrollTable>
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500 uppercase">
               <tr>
@@ -147,7 +148,7 @@ export default function ClientsPage() {
                 ))}
             </tbody>
           </table>
-        </div>
+        </ScrollTable>
         <div ref={sentinelRef} className="py-4 text-center text-xs text-slate-400">
           {loadingMore && <Loader size="sm" text="Loading more clients..." />}
           {!loading && !loadingMore && total > 0 && `Showing ${items.length} of ${total} Clients`}

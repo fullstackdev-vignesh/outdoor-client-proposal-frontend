@@ -20,6 +20,7 @@ import Loader from '@/components/ui/Loader';
 import CustomSelect from '@/components/ui/CustomSelect';
 import { formatIST } from '@/lib/date';
 import type { Site, MediaStatus } from '@/lib/types';
+import ScrollTable from '@/components/ui/ScrollTable';
 
 const PAGE_SIZE = 20;
 const rowActionCls =
@@ -261,14 +262,14 @@ export default function SitesPage() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+      <div className="rounded-xl border border-slate-200 bg-white overflow-clip">
         <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 border-b border-slate-100">
           <h2 className="text-sm font-semibold text-slate-700">Site / Media List</h2>
           <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700">
             {total} {total === 1 ? 'Site' : 'Sites'}
           </span>
         </div>
-        <div className="overflow-x-auto">
+        <ScrollTable>
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500 uppercase">
               <tr>
@@ -450,7 +451,7 @@ export default function SitesPage() {
                 ))}
             </tbody>
           </table>
-        </div>
+        </ScrollTable>
         <div ref={sentinelRef} className="py-4 text-center text-xs text-slate-400">
           {loadingMore && <Loader size="sm" text="Loading more sites..." />}
           {!loading && !loadingMore && `Showing ${items.length} of ${total} Sites`}

@@ -12,6 +12,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Loader from '@/components/ui/Loader';
 import CustomSelect from '@/components/ui/CustomSelect';
 import type { Template } from '@/lib/types';
+import ScrollTable from '@/components/ui/ScrollTable';
 
 export default function TemplateManager({
   title,
@@ -171,8 +172,8 @@ export default function TemplateManager({
         )}
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="rounded-xl border border-slate-200 bg-white overflow-clip">
+        <ScrollTable>
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500 uppercase">
               <tr>
@@ -242,7 +243,7 @@ export default function TemplateManager({
                 ))}
             </tbody>
           </table>
-        </div>
+        </ScrollTable>
       </div>
 
       <Modal open={formOpen} onClose={() => setFormOpen(false)} title={editing ? 'Edit Template' : 'Upload Template'} size="md">

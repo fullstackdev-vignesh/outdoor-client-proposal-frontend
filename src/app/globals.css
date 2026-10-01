@@ -55,6 +55,47 @@ option:hover {
   color: #ffffff;
 }
 
+/* Slim red-gradient scrollbar. Chromium ignores the ::-webkit-scrollbar styles once the standard
+   scrollbar-color/width are set, so those are applied only where ::-webkit-scrollbar is unsupported (Firefox). */
+.scrollbar-theme::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.scrollbar-theme::-webkit-scrollbar-button {
+  display: none;
+}
+.scrollbar-theme::-webkit-scrollbar-track {
+  background: linear-gradient(to bottom, #fff1f2, #fee2e2);
+  border-radius: 9999px;
+  margin: 4px;
+}
+.scrollbar-theme::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #f87171, #dc2626 50%, #991b1b);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 9999px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+.scrollbar-theme::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #ef4444, #b91c1c 50%, #7f1d1d);
+  border-width: 1px;
+  background-clip: padding-box;
+  box-shadow: 0 0 6px rgba(220, 38, 38, 0.6);
+}
+.scrollbar-theme::-webkit-scrollbar-thumb:active {
+  background: #7f1d1d;
+  background-clip: padding-box;
+}
+.scrollbar-theme::-webkit-scrollbar-corner {
+  background: transparent;
+}
+@supports not selector(::-webkit-scrollbar) {
+  .scrollbar-theme {
+    scrollbar-width: thin;
+    scrollbar-color: #dc2626 #fee2e2;
+  }
+}
+
 /* Custom Animation Loader */
 .loader-wrapper {
   position: relative;

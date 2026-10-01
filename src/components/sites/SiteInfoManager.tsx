@@ -12,6 +12,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Loader from '@/components/ui/Loader';
 import { useInfiniteList, useDebounced } from '@/lib/useInfiniteList';
 import type { SiteInfo } from '@/lib/types';
+import ScrollTable from '@/components/ui/ScrollTable';
 
 const PAGE_SIZE = 10;
 
@@ -131,8 +132,8 @@ export default function SiteInfoManager() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="rounded-xl border border-slate-200 bg-white overflow-clip">
+        <ScrollTable>
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500 uppercase">
               <tr>
@@ -179,7 +180,7 @@ export default function SiteInfoManager() {
                 ))}
             </tbody>
           </table>
-        </div>
+        </ScrollTable>
         <div ref={sentinelRef} className="py-4 text-center text-xs text-slate-400">
           {loadingMore && <Loader size="sm" text="Loading more..." />}
           {!loading && !loadingMore && total > 0 && `Showing ${items.length} of ${total} Site Quotes`}
