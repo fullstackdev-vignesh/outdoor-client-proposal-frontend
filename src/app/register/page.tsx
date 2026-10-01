@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Building2, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import type { Role } from '@/lib/types';
-import loginBg from '@/images/login-bg.png';
+import loginBg from '@/images/login-bg3.jpg';
 
 interface FormErrors {
   userName?: string;
@@ -241,26 +241,27 @@ function RegisterContent() {
   }
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center px-4 py-8">
+    <div className="relative min-h-screen flex items-center justify-center lg:justify-end px-4 py-8 lg:pr-[12%]">
       <div
         className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: `url(${loginBg.src})` }}
       />
       <div className="w-full max-w-md">
-        <div className="flex flex-col items-center mb-6">
-          <div className="h-14 w-14 rounded-2xl bg-red-600 flex items-center justify-center shadow-lg shadow-red-200">
-            <Building2 className="h-7 w-7 text-white" />
-          </div>
-          <h1 className="mt-4 text-2xl font-bold text-slate-900">Outdoor</h1>
-          <p className="text-sm text-slate-500">Outdoor Media Management Platform</p>
-        </div>
-
         <div className="bg-white border border-slate-200 rounded-3xl shadow-xl shadow-slate-200/50 p-8">
           <form noValidate onSubmit={handleSubmit} className="space-y-4">
             {step === 1 && (
               <>
-                <h2 className="text-lg font-semibold text-slate-900 mb-1">Create an account</h2>
-                <p className="text-sm text-slate-500 mb-6">Enter user details to register</p>
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900">Create an account</h2>
+                  <p className="mt-1 text-sm text-slate-500">Fill in your details to get started</p>
+                </div>
+
+                <div className="mb-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full bg-red-50 text-red-600 border border-red-100">
+                    <Building2 className="h-3.5 w-3.5" />
+                    Registering as {currentRoleObj.label}
+                  </span>
+                </div>
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">

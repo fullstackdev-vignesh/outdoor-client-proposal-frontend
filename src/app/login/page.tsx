@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Building2, Loader2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import type { Role } from '@/lib/types';
-import loginBg from '@/images/login-bg.png';
+import loginBg from '@/images/login-bg3.jpg';
 
 const roleOptions: { key: Role; label: string; fullLabel: string }[] = [
   { key: 'user', label: 'USER', fullLabel: 'User' },
@@ -183,7 +183,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center px-4 py-8">
+    <div className="relative min-h-screen flex items-center justify-center lg:justify-end px-4 py-8 lg:pr-[12%]">
       <div
         className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: `url(${loginBg.src})` }}

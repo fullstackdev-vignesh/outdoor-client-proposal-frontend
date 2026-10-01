@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Building2, ArrowLeft, KeyRound, CheckCircle2, Loader2, MailCheck } from 'lucide-react';
+import { ArrowLeft, KeyRound, CheckCircle2, Loader2, MailCheck } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
-import loginBg from '@/images/login-bg.png';
+import loginBg from '@/images/login-bg3.jpg';
 
 function MpinBoxInput({
   idPrefix,
@@ -169,19 +169,12 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center px-4 py-8">
+    <div className="relative min-h-screen flex items-center justify-center lg:justify-end px-4 py-8 lg:pr-[12%]">
       <div
         className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: `url(${loginBg.src})` }}
       />
       <div className="w-full max-w-md">
-        <div className="flex flex-col items-center mb-8">
-          <div className="h-14 w-14 rounded-2xl bg-red-600 flex items-center justify-center shadow-lg shadow-red-200">
-            <Building2 className="h-7 w-7 text-white" />
-          </div>
-          <h1 className="mt-4 text-2xl font-bold text-slate-900">Outdoor</h1>
-        </div>
-
         <div className="bg-white border border-slate-200 rounded-3xl shadow-xl shadow-slate-200/50 p-8">
           {step === 1 && (
             <>
