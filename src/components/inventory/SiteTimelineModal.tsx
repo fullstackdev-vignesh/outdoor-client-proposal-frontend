@@ -51,8 +51,8 @@ export default function SiteTimelineModal({
   }, [open, siteId]);
 
   return (
-    <Modal open={open} onClose={onClose} title={`Site Timeline — ${mediaCode || ''}`} size="md">
-      {loading && <p className="text-sm text-slate-400 text-center py-8">Loading timeline...</p>}
+    <Modal open={open} onClose={onClose} title={`Site History — ${mediaCode || ''}`} size="md">
+      {loading && <p className="text-sm text-slate-400 text-center py-8">Loading History...</p>}
       {!loading && items.length === 0 && <p className="text-sm text-slate-400 text-center py-8">No history yet.</p>}
       {!loading && items.length > 0 && (
         <div className="relative pl-5 space-y-5 max-h-[65vh] overflow-y-auto">

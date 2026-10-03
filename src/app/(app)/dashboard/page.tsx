@@ -62,9 +62,9 @@ export default function DashboardPage() {
   const { cards, mediaStatusSummary, recent } = stats;
 
   const cardDefs = [
-    { key: 'totalUsers', label: 'Total Users', icon: Users, accent: 'blue', roles: ['admin'] },
-    { key: 'totalTLs', label: 'Total TLs', icon: UserCog, accent: 'blue', roles: ['admin'] },
-    { key: 'totalBDs', label: 'Total BDs', icon: UserCheck, accent: 'blue', roles: ['admin'] },
+    { key: 'totalUsers', label: 'Total User Management', icon: Users, accent: 'blue', roles: ['admin'] },
+    { key: 'totalTLs', label: 'Total TL Management', icon: UserCog, accent: 'blue', roles: ['admin'] },
+    { key: 'totalBDs', label: 'Total BD Management', icon: UserCheck, accent: 'blue', roles: ['admin'] },
     { key: 'totalSites', label: 'Total Sites', icon: Building2, accent: 'blue' },
     { key: 'activeSites', label: 'Active Sites', icon: CheckCircle2, accent: 'emerald' },
     // { key: 'inactiveSites', label: 'Inactive Sites', icon: XCircle, accent: 'slate' },
@@ -73,7 +73,7 @@ export default function DashboardPage() {
     { key: 'blockedMedia', label: 'Blocked Media', icon: XCircle, accent: 'red' },
     { key: 'totalClients', label: 'Total Clients', icon: Contact2, accent: 'blue' },
     { key: 'totalProposals', label: 'Total Proposals', icon: FileText, accent: 'amber' },
-    { key: 'totalBookings', label: 'Total Bookings', icon: CalendarCheck, accent: 'blue' },
+    // { key: 'totalBookings', label: 'Total Bookings', icon: CalendarCheck, accent: 'blue' },
   ].filter((c) => !c.roles || c.roles.includes(user?.role || ''));
 
   const total = mediaStatusSummary.available + mediaStatusSummary.booked + mediaStatusSummary.blocked || 1;
