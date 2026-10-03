@@ -146,7 +146,7 @@ export default function SiteTimelineModal({
                   </div>
                 )}
                 <p className="text-xs text-slate-400 mt-1">
-                  {isEdit ? 'Updated' : h.status === 'booked' ? 'Booked' : 'Changed'}: {formatIST(h.eventAt || h.changedAt)} {changedByName ? `· by ${changedByName}` : ''} · via {h.source === 'inventory' ? 'Inventory' : 'Sites'}
+                  {isEdit ? 'Updated' : h.status === 'booked' ? 'Booked' : 'Changed'}: {formatIST(h.eventAt || h.changedAt)} · by {changedByName || 'System'} · via {h.source === 'inventory' ? 'Inventory' : 'Sites'}
                 </p>
               </div>
             );

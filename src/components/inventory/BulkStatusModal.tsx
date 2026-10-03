@@ -126,7 +126,10 @@ export default function BulkStatusModal({
                     <button
                       key={t}
                       type="button"
-                      onClick={() => setCustomerType(t)}
+                      onClick={() => {
+                        setCustomerType(t);
+                        setClientId('');
+                      }}
                       className={`rounded-lg border px-4 py-2 text-sm font-medium capitalize ${
                         customerType === t ? 'bg-red-600 text-white border-red-600' : 'bg-white text-slate-600 border-slate-200'
                       }`}
@@ -142,7 +145,9 @@ export default function BulkStatusModal({
                   value={clientId}
                   onChange={setClientId}
                   placeholder={`Select ${customerType === 'agency' ? 'agency' : 'client'}`}
-                  options={clients.map((c) => ({ value: c._id, label: c.name }))}
+                  options={clients
+                    .filter((c) => (customerType === 'agency' ? c.customerType === 'agency' : c.customerType !== 'agency'))
+                    .map((c) => ({ value: c._id, label: c.name }))}
                   className={inputCls}
                 />
               </div>

@@ -13,8 +13,8 @@ import { formatINR, parseINRInput, formatIndianGroups } from '@/lib/currency';
 import DatePicker from '@/components/ui/DatePicker';
 import MediaPreviewModal from '@/components/inventory/MediaPreviewModal';
 import CustomSelect from '@/components/ui/CustomSelect';
+import { MEDIA_TYPES } from '@/lib/mediaTypes';
 
-const MEDIA_TYPES = ['Hoarding', 'Digital Hoarding', 'Unipole', 'Gantry', 'Bus Shelter', 'Bridge Panel'];
 const ILLUMINATION_OPTIONS = ['Front Lit', 'Not Lit'];
 
 const emptyForm = {

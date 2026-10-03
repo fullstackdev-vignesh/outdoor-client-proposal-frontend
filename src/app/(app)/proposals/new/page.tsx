@@ -9,10 +9,11 @@ import { Panel } from '@/components/ui/Card';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { getBookingSummary } from '@/components/ui/BookingStatusSummary';
 import { StateSelect, CitySelect } from '@/components/ui/StateCitySelect';
-import { SiteOwnerSelect } from '@/components/ui/SiteOwnerSelect';
+import { SiteOwnerMultiSelect } from '@/components/ui/SiteOwnerSelect';
 import MediaPreviewModal from '@/components/inventory/MediaPreviewModal';
 import CustomSelect from '@/components/ui/CustomSelect';
 import type { Client, MediaStatus, Site, Template } from '@/lib/types';
+import { MEDIA_TYPES } from '@/lib/mediaTypes';
 
 const STEPS = ['Customer Details', 'Site Details', 'PPT Template', 'Excel Template', 'Preview'] as const;
 const PAGE_SIZE = 20;
@@ -107,7 +108,8 @@ export default function NewProposalPage() {
   const [siteState, setSiteState] = useState('');
   const [siteCity, setSiteCity] = useState('');
   const [siteStatus, setSiteStatus] = useState<'' | MediaStatus>('');
-  const [siteOwner, setSiteOwner] = useState('');
+  const [siteOwners, setSiteOwners] = useState<string[]>([]);
+  const [siteMediaType, setSiteMediaType] = useState('');
   const [sites, setSites] = useState<Site[]>([]);
   const [siteTotal, setSiteTotal] = useState(0);
   const [siteLoading, setSiteLoading] = useState(false);
@@ -120,7 +122,7 @@ export default function NewProposalPage() {
   const sentinelRef = useRef<HTMLDivElement>(null);
   const siteListRef = useRef<HTMLDivElement>(null);
 
-  const siteQueryKey = JSON.stringify({ siteSearch, siteState, siteCity, siteStatus, siteOwner });
+  const siteQueryKey = JSON.stringify({ siteSearch, siteState, siteCity, siteStatus, siteOwners, siteMediaType });
 
   const fetchSitePage = useCallback(
     (pageNum: number, append: boolean) => {
@@ -136,7 +138,8 @@ export default function NewProposalPage() {
             state: siteState || undefined,
             city: siteCity || undefined,
             mediaStatus: siteStatus || undefined,
-            siteOwner: siteOwner || undefined,
+            siteOwner: siteOwners.length ? siteOwners : undefined,
+            mediaType: siteMediaType || undefined,
           },
         })
         .then((res) => {
@@ -153,7 +156,7 @@ export default function NewProposalPage() {
           fetchingRef.current = false;
         });
     },
-    [siteSearch, siteState, siteCity, siteStatus, siteOwner]
+    [siteSearch, siteState, siteCity, siteStatus, siteOwners, siteMediaType]
   );
 
   useEffect(() => {
@@ -212,14 +215,15 @@ export default function NewProposalPage() {
     });
   }
 
-  const activeSiteFilterCount = [siteSearch, siteState, siteCity, siteStatus, siteOwner].filter(Boolean).length;
+  const activeSiteFilterCount = [siteSearch, siteState, siteCity, siteStatus, siteOwners.length > 0, siteMediaType].filter(Boolean).length;
 
   function clearSiteFilters() {
     setSiteSearch('');
     setSiteState('');
     setSiteCity('');
     setSiteStatus('');
-    setSiteOwner('');
+    setSiteOwners([]);
+    setSiteMediaType('');
   }
 
   // Step 3 & 4: Templates
@@ -422,7 +426,15 @@ export default function NewProposalPage() {
                   ]}
                 />
               </div>
-              <SiteOwnerSelect value={siteOwner} onChange={setSiteOwner} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+              <div className="w-44">
+                <CustomSelect
+                  value={siteMediaType}
+                  onChange={setSiteMediaType}
+                  placeholder="All Media Types"
+                  options={MEDIA_TYPES}
+                />
+              </div>
+              <SiteOwnerMultiSelect value={siteOwners} onChange={setSiteOwners} className="flex-1 min-w-0" />
               {activeSiteFilterCount > 0 && (
                 <button onClick={clearSiteFilters} className="ml-auto text-xs font-medium text-red-600 hover:underline">
                   Clear Filters

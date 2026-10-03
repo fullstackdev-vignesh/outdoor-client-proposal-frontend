@@ -156,6 +156,134 @@ export function SiteOwnerSelect({
   );
 }
 
+/**
+ * Multi-pick Site Owner filter — same look as SiteOwnerSelect, but each owner toggles on/off and the
+ * list shows sites of ANY picked owner. [] means "All Site Owners".
+ */
+export function SiteOwnerMultiSelect({
+  value,
+  onChange,
+  className = '',
+}: {
+  value: string[];
+  onChange: (owners: string[]) => void;
+  className?: string;
+}) {
+  const owners = useSiteOwners();
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+        setSearchTerm('');
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const query = searchTerm.trim().toLowerCase();
+  const filteredOwners = useMemo(() => (query ? owners.filter((o) => o.toLowerCase().includes(query)) : owners), [owners, query]);
+
+  function toggle(owner: string) {
+    onChange(value.includes(owner) ? value.filter((o) => o !== owner) : [...value, owner]);
+  }
+
+  function handleClear(e: React.MouseEvent) {
+    e.stopPropagation();
+    onChange([]);
+  }
+
+  const summary = value.length === 0 ? '' : value.length <= 2 ? value.join(', ') : `${value.slice(0, 2).join(', ')} +${value.length - 2} more`;
+
+  return (
+    <div ref={containerRef} className={`relative ${className}`}>
+      <div className="relative flex items-center w-full">
+        <input
+          type="text"
+          autoComplete="off"
+          value={isOpen ? searchTerm : summary}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setIsOpen(true);
+          }}
+          onFocus={() => setIsOpen(true)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setIsOpen(false);
+              setSearchTerm('');
+            }
+          }}
+          placeholder={isOpen && value.length ? `${value.length} selected — type to search` : 'All Site Owners'}
+          className={`${inputCls} pr-16 ${value.length && !isOpen ? 'text-slate-800' : ''}`}
+        />
+        <div className="absolute right-2.5 flex items-center gap-1 text-slate-400">
+          {value.length > 0 && (
+            <>
+              <span className="rounded-full bg-red-600 px-1.5 text-[10px] font-semibold leading-4 text-white">{value.length}</span>
+              <button
+                type="button"
+                onClick={handleClear}
+                className="p-0.5 rounded-full hover:bg-slate-100 hover:text-slate-600"
+                title="Clear site owners"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </>
+          )}
+          <ChevronDown
+            className={`h-4 w-4 transition-transform cursor-pointer ${isOpen ? 'rotate-180' : ''}`}
+            onClick={() => setIsOpen((prev) => !prev)}
+          />
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className="absolute left-0 z-50 mt-1 min-w-[200px] w-full max-h-60 overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg text-sm">
+          {!query && (
+            <button
+              type="button"
+              onClick={() => onChange([])}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-red-50 flex items-center justify-between ${
+                value.length === 0 ? 'bg-red-50 text-red-700 font-medium' : 'text-slate-500'
+              }`}
+            >
+              <span>All Site Owners</span>
+              {value.length === 0 && <Check className="h-4 w-4 text-red-600" />}
+            </button>
+          )}
+          {filteredOwners.map((owner) => {
+            const checked = value.includes(owner);
+            return (
+              <button
+                type="button"
+                key={owner}
+                onClick={() => toggle(owner)}
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-red-50 flex items-center gap-2.5 ${
+                  checked ? 'bg-red-50/60 text-red-700 font-medium' : 'text-slate-700'
+                }`}
+              >
+                <span
+                  className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                    checked ? 'bg-red-600 border-red-600 text-white' : 'border-slate-300 bg-white'
+                  }`}
+                >
+                  {checked && <Check className="h-3 w-3" />}
+                </span>
+                <span>{owner}</span>
+              </button>
+            );
+          })}
+          {filteredOwners.length === 0 && <div className="px-3 py-2 text-xs text-slate-400">No matching site owners found</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Same popup as "Add New City" (StateCitySelect), for a site owner not in the list yet.
 function AddSiteOwnerModal({ open, onClose, onAdd }: { open: boolean; onClose: () => void; onAdd: (owner: string) => void }) {
   const [ownerName, setOwnerName] = useState('');

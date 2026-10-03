@@ -310,7 +310,7 @@ export default function InventoryTimelineTab() {
                         {(h.status === 'booked' || h.status === 'cancelled') && h.bookingSnapshot?.durationDays ? `${h.bookingSnapshot.durationDays} Days` : '-'}
                       </td>
                       <td className="px-4 py-3 text-xs text-slate-500">{formatIST(h.changedAt)}</td>
-                      <td className="px-4 py-3 text-xs text-slate-500">{changedByName || '-'}</td>
+                      <td className="px-4 py-3 text-xs text-slate-500">{changedByName || 'System'}</td>
                       <td className="px-4 py-3 text-xs capitalize text-slate-500">{h.source}</td>
                       <td className="px-4 py-3 text-right">
                         <button

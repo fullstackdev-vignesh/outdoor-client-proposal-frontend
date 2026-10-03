@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Plus } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import StatusBadge from '@/components/ui/StatusBadge';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
@@ -63,14 +64,13 @@ export default function StatusChangeModal({
   const [cancellationReason, setCancellationReason] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  // A site that's already Booked can take more bookings (another client, later dates) —
-  // 'new' adds a separate booking and leaves the current one untouched; 'edit' changes the
-  // current booking's client/dates.
-  const [bookingMode, setBookingMode] = useState<'new' | 'edit'>('new');
+  // A site can hold several bookings (active + upcoming). null adds a separate new booking and
+  // leaves the others untouched; a bookingId edits that booking's client/dates.
+  const [editBookingId, setEditBookingId] = useState<string | null>(null);
 
-  function fillBookingFields(mode: 'new' | 'edit') {
-    const b = site?.bookingInfo;
-    if (mode === 'edit' && b) {
+  function fillBookingFields(bookingId: string | null) {
+    const b = bookingId ? site?.bookings?.find((x) => x.bookingId === bookingId) : undefined;
+    if (b) {
       setCustomerType(b.customerType || 'client');
       setClientId(typeof b.client === 'object' ? b.client?._id || '' : b.client || '');
       setStartDate(b.startDate ? b.startDate.slice(0, 10) : '');
@@ -83,16 +83,16 @@ export default function StatusChangeModal({
     }
   }
 
-  function switchBookingMode(mode: 'new' | 'edit') {
-    setBookingMode(mode);
-    fillBookingFields(mode);
+  function selectBooking(bookingId: string | null) {
+    setEditBookingId(bookingId);
+    fillBookingFields(bookingId);
   }
 
   useEffect(() => {
     if (!site || !open) return;
     setNewStatus(initialStatus || site.mediaStatus);
-    setBookingMode('new');
-    fillBookingFields('new');
+    setEditBookingId(null);
+    fillBookingFields(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [site, open, initialStatus]);
 
@@ -118,7 +118,6 @@ export default function StatusChangeModal({
   // Booked -> Available is really "cancel the booking that's making this site Booked" — never
   // a silent status flip. Only relevant when the site is CURRENTLY Booked.
   const isCancellingBooking = site?.mediaStatus === 'booked' && newStatus === 'available';
-  const hasCurrentBooking = site?.mediaStatus === 'booked' && !!site?.bookingInfo;
   // Bookings still in play (active or upcoming) — shown so a new booking can be placed around them.
   const openBookings = (site?.bookings || [])
     .filter((b) => b.status !== 'cancelled' && b.status !== 'completed')
@@ -133,9 +132,8 @@ export default function StatusChangeModal({
 
   // Dates taken by OTHER bookings are greyed out in both pickers (when editing, the booking being
   // edited doesn't block itself).
-  const editingId = hasCurrentBooking && bookingMode === 'edit' ? site?.bookingInfo?.bookingId : undefined;
   const bookedRanges = openBookings
-    .filter((b) => b.bookingId !== editingId && b.startDate && b.endDate)
+    .filter((b) => b.bookingId !== editBookingId && b.startDate && b.endDate)
     .map((b) => ({ start: b.startDate.slice(0, 10), end: b.endDate.slice(0, 10) }));
   // The End Date can't run past the next booking after the chosen Start Date.
   const nextBookedStart = startDate ? bookedRanges.map((r) => r.start).filter((s) => s > startDate).sort()[0] : undefined;
@@ -158,7 +156,8 @@ export default function StatusChangeModal({
           startDate,
           endDate,
         };
-        payload.bookingMode = hasCurrentBooking ? bookingMode : 'new';
+        payload.bookingMode = editBookingId ? 'edit' : 'new';
+        if (editBookingId) payload.bookingId = editBookingId;
       }
       if (isCancellingBooking) {
         payload.cancellationReason = cancellationReason.trim();
@@ -262,7 +261,12 @@ export default function StatusChangeModal({
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1.5">Existing Bookings</p>
                   <ul className="space-y-1 text-xs text-slate-600">
                     {openBookings.map((b) => (
-                      <li key={b.bookingId} className="flex justify-between gap-2">
+                      <li
+                        key={b.bookingId}
+                        className={`flex items-center justify-between gap-2 rounded px-1.5 py-1 ${
+                          editBookingId === b.bookingId ? 'bg-red-50 ring-1 ring-red-200' : ''
+                        }`}
+                      >
                         <span>
                           {b.customerType === 'agency' ? 'Agency' : 'Client'}:{' '}
                           <span className="font-medium text-slate-800">{bookingCustomerName(b) || '-'}</span>
@@ -270,33 +274,43 @@ export default function StatusChangeModal({
                         <span>
                           {formatDay(b.startDate)} → {formatDay(b.endDate)}
                           <span className="ml-1.5 capitalize text-red-600">{b.status}</span>
+                          <button
+                            type="button"
+                            onClick={() => selectBooking(b.bookingId)}
+                            className={`ml-2 rounded border px-2 py-0.5 text-[11px] font-medium ${
+                              editBookingId === b.bookingId
+                                ? 'bg-red-600 text-white border-red-600'
+                                : 'bg-white text-red-600 border-red-200 hover:bg-red-50'
+                            }`}
+                          >
+                            {editBookingId === b.bookingId ? 'Editing' : 'Edit'}
+                          </button>
                         </span>
                       </li>
                     ))}
                   </ul>
                 </div>
               )}
-              {hasCurrentBooking && (
-                <div className="flex gap-2">
-                  {([
-                    ['new', '+ Add New Booking'],
-                    ['edit', 'Edit Current Booking'],
-                  ] as const).map(([mode, label]) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => switchBookingMode(mode)}
-                      className={`rounded-lg border px-3 py-1.5 text-xs font-medium ${
-                        bookingMode === mode ? 'bg-red-600 text-white border-red-600' : 'bg-white text-slate-600 border-slate-200'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
+              {openBookings.length > 0 && (
+                <div className="space-y-1.5">
+                  <button
+                    type="button"
+                    onClick={() => selectBooking(null)}
+                    className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border px-3.5 py-2 text-xs font-semibold shadow-sm transition-colors ${
+                      !editBookingId
+                        ? 'bg-red-600 text-white border-red-600 hover:bg-red-700'
+                        : 'bg-white text-red-600 border-dashed border-red-300 hover:bg-red-50 hover:border-red-400'
+                    }`}
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Add New Booking
+                  </button>
+                  <p className="text-xs text-slate-500">
+                    {editBookingId
+                      ? 'Editing the highlighted booking — other bookings are kept.'
+                      : 'Adds a separate booking. Click Edit on a booking above to change it.'}
+                  </p>
                 </div>
-              )}
-              {hasCurrentBooking && bookingMode === 'new' && (
-                <p className="text-xs text-slate-500">Adds a separate booking — existing bookings are kept. Dates must not overlap them.</p>
               )}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Customer Type *</label>

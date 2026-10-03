@@ -135,15 +135,12 @@ export default function ClientFormModal({
       errs.name = form.customerType === 'agency' ? 'Agency name is required.' : 'Client name is required.';
     }
 
-    if (!form.phone.trim()) {
-      errs.phone = 'Phone number is required.';
-    } else if (!phoneDigitsRegex.test(form.phone.trim())) {
+    // Phone and email are optional — only checked for format when filled in.
+    if (form.phone.trim() && !phoneDigitsRegex.test(form.phone.trim())) {
       errs.phone = 'Phone number must be 10 digits.';
     }
 
-    if (!form.email.trim()) {
-      errs.email = 'Email address is required.';
-    } else if (!emailRegex.test(form.email.trim())) {
+    if (form.email.trim() && !emailRegex.test(form.email.trim())) {
       errs.email = 'Please enter a valid email address.';
     }
 
@@ -249,7 +246,7 @@ export default function ClientFormModal({
         </Field>
 
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Phone" required error={formErrors.phone}>
+          <Field label="Phone" error={formErrors.phone}>
             <input
               type="tel"
               placeholder="e.g. 9876543210 (10 digits)"
@@ -258,7 +255,7 @@ export default function ClientFormModal({
               className={getInputCls(!!formErrors.phone)}
             />
           </Field>
-          <Field label="Email" required error={formErrors.email}>
+          <Field label="Email" error={formErrors.email}>
             <input
               type="text"
               placeholder="e.g. name@example.com"
