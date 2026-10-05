@@ -14,6 +14,7 @@ import DatePicker from '@/components/ui/DatePicker';
 import MediaPreviewModal from '@/components/inventory/MediaPreviewModal';
 import CustomSelect from '@/components/ui/CustomSelect';
 import { MEDIA_TYPES, ILLUMINATION_OPTIONS } from '@/lib/mediaTypes';
+import { calcMediaCosts } from '@/lib/mediaCostRates';
 import { MEDIA_STATUS_LIST, STATUS_LABELS, isDatedStatus } from '@/lib/siteStatus';
 import StatusDetailsFields, {
   BlockDetailsFields,
@@ -43,7 +44,7 @@ const emptyForm = {
   specification: '',
   latitude: '',
   longitude: '',
-  illumination: 'Front Lit',
+  illumination: '',
   width: '',
   height: '',
   sizeUnit: 'ft',
@@ -272,6 +273,14 @@ export default function SiteFormModal({
           next.width = size.width;
           next.height = size.height;
         }
+      }
+      // Printing / Mounting Cost (read-only) follow the Media Type rate sheet (lib/mediaCostRates.ts)
+      // whenever the type, illumination, size or quantity changes. A type with no rate, or a size not
+      // filled in yet, clears them.
+      if (['mediaType', 'illumination', 'width', 'height', 'quantity', 'specification'].includes(key as string)) {
+        const auto = calcMediaCosts(next);
+        next.printingCost = auto ? String(auto.printingCost) : '';
+        next.mountingCost = auto ? String(auto.mountingCost) : '';
       }
       return next;
     });
@@ -683,6 +692,7 @@ export default function SiteFormModal({
               id="site-field-illumination"
               value={form.illumination}
               onChange={(val) => update('illumination', val)}
+              placeholder="Select illumination"
               options={ILLUMINATION_OPTIONS}
               className={fieldCls(!!errors.illumination)}
             />
@@ -737,30 +747,23 @@ export default function SiteFormModal({
               className={fieldCls(!!errors.monthlyAmount)}
             />
           </Field>
-          <Field label="Printing Cost" error={errors.printingCost}>
+          {/* Read-only — worked out from the Media Type rate sheet (lib/mediaCostRates.ts). */}
+          <Field label="Printing Cost">
             <input
               id="site-field-printingCost"
-              type="text"
-              inputMode="decimal"
-              placeholder="Enter printing cost"
-              value={priceDisplayValue('printingCost')}
-              onFocus={() => setFocusedPriceField('printingCost')}
-              onBlur={() => setFocusedPriceField(null)}
-              onChange={(e) => updatePriceField('printingCost', e.target.value)}
-              className={fieldCls(!!errors.printingCost)}
+              disabled
+              placeholder="Auto from Media Type & size"
+              value={form.printingCost ? formatINR(form.printingCost) : ''}
+              className={`${inputCls} bg-slate-50 text-slate-500`}
             />
           </Field>
-          <Field label="Mounting Cost" error={errors.mountingCost}>
+          <Field label="Mounting Cost">
             <input
               id="site-field-mountingCost"
-              type="text"
-              inputMode="decimal"
-              placeholder="Enter mounting cost"
-              value={priceDisplayValue('mountingCost')}
-              onFocus={() => setFocusedPriceField('mountingCost')}
-              onBlur={() => setFocusedPriceField(null)}
-              onChange={(e) => updatePriceField('mountingCost', e.target.value)}
-              className={fieldCls(!!errors.mountingCost)}
+              disabled
+              placeholder="Auto from Media Type & size"
+              value={form.mountingCost ? formatINR(form.mountingCost) : ''}
+              className={`${inputCls} bg-slate-50 text-slate-500`}
             />
           </Field>
           <Field label="Total Cost">

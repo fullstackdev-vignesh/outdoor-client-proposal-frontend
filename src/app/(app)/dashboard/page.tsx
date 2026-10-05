@@ -16,6 +16,10 @@ import {
   PlusCircle,
   Upload,
   UserPlus,
+  BadgeCheck,
+  PauseCircle,
+  AlertTriangle,
+  PowerOff,
 } from 'lucide-react';
 import api from '@/lib/api';
 import Loader from '@/components/ui/Loader';
@@ -78,10 +82,13 @@ export default function DashboardPage() {
     { key: 'totalBDs', label: 'Total BD Management', icon: UserCheck, accent: 'blue', roles: ['admin'] },
     { key: 'totalSites', label: 'Total Sites', icon: Building2, accent: 'blue' },
     { key: 'activeSites', label: 'Active Sites', icon: CheckCircle2, accent: 'emerald' },
-    // { key: 'inactiveSites', label: 'Inactive Sites', icon: XCircle, accent: 'slate' },
+    { key: 'inactiveSites', label: 'Inactive Sites', icon: PowerOff, accent: 'slate' },
     { key: 'availableMedia', label: 'Immediate Media', icon: CircleDot, accent: 'emerald' },
     { key: 'blockedMedia', label: 'Blocked Media', icon: XCircle, accent: 'red' },
+    { key: 'confirmedMedia', label: 'Confirmed Media', icon: BadgeCheck, accent: 'blue' },
     { key: 'bookedMedia', label: 'Booked Media', icon: CalendarCheck, accent: 'blue' },
+    { key: 'holdMedia', label: 'Hold Media', icon: PauseCircle, accent: 'amber' },
+    { key: 'issueMedia', label: 'Issue Media', icon: AlertTriangle, accent: 'slate' },
     { key: 'totalClients', label: 'Total Clients', icon: Contact2, accent: 'blue' },
     { key: 'totalProposals', label: 'Total Proposals', icon: FileText, accent: 'amber' },
     // { key: 'totalBookings', label: 'Total Bookings', icon: CalendarCheck, accent: 'blue' },

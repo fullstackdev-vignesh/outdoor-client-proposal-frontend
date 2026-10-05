@@ -26,4 +26,4 @@ export const MEDIA_TYPES = [
 ];
 
 // Illumination options offered by the site form and the illumination filter.
-export const ILLUMINATION_OPTIONS = ['Front Lit', 'Non Lit'];
+export const ILLUMINATION_OPTIONS = ['Front Lit', 'Back Lit', 'Non Lit'];
