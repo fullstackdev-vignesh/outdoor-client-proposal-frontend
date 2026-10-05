@@ -14,6 +14,10 @@ import MediaPreviewModal from '@/components/inventory/MediaPreviewModal';
 import CustomSelect from '@/components/ui/CustomSelect';
 import type { Client, MediaStatus, Site, Template } from '@/lib/types';
 import { MEDIA_TYPES } from '@/lib/mediaTypes';
+import { MEDIA_STATUS_OPTIONS, statusLabel } from '@/lib/siteStatus';
+
+// A proposal can use a site in any status; only Inactive sites can't be added.
+const isProposable = (s: Site) => s.isActive !== false;
 
 const STEPS = ['Customer Details', 'Site Details', 'PPT Template', 'Excel Template', 'Preview'] as const;
 const PAGE_SIZE = 20;
@@ -47,7 +51,7 @@ function SiteStatusCost({ site }: { site: Site }) {
       <span className="w-20 shrink-0 text-right text-xs font-semibold text-slate-600">
         ₹{formatINR(site.totalCost ?? site.amount ?? 0)}
       </span>
-      <div className="w-24 shrink-0">
+      <div className="w-28 shrink-0">
         <StatusBadge status={site.mediaStatus} />
       </div>
     </div>
@@ -138,6 +142,8 @@ export default function NewProposalPage() {
             state: siteState || undefined,
             city: siteCity || undefined,
             mediaStatus: siteStatus || undefined,
+            // Every status shows; only Inactive sites are left out of the proposal site list.
+            proposalListing: 'true',
             siteOwner: siteOwners.length ? siteOwners : undefined,
             mediaType: siteMediaType || undefined,
           },
@@ -196,10 +202,10 @@ export default function NewProposalPage() {
   }
 
   // "Select All" only ever acts on the currently loaded/visible rows (`sites`) — matching
-  // whatever filters are active — never the full server-side total, and skips `blocked` sites
-  // (the only status that still can't be proposed). Selections for sites NOT in the current
-  // loaded list (e.g. selected before a filter/search changed) are left untouched either way.
-  const selectableSites = useMemo(() => sites.filter((s) => s.mediaStatus !== 'blocked'), [sites]);
+  // whatever filters are active — never the full server-side total, and only takes sites a
+  // proposal can use (Active, any status). Selections for sites NOT in the current loaded list
+  // (e.g. selected before a filter/search changed) are left untouched either way.
+  const selectableSites = useMemo(() => sites.filter(isProposable), [sites]);
   const allVisibleSelected = selectableSites.length > 0 && selectableSites.every((s) => selectedSites.has(s._id));
   const someVisibleSelected = selectableSites.some((s) => selectedSites.has(s._id));
 
@@ -419,11 +425,7 @@ export default function NewProposalPage() {
                   value={siteStatus}
                   onChange={(val) => setSiteStatus(val as any)}
                   placeholder="All Statuses"
-                  options={[
-                    { value: 'available', label: 'Available' },
-                    { value: 'booked', label: 'Booked' },
-                    { value: 'blocked', label: 'Blocked' },
-                  ]}
+                  options={MEDIA_STATUS_OPTIONS}
                 />
               </div>
               <div className="w-44">
@@ -467,7 +469,8 @@ export default function NewProposalPage() {
                 {siteLoading && <p className="px-3 py-6 text-center text-xs text-slate-400">Loading media...</p>}
                 {!siteLoading &&
                   sites.map((s, i) => {
-                    const disabled = s.mediaStatus === 'blocked' && !selectedSites.has(s._id);
+                    // Any Active site can be picked; an already-picked one can still be un-picked.
+                    const disabled = !isProposable(s) && !selectedSites.has(s._id);
                     const src = resolveImageUrl(s.mediaImage);
                     return (
                       <div
@@ -488,7 +491,7 @@ export default function NewProposalPage() {
                             disabled={disabled}
                             onChange={() => toggleSite(s)}
                             onClick={(e) => e.stopPropagation()}
-                            title={disabled ? 'Blocked media cannot be added to a proposal' : ''}
+                            title={disabled ? 'Inactive media cannot be added to a proposal' : ''}
                           />
                           <span className="w-6 shrink-0 text-center text-xs text-slate-400">{i + 1}</span>
                           <button
@@ -616,7 +619,7 @@ export default function NewProposalPage() {
                           <td className="px-2 py-1.5">{s.mediaId}</td>
                           <td className="px-2 py-1.5">{s.location || s.areaName || '-'}</td>
                           <td className="px-2 py-1.5">₹{formatINR(computeSiteFees(s, selectedCustomer).total)}</td>
-                          <td className="px-2 py-1.5 capitalize">{s.mediaStatus}</td>
+                          <td className="px-2 py-1.5">{statusLabel(s.mediaStatus)}</td>
                         </tr>
                       ))}
                     </tbody>

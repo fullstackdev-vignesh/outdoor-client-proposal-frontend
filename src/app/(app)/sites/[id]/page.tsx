@@ -76,7 +76,7 @@ export default function SiteDetailsPage() {
       </Panel>
 
       <Panel title="Booking Information">
-        {site.mediaStatus === 'available' && <p className="text-sm text-emerald-600 font-medium">Currently Available</p>}
+        {site.mediaStatus === 'immediate' && <p className="text-sm text-emerald-600 font-medium">Currently Immediate (free)</p>}
         {site.mediaStatus === 'booked' && site.bookingInfo && (
           <dl className="grid grid-cols-2 gap-4 text-sm">
             <Info

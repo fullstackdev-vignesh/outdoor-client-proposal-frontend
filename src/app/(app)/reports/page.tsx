@@ -33,9 +33,12 @@ export default function ReportsPage() {
               ['Total Sites', reports.siteReport.total],
               ['Active Sites', reports.siteReport.active],
               // ['Inactive Sites', reports.siteReport.inactive],
-              ['Available Media', reports.siteReport.available],
-              ['Booked Media', reports.siteReport.booked],
+              ['Immediate Media', reports.siteReport.immediate],
               ['Blocked Media', reports.siteReport.blocked],
+              ['Confirmed Media', reports.siteReport.confirmed],
+              ['Booked Media', reports.siteReport.booked],
+              ['Hold Media', reports.siteReport.hold],
+              ['Issue Media', reports.siteReport.issue],
             ]}
           />
         </Panel>

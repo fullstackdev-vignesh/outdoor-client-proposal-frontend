@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ImagePlus, Plus, Trash2, X } from 'lucide-react';
+import { ImagePlus, Plus, Star, Trash2, X } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import { StateSelect, CitySelect } from '@/components/ui/StateCitySelect';
 import api, { resolveImageUrl } from '@/lib/api';
@@ -13,13 +13,24 @@ import { formatINR, parseINRInput, formatIndianGroups } from '@/lib/currency';
 import DatePicker from '@/components/ui/DatePicker';
 import MediaPreviewModal from '@/components/inventory/MediaPreviewModal';
 import CustomSelect from '@/components/ui/CustomSelect';
-import { MEDIA_TYPES } from '@/lib/mediaTypes';
+import { MEDIA_TYPES, ILLUMINATION_OPTIONS } from '@/lib/mediaTypes';
+import { MEDIA_STATUS_LIST, STATUS_LABELS, isDatedStatus } from '@/lib/siteStatus';
+import StatusDetailsFields, {
+  BlockDetailsFields,
+  blockDetailsError,
+  blockDetailsFromSite,
+  emptyBlockDetails,
+  emptyStatusDetails,
+  statusDetailsFromSite,
+  statusDetailsValid,
+  type BlockDetails,
+  type StatusDetails,
+} from './StatusDetailsFields';
 
-const ILLUMINATION_OPTIONS = ['Front Lit', 'Not Lit'];
 
 const emptyForm = {
   mediaId: '',
-  mediaType: MEDIA_TYPES[0],
+  mediaType: '',
   quantity: '1',
   state: '',
   city: '',
@@ -27,6 +38,9 @@ const emptyForm = {
   areaName: '',
   siteOwner: '',
   locationDetails: '',
+  trafficViewFrom: '',
+  trafficViewTo: '',
+  specification: '',
   latitude: '',
   longitude: '',
   illumination: 'Front Lit',
@@ -39,7 +53,9 @@ const emptyForm = {
   printingCost: '',
   mountingCost: '',
   mediaImage: '',
-  mediaStatus: 'available' as MediaStatus,
+  mediaStatus: 'immediate' as MediaStatus,
+  // Active/Inactive is the site's own setting — Inactive sites never appear in client proposals.
+  isActive: true,
   siteInfoId: '',
 };
 
@@ -74,6 +90,27 @@ interface BookingRow {
 
 function newBookingRow(): BookingRow {
   return { customerType: 'client', clientId: '', startDate: '', endDate: '' };
+}
+
+// One tile in the Media Image gallery — a saved image (url) or one picked but not yet uploaded (file).
+type GalleryImage = { key: string; url?: string; file?: File; preview: string };
+
+// All images saved for a site. Sites from before the multi-image gallery only have mediaImage.
+function galleryOf(site: Site): string[] {
+  const list = [...(site.mediaImages || [])];
+  if (site.mediaImage && !list.includes(site.mediaImage)) list.unshift(site.mediaImage);
+  return list;
+}
+
+// Default Specification text from the size, e.g. "30 x 20" ('' until both are filled in).
+function specFromSize(width: string, height: string) {
+  return width && height ? `${width} x ${height}` : '';
+}
+
+// Width/Height from a Specification that starts with a size: "30 x 20", "30X20", "30 × 20 ft double side".
+function parseSpecSize(text: string): { width: string; height: string } | null {
+  const m = text.trim().match(/^(\d+(?:\.\d+)?)\s*[xX×*]\s*(\d+(?:\.\d+)?)/);
+  return m ? { width: m[1], height: m[2] } : null;
 }
 
 function bookingRecordToRow(b: BookingRecord): BookingRow {
@@ -117,11 +154,12 @@ export default function SiteFormModal({
   const { showToast } = useToast();
   const [form, setForm] = useState<typeof emptyForm>(emptyForm);
   const [saving, setSaving] = useState(false);
-  const [imagePreview, setImagePreview] = useState('');
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  // Media image gallery: saved images (url) and newly picked ones (file); one is the default.
+  const [images, setImages] = useState<GalleryImage[]>([]);
+  const [defaultKey, setDefaultKey] = useState('');
+  const [previewImage, setPreviewImage] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [focusedPriceField, setFocusedPriceField] = useState<string | null>(null);
-  const [previewOpen, setPreviewOpen] = useState(false);
 
   // Booking Details (inline, shown when Media Status = Booked) — one site can have several
   // non-overlapping booking orders; "+ Add Booking" appends another inline card below.
@@ -144,9 +182,10 @@ export default function SiteFormModal({
     api.get('/site-info').then((res) => setSiteInfos(res.data));
   }
 
-  // Block Details (inline, shown when Media Status = Blocked)
-  const [blockReason, setBlockReason] = useState('');
-  const [blockNotes, setBlockNotes] = useState('');
+  // Block Details (customer + dates + reason, shown when Media Status = Blocked)
+  const [blockDetails, setBlockDetails] = useState<BlockDetails>(emptyBlockDetails);
+  // Hold / Issue (reason) details.
+  const [statusDetails, setStatusDetails] = useState<StatusDetails>(emptyStatusDetails);
 
   useEffect(() => {
     if (!open) return;
@@ -166,9 +205,12 @@ export default function SiteFormModal({
         areaName: site.areaName || '',
         siteOwner: site.siteOwner || '',
         locationDetails: site.locationDetails || '',
+        trafficViewFrom: site.trafficViewFrom || '',
+        trafficViewTo: site.trafficViewTo || '',
+        specification: site.specification || specFromSize(site.width?.toString() || '', site.height?.toString() || ''),
         latitude: site.latitude?.toString() || '',
         longitude: site.longitude?.toString() || '',
-        illumination: site.illumination || 'Front Lit',
+        illumination: site.illumination || '',
         width: site.width?.toString() || '',
         height: site.height?.toString() || '',
         sizeUnit: site.sizeUnit || 'ft',
@@ -179,10 +221,12 @@ export default function SiteFormModal({
         mountingCost: site.mountingCost?.toString() || '',
         mediaImage: site.mediaImage || '',
         mediaStatus: site.mediaStatus,
+        isActive: site.isActive !== false,
         siteInfoId: typeof site.siteInfoId === 'object' ? site.siteInfoId?._id || '' : site.siteInfoId || '',
       });
-      setImageFile(null);
-      setImagePreview(resolveImageUrl(site.mediaImage));
+      const saved = galleryOf(site);
+      setImages(saved.map((url) => ({ key: url, url, preview: resolveImageUrl(url) })));
+      setDefaultKey(site.mediaImage || saved[0] || '');
 
       if (site.bookings && site.bookings.length > 0) {
         // Cancelled bookings stay in `site.bookings` for history/timeline, but they're no
@@ -194,26 +238,43 @@ export default function SiteFormModal({
         setBookingRows([]);
       }
 
-      if (site.mediaStatus === 'blocked' && site.blockInfo) {
-        setBlockReason(site.blockInfo.reason || '');
-        setBlockNotes(site.blockInfo.notes || '');
-      } else {
-        setBlockReason('');
-        setBlockNotes('');
-      }
+      setStatusDetails(statusDetailsFromSite(site, site.mediaStatus));
+      // A block running now or scheduled ahead pre-fills the Blocked form.
+      setBlockDetails(blockDetailsFromSite(site));
     } else {
       setForm(emptyForm);
-      setImagePreview('');
-      setImageFile(null);
+      setImages([]);
+      setDefaultKey('');
       setBookingRows([]);
-      setBlockReason('');
-      setBlockNotes('');
+      setBlockDetails(emptyBlockDetails);
+      setStatusDetails(emptyStatusDetails);
     }
     setErrors({});
   }, [site, open]);
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
-    setForm((f) => ({ ...f, [key]: value }));
+    setForm((f) => {
+      const next = { ...f, [key]: value };
+      // Specification follows Width x Height while it's empty or still the auto text ("30 x 20");
+      // anything the user wrote themselves is left alone.
+      if ((key === 'width' || key === 'height') && (!f.specification.trim() || f.specification === specFromSize(f.width, f.height))) {
+        next.specification = specFromSize(next.width, next.height);
+      }
+      // And the other way: clearing the Specification clears Width/Height; typing a size ("30 x 20",
+      // "30 x 20 ft double side") sets them from it. Other text leaves them as they are.
+      if (key === 'specification') {
+        const text = String(value);
+        const size = parseSpecSize(text);
+        if (!text.trim()) {
+          next.width = '';
+          next.height = '';
+        } else if (size) {
+          next.width = size.width;
+          next.height = size.height;
+        }
+      }
+      return next;
+    });
     setErrors((e) => {
       if (!e[key as string]) return e;
       const next = { ...e };
@@ -231,20 +292,33 @@ export default function SiteFormModal({
     });
   }
 
-  function handleImageFile(file: File) {
-    if (!/^image\/(jpeg|png|webp|gif)$/.test(file.type)) {
-      showToast('Only JPG, PNG, WEBP or GIF images are allowed', 'error');
-      return;
+  function handleImageFiles(fileList: FileList) {
+    const added: GalleryImage[] = [];
+    for (const file of Array.from(fileList)) {
+      if (!/^image\/(jpeg|png)$/.test(file.type) || !/\.(png|jpe?g)$/i.test(file.name)) {
+        showToast(`${file.name}: only PNG, JPG or JPEG images are allowed`, 'error');
+        continue;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        showToast(`${file.name}: image is ${(file.size / (1024 * 1024)).toFixed(1)}MB — maximum size is 5MB`, 'error');
+        continue;
+      }
+      // Local preview only — the files are sent with the Save request and uploaded
+      // server-side, so no separate upload API call happens on selection.
+      added.push({ key: `new-${Date.now()}-${Math.random().toString(36).slice(2)}`, file, preview: URL.createObjectURL(file) });
     }
-    if (file.size > 5 * 1024 * 1024) {
-      showToast('Image must be 5MB or smaller', 'error');
-      return;
-    }
-    // Local preview only — the file itself is sent with the Save request and uploaded
-    // server-side, so no separate upload API call happens on selection.
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+    if (!added.length) return;
+    setImages((prev) => [...prev, ...added]);
+    // The first image ever added becomes the default automatically.
+    setDefaultKey((current) => current || added[0].key);
     clearError('mediaImage');
+  }
+
+  function removeImage(key: string) {
+    const next = images.filter((img) => img.key !== key);
+    setImages(next);
+    // Deleting the default hands the role to the first remaining image.
+    if (key === defaultKey) setDefaultKey(next[0]?.key || '');
   }
 
   const monthlyTotalCost = calcTotalCost(form.monthlyAmount, form.printingCost, form.mountingCost);
@@ -364,6 +438,7 @@ export default function SiteFormModal({
     else if (Number(form.width) <= 0) errs.width = 'Width must be greater than 0';
     if (!form.height) errs.height = 'Height is required';
     else if (Number(form.height) <= 0) errs.height = 'Height must be greater than 0';
+    if (!form.specification.trim()) errs.specification = 'Specification is required';
 
     for (const [key, label, required] of [
       ['monthlyAmount', 'Display Cost Per Month', false],
@@ -387,8 +462,12 @@ export default function SiteFormModal({
       Object.assign(errs, findBookingOverlapError(bookingRows));
     }
 
-    if (form.mediaStatus === 'blocked') {
-      if (!blockReason.trim()) errs.blockReason = 'Block Reason is required';
+    if (isDatedStatus(form.mediaStatus)) {
+      const blockError = blockDetailsError(blockDetails);
+      if (blockError) errs.blockDetails = blockError;
+    }
+    if ((form.mediaStatus === 'hold' || form.mediaStatus === 'issue') && !statusDetailsValid(form.mediaStatus, statusDetails)) {
+      errs.statusDetails = 'Reason is required';
     }
 
     return errs;
@@ -429,12 +508,19 @@ export default function SiteFormModal({
           endDate: row.endDate,
         }));
         fd.append('bookings', JSON.stringify(bookingsPayload));
-      } else if (form.mediaStatus === 'blocked') {
-        fd.append('blockReason', blockReason);
-        fd.append('blockNotes', blockNotes);
+      } else if (isDatedStatus(form.mediaStatus)) {
+        (Object.keys(blockDetails) as (keyof BlockDetails)[]).forEach((k) => fd.append(k, blockDetails[k]));
+      } else if (form.mediaStatus === 'hold' || form.mediaStatus === 'issue') {
+        (Object.keys(statusDetails) as (keyof StatusDetails)[]).forEach((k) => fd.append(k, statusDetails[k]));
       }
-      if (imageFile) {
-        fd.append('mediaImage', imageFile);
+      // Full gallery: saved images to keep (in order), new files, and which one is the default.
+      fd.append('imageGallery', '1');
+      fd.append('keepImages', JSON.stringify(images.filter((img) => img.url).map((img) => img.url)));
+      const newImages = images.filter((img) => img.file);
+      newImages.forEach((img) => fd.append('mediaImages', img.file as File));
+      const defaultImg = images.find((img) => img.key === defaultKey) || images[0];
+      if (defaultImg) {
+        fd.append('defaultImage', defaultImg.url || `new:${newImages.indexOf(defaultImg)}`);
       }
 
       if (site) {
@@ -447,11 +533,11 @@ export default function SiteFormModal({
       onSaved();
       if (andAddAnother) {
         setForm(emptyForm);
-        setImagePreview('');
-        setImageFile(null);
+        setImages([]);
+        setDefaultKey('');
         setBookingRows([]);
-        setBlockReason('');
-        setBlockNotes('');
+        setBlockDetails(emptyBlockDetails);
+        setStatusDetails(emptyStatusDetails);
       } else {
         onClose();
       }
@@ -487,6 +573,7 @@ export default function SiteFormModal({
               id="site-field-mediaType"
               value={form.mediaType}
               onChange={(val) => update('mediaType', val)}
+              placeholder="Select media type"
               options={MEDIA_TYPES}
               className={fieldCls(!!errors.mediaType)}
             />
@@ -562,6 +649,24 @@ export default function SiteFormModal({
               className={fieldCls(!!errors.longitude)}
             />
           </Field>
+          <Field label="Traffic View From">
+            <input
+              id="site-field-trafficViewFrom"
+              placeholder="e.g. Madurai"
+              value={form.trafficViewFrom}
+              onChange={(e) => update('trafficViewFrom', e.target.value)}
+              className={fieldCls(false)}
+            />
+          </Field>
+          <Field label="Traffic View To">
+            <input
+              id="site-field-trafficViewTo"
+              placeholder="e.g. Trichy"
+              value={form.trafficViewTo}
+              onChange={(e) => update('trafficViewTo', e.target.value)}
+              className={fieldCls(false)}
+            />
+          </Field>
           {form.latitude && form.longitude && (
             <div className="col-span-2 rounded-lg overflow-hidden border border-slate-200 h-40">
               <iframe
@@ -606,6 +711,15 @@ export default function SiteFormModal({
           </Field>
           <Field label="Total Sq.ft">
             <input disabled value={`${form.width || 0} x ${form.height || 0} = ${calcAutoSize(form.width, form.height)}`} className={`${inputCls} bg-slate-50 text-slate-500`} />
+          </Field>
+          <Field label="Specification" required error={errors.specification}>
+            <input
+              id="site-field-specification"
+              placeholder="e.g. 30 x 20"
+              value={form.specification}
+              onChange={(e) => update('specification', e.target.value)}
+              className={fieldCls(!!errors.specification)}
+            />
           </Field>
         </Section>
 
@@ -656,43 +770,72 @@ export default function SiteFormModal({
 
         <Section title="Media Image">
           <div className="col-span-2" id="site-field-mediaImage">
-            {imagePreview ? (
-              <div className="relative w-48">
-                <img
-                  src={imagePreview}
-                  alt="Media preview"
-                  className="w-48 h-32 object-cover rounded-lg border border-slate-200 bg-slate-50 cursor-pointer"
-                  onError={() => setImagePreview('')}
-                  onClick={() => imagePreview && setPreviewOpen(true)}
-                />
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setImagePreview('');
-                    setImageFile(null);
-                    update('mediaImage', '');
-                  }}
-                  className="absolute -top-2 -right-2 bg-white border border-slate-200 rounded-full p-1 shadow"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            ) : (
+            <div className="flex flex-wrap gap-3">
+              {images.map((img) => {
+                const isDefault = img.key === defaultKey;
+                return (
+                  <div
+                    key={img.key}
+                    className={`relative w-44 rounded-lg border-2 bg-white ${isDefault ? 'border-red-500 shadow-sm' : 'border-slate-200'}`}
+                  >
+                    <img
+                      src={img.preview}
+                      alt="Media"
+                      className="h-28 w-full cursor-zoom-in rounded-t-md object-cover bg-slate-50"
+                      onClick={() => setPreviewImage(img.preview)}
+                    />
+                    {isDefault && (
+                      <span className="absolute left-1.5 top-1.5 inline-flex items-center gap-1 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-semibold text-white shadow">
+                        <Star className="h-3 w-3 fill-current" /> Default
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      title="Delete image"
+                      onClick={() => removeImage(img.key)}
+                      className="absolute -right-2 -top-2 rounded-full border border-slate-200 bg-white p-1 text-slate-500 shadow hover:border-red-300 hover:text-red-600"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                    <div className="flex items-center justify-between gap-1 px-2 py-1.5">
+                      <span className="text-[11px] text-slate-400">{img.file ? 'New' : 'Saved'}</span>
+                      {isDefault ? (
+                        <span className="text-[11px] font-medium text-red-600">Default image</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setDefaultKey(img.key)}
+                          className="rounded border border-red-200 px-1.5 py-0.5 text-[11px] font-medium text-red-600 hover:bg-red-50"
+                        >
+                          Set default
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
               <label
-                className={`flex flex-col items-center justify-center w-48 h-32 rounded-lg border-2 border-dashed cursor-pointer ${
+                className={`flex h-[9.25rem] w-44 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed ${
                   errors.mediaImage ? 'border-red-400 text-red-400 hover:border-red-500' : 'border-slate-300 text-slate-400 hover:border-red-400 hover:text-red-500'
                 }`}
               >
                 <ImagePlus className="h-6 w-6 mb-1" />
-                <span className="text-xs">Upload image</span>
+                <span className="text-xs">{images.length ? 'Add more images' : 'Upload images'}</span>
+                <span className="mt-1 text-[10px] text-slate-400">PNG, JPG, JPEG · Max 5MB</span>
                 <input
                   type="file"
-                  accept="image/*"
+                  accept=".png,.jpg,.jpeg,image/png,image/jpeg"
+                  multiple
                   className="hidden"
-                  onChange={(e) => e.target.files?.[0] && handleImageFile(e.target.files[0])}
+                  onChange={(e) => {
+                    if (e.target.files?.length) handleImageFiles(e.target.files);
+                    e.target.value = '';
+                  }}
                 />
               </label>
+            </div>
+            {images.length > 1 && (
+              <p className="mt-2 text-xs text-slate-500">The default image is the one shown in lists, PPT and Excel exports.</p>
             )}
             {errors.mediaImage && <p className="mt-1 text-xs font-medium text-red-600">{errors.mediaImage}</p>}
           </div>
@@ -725,22 +868,51 @@ export default function SiteFormModal({
         </Section>
 
         <Section title="Media Status">
-          <div className="col-span-2 flex gap-2">
-            {(['available', 'booked', 'blocked'] as MediaStatus[]).map((s) => (
+          <div className="col-span-2 flex flex-wrap gap-2">
+            {MEDIA_STATUS_LIST.map((s) => (
               <button
                 type="button"
                 key={s}
+                disabled={!form.isActive}
                 onClick={() => {
                   update('mediaStatus', s);
+                  setStatusDetails(statusDetailsFromSite(site, s));
+                  clearError('statusDetails');
                   if (s === 'booked') setBookingRows((rows) => (rows.length ? rows : [newBookingRow()]));
                 }}
-                className={`rounded-lg border px-4 py-2 text-sm font-medium capitalize ${
+                className={`rounded-lg border px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50 ${
                   form.mediaStatus === s ? 'bg-red-600 text-white border-red-600' : 'bg-white text-slate-600 border-slate-200'
                 }`}
               >
-                {s}
+                {STATUS_LABELS[s]}
               </button>
             ))}
+          </div>
+          {!form.isActive && (
+            <p className="col-span-2 -mt-1 text-xs text-slate-500">
+              Inactive sites are always Immediate — any block, confirmation, hold or issue is removed when saved (bookings are kept). Make the site Active to change its status.
+            </p>
+          )}
+          <div className="col-span-2 flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2.5">
+            <div>
+              <p className="text-sm font-medium text-slate-700">Site Active</p>
+              <p className="text-xs text-slate-500">Inactive sites are kept but hidden from client proposals.</p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={form.isActive}
+              onClick={() => {
+                const nextActive = !form.isActive;
+                update('isActive', nextActive);
+                // Inactive sites are always Immediate.
+                if (!nextActive) update('mediaStatus', 'immediate');
+              }}
+              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${form.isActive ? 'bg-emerald-500' : 'bg-slate-300'}`}
+            >
+              <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${form.isActive ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              <span className="sr-only">{form.isActive ? 'Active' : 'Inactive'}</span>
+            </button>
           </div>
         </Section>
 
@@ -865,29 +1037,40 @@ export default function SiteFormModal({
           </div>
         )}
 
-        {form.mediaStatus === 'blocked' && (
-          <div className="space-y-3 rounded-lg bg-red-50 border border-red-100 p-4">
-            <h4 className="text-xs font-semibold uppercase tracking-wide text-red-700">Block Details</h4>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Block Reason *</label>
-              <input
-                id="site-field-blockReason"
-                placeholder="Enter block reason"
-                value={blockReason}
-                onChange={(e) => {
-                  setBlockReason(e.target.value);
-                  clearError('blockReason');
-                }}
-                className={fieldCls(!!errors.blockReason)}
-              />
-              {errors.blockReason && <p className="mt-1 text-xs font-medium text-red-600">{errors.blockReason}</p>}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Blocked Date *</label>
-              <DatePicker value={todayISO()} disabled />
-            </div>
+        {isDatedStatus(form.mediaStatus) && (
+          <div id="site-field-blockDetails">
+            <BlockDetailsFields
+              kind={form.mediaStatus}
+              value={blockDetails}
+              onChange={(next) => {
+                setBlockDetails(next);
+                clearError('blockDetails');
+              }}
+              clients={clients}
+              // A block can't overlap the site's bookings.
+              bookedRanges={bookingRows.filter((r) => r.startDate && r.endDate).map((r) => ({ start: r.startDate, end: r.endDate }))}
+              // A block that's already running keeps its own (past) Start Date.
+              minStartDate={
+                isDatedStatus(site?.mediaStatus) && site?.blockInfo?.startDate && site.blockInfo.startDate.slice(0, 10) < todayISO()
+                  ? site.blockInfo.startDate.slice(0, 10)
+                  : todayISO()
+              }
+              error={errors.blockDetails}
+            />
           </div>
         )}
+
+        <div id="site-field-statusDetails">
+          <StatusDetailsFields
+            status={form.mediaStatus}
+            value={statusDetails}
+            onChange={(next) => {
+              setStatusDetails(next);
+              clearError('statusDetails');
+            }}
+          />
+          {errors.statusDetails && <p className="mt-1 text-xs font-medium text-red-600">{errors.statusDetails}</p>}
+        </div>
 
         <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
           <button type="button" onClick={onClose} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
@@ -910,9 +1093,9 @@ export default function SiteFormModal({
       </form>
 
       <MediaPreviewModal
-        open={previewOpen}
-        onClose={() => setPreviewOpen(false)}
-        image={imagePreview}
+        open={!!previewImage}
+        onClose={() => setPreviewImage('')}
+        image={previewImage}
         mediaCode={form.mediaId}
         mediaType={form.mediaType}
         location={form.location}

@@ -22,10 +22,21 @@ import Loader from '@/components/ui/Loader';
 import { useAuth } from '@/lib/auth-context';
 import { StatCard, Panel } from '@/components/ui/Card';
 import StatusBadge from '@/components/ui/StatusBadge';
+import type { MediaStatus } from '@/lib/types';
+import { MEDIA_STATUS_LIST, STATUS_LABELS } from '@/lib/siteStatus';
+
+const STATUS_BAR_COLORS: Record<MediaStatus, string> = {
+  immediate: 'bg-emerald-500',
+  booked: 'bg-yellow-400',
+  blocked: 'bg-red-500',
+  confirmed: 'bg-blue-500',
+  hold: 'bg-orange-500',
+  issue: 'bg-purple-500',
+};
 
 interface DashboardStats {
   cards: Record<string, number>;
-  mediaStatusSummary: { available: number; booked: number; blocked: number };
+  mediaStatusSummary: Record<MediaStatus, number>;
   recent: {
     sites: any[];
     clients: any[];
@@ -68,15 +79,15 @@ export default function DashboardPage() {
     { key: 'totalSites', label: 'Total Sites', icon: Building2, accent: 'blue' },
     { key: 'activeSites', label: 'Active Sites', icon: CheckCircle2, accent: 'emerald' },
     // { key: 'inactiveSites', label: 'Inactive Sites', icon: XCircle, accent: 'slate' },
-    { key: 'availableMedia', label: 'Available Media', icon: CircleDot, accent: 'emerald' },
-    { key: 'bookedMedia', label: 'Booked Media', icon: CalendarCheck, accent: 'blue' },
+    { key: 'availableMedia', label: 'Immediate Media', icon: CircleDot, accent: 'emerald' },
     { key: 'blockedMedia', label: 'Blocked Media', icon: XCircle, accent: 'red' },
+    { key: 'bookedMedia', label: 'Booked Media', icon: CalendarCheck, accent: 'blue' },
     { key: 'totalClients', label: 'Total Clients', icon: Contact2, accent: 'blue' },
     { key: 'totalProposals', label: 'Total Proposals', icon: FileText, accent: 'amber' },
     // { key: 'totalBookings', label: 'Total Bookings', icon: CalendarCheck, accent: 'blue' },
   ].filter((c) => !c.roles || c.roles.includes(user?.role || ''));
 
-  const total = mediaStatusSummary.available + mediaStatusSummary.booked + mediaStatusSummary.blocked || 1;
+  const total = MEDIA_STATUS_LIST.reduce((sum, s) => sum + (mediaStatusSummary[s] || 0), 0) || 1;
 
   return (
     <div className="space-y-6">
@@ -92,14 +103,8 @@ export default function DashboardPage() {
       </div>
 
       <Panel title="Media Status Summary">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {(
-            [
-              ['available', 'Available', mediaStatusSummary.available, 'bg-emerald-500'],
-              ['booked', 'Booked', mediaStatusSummary.booked, 'bg-yellow-400'],
-              ['blocked', 'Blocked', mediaStatusSummary.blocked, 'bg-red-500'],
-            ] as const
-          ).map(([key, label, value, color]) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {MEDIA_STATUS_LIST.map((key) => [key, STATUS_LABELS[key], mediaStatusSummary[key] || 0, STATUS_BAR_COLORS[key]] as const).map(([key, label, value, color]) => (
             <div key={key} className="rounded-lg border border-slate-200 p-4">
               <div className="flex items-center justify-between mb-2">
                 <StatusBadge status={key as any} />

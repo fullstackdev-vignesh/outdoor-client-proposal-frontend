@@ -139,10 +139,32 @@ export default function SiteTimelineModal({
                     </p>
                   </div>
                 )}
-                {h.status === 'blocked' && h.blockSnapshot && (
+                {(h.status === 'blocked' || h.status === 'confirmed') && h.blockSnapshot && (
                   <div className="text-sm text-slate-600 mt-1 space-y-0.5">
+                    {h.blockSnapshot.customerName && (
+                      <p>
+                        {h.blockSnapshot.customerType === 'agency' ? 'Agency' : 'Client'}: {h.blockSnapshot.customerName}
+                      </p>
+                    )}
+                    {h.blockSnapshot.startDate && h.blockSnapshot.endDate && (
+                      <p>
+                        {h.status === 'confirmed' ? 'Confirm' : 'Block'} Period: {formatISTDate(h.blockSnapshot.startDate)} → {formatISTDate(h.blockSnapshot.endDate)}
+                      </p>
+                    )}
                     <p>Reason: {h.blockSnapshot.reason || '-'}</p>
                     {h.blockSnapshot.notes && <p>Notes: {h.blockSnapshot.notes}</p>}
+                  </div>
+                )}
+                {(h.status === 'hold' || h.status === 'issue' || (h.status === 'confirmed' && !h.blockSnapshot)) && h.statusSnapshot && (
+                  <div className="text-sm text-slate-600 mt-1 space-y-0.5">
+                    {h.status === 'confirmed' ? (
+                      <p>
+                        {h.statusSnapshot.customerType === 'agency' ? 'Agency' : 'Client'}: {h.statusSnapshot.customerName || '-'}
+                      </p>
+                    ) : (
+                      <p>Reason: {h.statusSnapshot.reason || '-'}</p>
+                    )}
+                    {h.statusSnapshot.notes && <p>Notes: {h.statusSnapshot.notes}</p>}
                   </div>
                 )}
                 <p className="text-xs text-slate-400 mt-1">

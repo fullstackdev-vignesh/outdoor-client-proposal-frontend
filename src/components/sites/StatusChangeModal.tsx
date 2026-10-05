@@ -11,6 +11,18 @@ import { todayISO } from '@/lib/date';
 import DatePicker from '@/components/ui/DatePicker';
 import CustomSelect from '@/components/ui/CustomSelect';
 import type { Site, Client, MediaStatus } from '@/lib/types';
+import { MEDIA_STATUS_LIST, STATUS_LABELS, isDatedStatus } from '@/lib/siteStatus';
+import StatusDetailsFields, {
+  BlockDetailsFields,
+  blockDetailsError,
+  blockDetailsFromSite,
+  emptyBlockDetails,
+  emptyStatusDetails,
+  statusDetailsFromSite,
+  statusDetailsValid,
+  type BlockDetails,
+  type StatusDetails,
+} from './StatusDetailsFields';
 
 function calcDurationDays(start: string, end: string) {
   if (!start || !end) return 0;
@@ -53,9 +65,11 @@ export default function StatusChangeModal({
   source?: 'sites' | 'inventory';
 }) {
   const { showToast } = useToast();
-  const [newStatus, setNewStatus] = useState<MediaStatus>('available');
-  const [blockReason, setBlockReason] = useState('');
-  const [blockNotes, setBlockNotes] = useState('');
+  const [newStatus, setNewStatus] = useState<MediaStatus>('immediate');
+  const [statusDetails, setStatusDetails] = useState<StatusDetails>(emptyStatusDetails);
+  const [blockDetails, setBlockDetails] = useState<BlockDetails>(emptyBlockDetails);
+  // "Immediate" on a site with a block scheduled ahead: also remove that block?
+  const [removeBlock, setRemoveBlock] = useState(false);
   const [customerType, setCustomerType] = useState<'client' | 'agency'>('client');
   const [clients, setClients] = useState<Client[]>([]);
   const [clientId, setClientId] = useState('');
@@ -99,14 +113,10 @@ export default function StatusChangeModal({
   useEffect(() => {
     if (!site || !open) return;
 
-    if (site.mediaStatus === 'blocked' && site.blockInfo) {
-      setBlockReason(site.blockInfo.reason || '');
-      setBlockNotes(site.blockInfo.notes || '');
-    } else {
-      setBlockReason('');
-      setBlockNotes('');
-    }
+    setBlockDetails(blockDetailsFromSite(site));
+    setRemoveBlock(false);
     setCancellationReason('');
+    setStatusDetails(statusDetailsFromSite(site, initialStatus || site.mediaStatus));
 
     api.get('/clients', { params: { limit: 200 } }).then((res) => setClients(res.data.items));
   }, [site, open, initialStatus]);
@@ -115,9 +125,9 @@ export default function StatusChangeModal({
   const durationDays = calcDurationDays(startDate, endDate);
   const bookingAmount = calcBookingAmount(monthlyTotalCost, durationDays);
   const validDateRange = !startDate || !endDate || new Date(endDate) >= new Date(startDate);
-  // Booked -> Available is really "cancel the booking that's making this site Booked" — never
+  // Booked -> Immediate is really "cancel the booking that's making this site Booked" — never
   // a silent status flip. Only relevant when the site is CURRENTLY Booked.
-  const isCancellingBooking = site?.mediaStatus === 'booked' && newStatus === 'available';
+  const isCancellingBooking = site?.mediaStatus === 'booked' && newStatus === 'immediate';
   // Bookings still in play (active or upcoming) — shown so a new booking can be placed around them.
   const openBookings = (site?.bookings || [])
     .filter((b) => b.status !== 'cancelled' && b.status !== 'completed')
@@ -130,11 +140,26 @@ export default function StatusChangeModal({
     return clients.find((c) => c._id === id)?.name;
   }
 
-  // Dates taken by OTHER bookings are greyed out in both pickers (when editing, the booking being
-  // edited doesn't block itself).
-  const bookedRanges = openBookings
-    .filter((b) => b.bookingId !== editBookingId && b.startDate && b.endDate)
+  // The site's block (running or scheduled ahead) with its own dates.
+  const block = site?.blockInfo?.startDate && site?.blockInfo?.endDate ? site.blockInfo : undefined;
+  const blockRange = block ? { start: block.startDate!.slice(0, 10), end: block.endDate!.slice(0, 10) } : null;
+  // A Blocked/Confirmed period set ahead (the site doesn't have that status yet).
+  const upcomingBlock = !!block && !isDatedStatus(site?.mediaStatus);
+  const blockKindLabel = block?.kind === 'confirmed' ? 'confirmation' : 'block';
+  // Dates taken by OTHER bookings — and by the block — are greyed out in both booking pickers (when
+  // editing, the booking being edited doesn't block itself). Choosing Booked on a currently Blocked
+  // site ends that block, so its dates are free then.
+  const bookedRanges = [
+    ...openBookings
+      .filter((b) => b.bookingId !== editBookingId && b.startDate && b.endDate)
+      .map((b) => ({ start: b.startDate.slice(0, 10), end: b.endDate.slice(0, 10) })),
+    ...(blockRange && upcomingBlock ? [blockRange] : []),
+  ];
+  // A block can't overlap any booking.
+  const bookingRangesForBlock = openBookings
+    .filter((b) => b.startDate && b.endDate)
     .map((b) => ({ start: b.startDate.slice(0, 10), end: b.endDate.slice(0, 10) }));
+  const blockError = blockDetailsError(blockDetails);
   // The End Date can't run past the next booking after the chosen Start Date.
   const nextBookedStart = startDate ? bookedRanges.map((r) => r.start).filter((s) => s > startDate).sort()[0] : undefined;
   const endDateMax = nextBookedStart ? dayBefore(nextBookedStart) : undefined;
@@ -144,10 +169,9 @@ export default function StatusChangeModal({
     setSaving(true);
     try {
       const payload: any = { mediaStatus: newStatus, source };
-      if (newStatus === 'blocked') {
-        payload.blockReason = blockReason;
-        payload.blockNotes = blockNotes;
-      }
+      if (isDatedStatus(newStatus)) Object.assign(payload, blockDetails);
+      if (newStatus === 'hold' || newStatus === 'issue') Object.assign(payload, statusDetails);
+      if (newStatus === 'immediate' && upcomingBlock && removeBlock) payload.removeBlock = true;
       if (newStatus === 'booked') {
         payload.bookingInfo = {
           customerType,
@@ -177,8 +201,10 @@ export default function StatusChangeModal({
   if (!site) return null;
 
   const canSubmit =
-    (newStatus === 'available' && (!isCancellingBooking || !!cancellationReason.trim())) ||
-    (newStatus === 'blocked' && !!blockReason) ||
+    site.isActive !== false &&
+    (newStatus === 'immediate' && (!isCancellingBooking || !!cancellationReason.trim())) ||
+    (isDatedStatus(newStatus) && !blockError) ||
+    ((newStatus === 'hold' || newStatus === 'issue') && statusDetailsValid(newStatus, statusDetails)) ||
     (newStatus === 'booked' && !!clientId && !!startDate && !!endDate && validDateRange);
 
   return (
@@ -189,37 +215,54 @@ export default function StatusChangeModal({
             <p className="text-xs font-medium text-slate-500 mb-1">Current Status</p>
             <StatusBadge status={site.mediaStatus} />
           </div>
+          {site.isActive === false && (
+            <p className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+              This site is Inactive, so it stays Immediate. Make it Active in Media Master to change its status.
+            </p>
+          )}
 
           <div>
             <p className="text-sm font-medium text-slate-700 mb-2">New Status</p>
-            <div className="flex gap-2">
-              {(['available', 'booked', 'blocked'] as MediaStatus[]).map((s) => (
+            <div className="flex flex-wrap gap-2">
+              {MEDIA_STATUS_LIST.map((s) => (
                 <button
                   key={s}
-                  onClick={() => setNewStatus(s)}
-                  className={`rounded-lg border px-4 py-2 text-sm font-medium capitalize ${
+                  onClick={() => {
+                    setNewStatus(s);
+                    setStatusDetails(statusDetailsFromSite(site, s));
+                  }}
+                  className={`rounded-lg border px-4 py-2 text-sm font-medium ${
                     newStatus === s ? 'bg-red-600 text-white border-red-600' : 'bg-white text-slate-600 border-slate-200'
                   }`}
                 >
-                  {s}
+                  {STATUS_LABELS[s]}
                 </button>
               ))}
             </div>
           </div>
 
-          {newStatus === 'available' && !isCancellingBooking && (
+          {newStatus === 'immediate' && !isCancellingBooking && (
             <p className="text-sm text-slate-500">
-              This will mark the site as Available. Previous booking/block history is kept for reference.
+              This will mark the site as Immediate (free for proposals). Previous booking/block history is kept for reference.
             </p>
           )}
 
-          {newStatus === 'available' && isCancellingBooking && (
+          {newStatus === 'immediate' && upcomingBlock && block && (
+            <label className="flex items-start gap-2 rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-slate-700">
+              <input type="checkbox" className="mt-0.5" checked={removeBlock} onChange={(e) => setRemoveBlock(e.target.checked)} />
+              <span>
+                Also remove the upcoming {blockKindLabel} ({block.customerName || 'customer'}, {formatDay(block.startDate)} → {formatDay(block.endDate)})
+              </span>
+            </label>
+          )}
+
+          {newStatus === 'immediate' && isCancellingBooking && (
             <div className="space-y-3 rounded-lg bg-amber-50 border border-amber-100 p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Cancel Booking / Change to Available</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Cancel Booking / Change to Immediate</p>
               <p className="text-xs text-slate-500">
-                This site is currently Booked. Changing to Available cancels the current booking — this cannot be a silent
+                This site is currently Booked. Changing to Immediate cancels the current booking — this cannot be a silent
                 status flip, so a reason is required. If another Upcoming booking still exists, the site will follow that
-                booking&apos;s status instead of becoming Available.
+                booking&apos;s status instead of becoming Immediate.
               </p>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Cancellation Reason *</label>
@@ -235,24 +278,19 @@ export default function StatusChangeModal({
             </div>
           )}
 
-          {newStatus === 'blocked' && (
-            <div className="space-y-3 rounded-lg bg-red-50 border border-red-100 p-3">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Block Reason *</label>
-                <input
-                  placeholder="Enter reason for blocking this site"
-                  value={blockReason}
-                  onChange={(e) => setBlockReason(e.target.value)}
-                  className={inputCls}
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Blocked Date</label>
-                <DatePicker value={todayISO()} disabled />
-              </div>
-            </div>
+          {isDatedStatus(newStatus) && (
+            <BlockDetailsFields
+              kind={newStatus}
+              value={blockDetails}
+              onChange={setBlockDetails}
+              clients={clients}
+              bookedRanges={bookingRangesForBlock}
+              // A running block keeps its own (past) Start Date when edited.
+              minStartDate={isDatedStatus(site.mediaStatus) && blockRange && blockRange.start < todayISO() ? blockRange.start : todayISO()}
+            />
           )}
+
+          <StatusDetailsFields status={newStatus} value={statusDetails} onChange={setStatusDetails} />
 
           {newStatus === 'booked' && (
             <div className="space-y-3 rounded-lg bg-red-50 border border-red-100 p-3">

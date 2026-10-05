@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, KeyRound, CheckCircle2, Loader2, MailCheck } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
-import loginBg from '@/images/login-bg3.jpg';
+import loginBg from '@/images/login-bg3.png';
 
 function MpinBoxInput({
   idPrefix,

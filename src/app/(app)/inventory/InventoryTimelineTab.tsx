@@ -16,6 +16,7 @@ import type { InventoryHistoryEntry, MediaStatus } from '@/lib/types';
 import CustomSelect from '@/components/ui/CustomSelect';
 import Loader from '@/components/ui/Loader';
 import ScrollTable from '@/components/ui/ScrollTable';
+import { MEDIA_STATUS_OPTIONS } from '@/lib/siteStatus';
 
 const PAGE_SIZE = 20;
 const emptyFilters = { state: '', city: '', mediaStatus: '', isActive: '', from: '', to: '', siteOwner: '' };
@@ -23,7 +24,7 @@ const emptyFilters = { state: '', city: '', mediaStatus: '', isActive: '', from:
 export default function InventoryTimelineTab() {
   const { showToast } = useToast();
 
-  const [summary, setSummary] = useState({ total: 0, available: 0, booked: 0, blocked: 0 });
+  const [summary, setSummary] = useState({ total: 0, immediate: 0, booked: 0, blocked: 0 });
   const [items, setItems] = useState<InventoryHistoryEntry[]>([]);
   const [total, setTotal] = useState(0);
   const [distinctSiteCount, setDistinctSiteCount] = useState(0);
@@ -133,10 +134,10 @@ export default function InventoryTimelineTab() {
             <Building2 className="h-5 w-5" />
           </div>
         </button>
-        <button onClick={() => selectStatusCard('available')} className={`${cardBase} ${filters.mediaStatus === 'available' ? 'ring-emerald-400 border-emerald-300' : 'border-slate-200'}`}>
+        <button onClick={() => selectStatusCard('immediate')} className={`${cardBase} ${filters.mediaStatus === 'immediate' ? 'ring-emerald-400 border-emerald-300' : 'border-slate-200'}`}>
           <div>
-            <p className="text-xs font-medium text-slate-500">Available Sites</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">{summary.available}</p>
+            <p className="text-xs font-medium text-slate-500">Immediate Sites</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">{summary.immediate}</p>
           </div>
           <div className="h-10 w-10 rounded-lg flex items-center justify-center bg-emerald-50 text-emerald-600">
             <CheckCircle2 className="h-5 w-5" />
@@ -186,11 +187,7 @@ export default function InventoryTimelineTab() {
               value={filters.mediaStatus}
               onChange={(val) => setFilters((f) => ({ ...f, mediaStatus: val }))}
               placeholder="All Status"
-              options={[
-                { value: 'available', label: 'Available' },
-                { value: 'booked', label: 'Booked' },
-                { value: 'blocked', label: 'Blocked' },
-              ]}
+              options={MEDIA_STATUS_OPTIONS}
             />
           </div>
           <div className="w-36">

@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Search, Plus, Upload, Download, Eye, Pencil, Trash2, RefreshCcw, X, ImageOff, Save, CalendarX } from 'lucide-react';
+import { Search, Plus, Upload, Download, Pencil, Trash2, RefreshCcw, X, ImageOff, Save, CalendarX, ToggleLeft, ToggleRight } from 'lucide-react';
 import api, { resolveImageUrl } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useToast } from '@/components/ui/Toast';
@@ -15,18 +15,20 @@ import SiteViewModal from '@/components/sites/SiteViewModal';
 import StatusDetailsPopover from '@/components/inventory/StatusDetailsPopover';
 import CancelUpcomingBookingModal from '@/components/inventory/CancelUpcomingBookingModal';
 import { StateSelect, CitySelect } from '@/components/ui/StateCitySelect';
-import { SiteOwnerSelect } from '@/components/ui/SiteOwnerSelect';
+import { SiteOwnerMultiSelect } from '@/components/ui/SiteOwnerSelect';
+import { ILLUMINATION_OPTIONS } from '@/lib/mediaTypes';
 import Loader from '@/components/ui/Loader';
 import CustomSelect from '@/components/ui/CustomSelect';
 import { formatIST } from '@/lib/date';
 import type { Site, MediaStatus } from '@/lib/types';
 import ScrollTable from '@/components/ui/ScrollTable';
+import { MEDIA_STATUS_OPTIONS } from '@/lib/siteStatus';
 
 const PAGE_SIZE = 20;
 const rowActionCls =
   'inline-flex w-full items-center justify-center gap-1 whitespace-nowrap rounded-md border px-2 py-1 text-[11px] font-medium transition-colors';
 
-const emptyFilters = { mediaType: '', state: '', city: '', mediaStatus: '', isActive: '', siteOwner: '' };
+const emptyFilters = { mediaType: '', state: '', city: '', mediaStatus: '', isActive: '', siteOwner: [] as string[], illumination: '' };
 
 export default function SitesPage() {
   const { user } = useAuth();
@@ -50,6 +52,7 @@ export default function SitesPage() {
   const [statusInitial, setStatusInitial] = useState<MediaStatus | undefined>(undefined);
   const [rowPending, setRowPending] = useState<Record<string, MediaStatus>>({});
   const [viewSite, setViewSite] = useState<Site | null>(null);
+  const [activeTarget, setActiveTarget] = useState<Site | null>(null);
   const [cancelUpcomingSite, setCancelUpcomingSite] = useState<Site | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Site | null>(null);
   const [previewImage, setPreviewImage] = useState('');
@@ -133,6 +136,34 @@ export default function SitesPage() {
     }
   }
 
+  // Flips Active/Inactive only, then re-orders the loaded rows by the list's own rule (Active first,
+  // Inactive last, newest update first within each) — the site moves straight away, no reload, and
+  // the list keeps its scroll position.
+  async function handleToggleActive() {
+    if (!activeTarget) return;
+    const isActive = !activeTarget.isActive;
+    try {
+      const res = await api.patch(`/sites/${activeTarget._id}/active`, { isActive });
+      const byListOrder = (a: Site, b: Site) =>
+        Number(b.isActive !== false) - Number(a.isActive !== false) ||
+        (b.updatedAt || '').localeCompare(a.updatedAt || '') ||
+        b._id.localeCompare(a._id);
+      // With the Active / Inactive filter on, a site that no longer matches it leaves the list right away.
+      const stillMatches = filters.isActive === '' || String(isActive) === filters.isActive;
+      if (stillMatches) {
+        setItems((prev) => prev.map((s) => (s._id === activeTarget._id ? { ...s, ...res.data } : s)).sort(byListOrder));
+      } else {
+        setItems((prev) => prev.filter((s) => s._id !== activeTarget._id));
+        setTotal((t) => Math.max(t - 1, 0));
+      }
+      showToast(`Site marked ${isActive ? 'Active' : 'Inactive'}`);
+    } catch (err: any) {
+      showToast(err?.response?.data?.message || 'Failed to update site', 'error');
+    } finally {
+      setActiveTarget(null);
+    }
+  }
+
   async function handleExport() {
     setExporting(true);
     try {
@@ -155,7 +186,7 @@ export default function SitesPage() {
     }
   }
 
-  const filtersActive = search || Object.values(filters).some(Boolean);
+  const filtersActive = search || Object.values(filters).some((v) => (Array.isArray(v) ? v.length > 0 : Boolean(v)));
 
   return (
     <div className="space-y-4">
@@ -208,11 +239,7 @@ export default function SitesPage() {
               value={filters.mediaStatus}
               onChange={(val) => setFilters((f) => ({ ...f, mediaStatus: val }))}
               placeholder="All Media Status"
-              options={[
-                { value: 'available', label: 'Available' },
-                { value: 'booked', label: 'Booked' },
-                { value: 'blocked', label: 'Blocked' },
-              ]}
+              options={MEDIA_STATUS_OPTIONS}
             />
           </div>
           <div className="w-36">
@@ -226,6 +253,14 @@ export default function SitesPage() {
               ]}
             />
           </div>
+          <div className="w-40">
+            <CustomSelect
+              value={filters.illumination}
+              onChange={(val) => setFilters((f) => ({ ...f, illumination: val }))}
+              placeholder="All Illumination"
+              options={ILLUMINATION_OPTIONS}
+            />
+          </div>
           <StateSelect
             value={filters.state}
             onChange={(state) => setFilters((f) => ({ ...f, state, city: '' }))}
@@ -237,10 +272,11 @@ export default function SitesPage() {
             onChange={(city) => setFilters((f) => ({ ...f, city }))}
             className="rounded-lg border border-slate-300 px-3 py-2 text-sm w-40"
           />
-          <SiteOwnerSelect
+          {/* Several owners can be picked — list, counts and Export all show sites of any of them. */}
+          <SiteOwnerMultiSelect
             value={filters.siteOwner}
             onChange={(siteOwner) => setFilters((f) => ({ ...f, siteOwner }))}
-            className="w-44"
+            className="w-56"
           />
           {filtersActive && (
             <button
@@ -344,22 +380,23 @@ export default function SitesPage() {
                         (() => {
                           const pending = rowPending[site._id];
                           const hasChange = !!pending && pending !== site.mediaStatus;
-                          const canAddBooking = site.mediaStatus === 'booked';
+                          // Inactive sites stay Immediate — their status can't be changed until made Active.
+                          const inactive = site.isActive === false;
+                          const canAddBooking = !inactive && site.mediaStatus === 'booked';
                           const canCancelUpcoming =
-                            site.mediaStatus !== 'blocked' && !!site.bookings?.some((b) => b.status === 'upcoming');
+                            !inactive &&
+                            (site.mediaStatus === 'immediate' || site.mediaStatus === 'booked') &&
+                            !!site.bookings?.some((b) => b.status === 'upcoming');
                           return (
                             <>
-                              <div className="flex items-center gap-1.5">
+                              <div className="flex items-center gap-1.5" title={inactive ? 'Inactive site — make it Active to change its status' : undefined}>
                                 <CustomSelect
                                   value={pending || site.mediaStatus}
                                   onChange={(val) => setRowPending((prev) => ({ ...prev, [site._id]: val as MediaStatus }))}
-                                  options={[
-                                    { value: 'available', label: 'Available' },
-                                    { value: 'booked', label: 'Booked' },
-                                    { value: 'blocked', label: 'Blocked' },
-                                  ]}
+                                  options={MEDIA_STATUS_OPTIONS}
                                   placeholder=""
-                                  className="w-28 text-xs capitalize"
+                                  disabled={inactive}
+                                  className="w-28 text-xs"
                                 />
                                 <button
                                   disabled={!hasChange}
@@ -421,16 +458,23 @@ export default function SitesPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => setViewSite(site)} className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
-                          <Eye className="h-4 w-4" />
-                        </button>
                         {canManage && (
                           <>
+                            <button
+                              onClick={() => setActiveTarget(site)}
+                              title={site.isActive ? 'Active — click to make Inactive' : 'Inactive — click to make Active'}
+                              aria-label={site.isActive ? 'Make site inactive' : 'Make site active'}
+                              className={`rounded p-1.5 hover:bg-slate-100 ${site.isActive ? 'text-emerald-600 hover:text-emerald-700' : 'text-slate-400 hover:text-slate-600'}`}
+                            >
+                              {site.isActive ? <ToggleRight className="h-5 w-5" /> : <ToggleLeft className="h-5 w-5" />}
+                            </button>
                             <button
                               onClick={() => {
                                 setEditingSite(site);
                                 setFormOpen(true);
                               }}
+                              title="Edit site"
+                              aria-label="Edit site"
                               className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-red-600"
                             >
                               <Pencil className="h-4 w-4" />
@@ -438,6 +482,8 @@ export default function SitesPage() {
                             {canDelete && (
                               <button
                                 onClick={() => setDeleteTarget(site)}
+                                title="Delete site"
+                                aria-label="Delete site"
                                 className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-red-600"
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -461,7 +507,7 @@ export default function SitesPage() {
       <SiteFormModal open={formOpen} onClose={() => setFormOpen(false)} site={editingSite} onSaved={refresh} />
       <StatusChangeModal open={!!statusSite} onClose={() => setStatusSite(null)} site={statusSite} initialStatus={statusInitial} onSaved={refresh} />
       <SiteViewModal open={!!viewSite} onClose={() => setViewSite(null)} site={viewSite} />
-      <CancelUpcomingBookingModal open={!!cancelUpcomingSite} onClose={() => setCancelUpcomingSite(null)} site={cancelUpcomingSite} onSaved={refresh} />
+      <CancelUpcomingBookingModal open={!!cancelUpcomingSite} onClose={() => setCancelUpcomingSite(null)} site={cancelUpcomingSite} onSaved={refresh} source="sites" />
       <ConfirmDialog
         open={!!deleteTarget}
         title="Delete Site"
@@ -470,6 +516,19 @@ export default function SitesPage() {
         danger
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
+      />
+      <ConfirmDialog
+        open={!!activeTarget}
+        title={activeTarget?.isActive ? 'Make Site Inactive' : 'Make Site Active'}
+        message={
+          activeTarget?.isActive
+            ? `Make "${activeTarget?.mediaCode || activeTarget?.mediaId}" Inactive? Its status changes to Immediate (any block, confirmation, hold or issue is removed; bookings are kept) and it is hidden from client proposals (not deleted).`
+            : `Make "${activeTarget?.mediaCode || activeTarget?.mediaId}" Active? It can appear in client proposals again.`
+        }
+        confirmLabel={activeTarget?.isActive ? 'Make Inactive' : 'Make Active'}
+        danger={!!activeTarget?.isActive}
+        onConfirm={handleToggleActive}
+        onCancel={() => setActiveTarget(null)}
       />
 
       {previewImage && (

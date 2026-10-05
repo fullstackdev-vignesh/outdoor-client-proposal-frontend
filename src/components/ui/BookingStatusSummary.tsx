@@ -33,11 +33,27 @@ export function getBookingSummary(site: Site) {
 /** Status badge + at-a-glance Active/Upcoming booking period, shared by Site and Inventory tables. */
 export default function BookingStatusSummary({ site }: { site: Site }) {
   const { active, upcoming } = getBookingSummary(site);
-  const showBookingLines = site.mediaStatus !== 'blocked';
+  // Only dates are shown here — customer names and reasons are in the status details popup.
+  const showBookingLines = site.mediaStatus === 'immediate' || site.mediaStatus === 'booked';
+  const block = site.blockInfo;
+  const blockPeriod = block?.startDate && block?.endDate ? `${dateLabel(block.startDate)} → ${dateLabel(block.endDate)}` : '';
+  const kindLabel = block?.kind === 'confirmed' ? 'Confirmed' : 'Blocked';
+  // A Blocked/Confirmed period set ahead of time, shown under Immediate/Booked until it starts.
+  const upcomingBlock = showBookingLines && blockPeriod ? `${block?.kind === 'confirmed' ? 'Confirm' : 'Block'}: ${blockPeriod}` : '';
 
   return (
     <div className="flex flex-col items-start gap-0.5">
       <StatusBadge status={site.mediaStatus} />
+      {(site.mediaStatus === 'blocked' || site.mediaStatus === 'confirmed') && blockPeriod && (
+        <span className={`text-[10px] font-medium whitespace-nowrap ${site.mediaStatus === 'confirmed' ? 'text-blue-600' : 'text-rose-600'}`}>
+          {kindLabel}: {blockPeriod}
+        </span>
+      )}
+      {upcomingBlock && (
+        <span className="text-[10px] font-medium text-rose-500 whitespace-nowrap">
+          {upcomingBlock}
+        </span>
+      )}
       {showBookingLines && site.mediaStatus === 'booked' && active && (
         <span className="text-[10px] font-medium text-yellow-700 whitespace-nowrap">Active: {periodLabel(active)}</span>
       )}

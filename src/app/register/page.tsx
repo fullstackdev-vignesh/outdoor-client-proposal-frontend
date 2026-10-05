@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Building2, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import type { Role } from '@/lib/types';
-import loginBg from '@/images/login-bg3.jpg';
+import loginBg from '@/images/login-bg3.png';
 
 interface FormErrors {
   userName?: string;

@@ -1,13 +1,16 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Search, Download, X, ImageOff, Building2, CheckCircle2, CalendarCheck, Ban, Save, History, Plus, CalendarX } from 'lucide-react';
+import {
+  Search, Download, X, ImageOff, Building2, CheckCircle2, CalendarCheck, Ban, Save, History, Plus, CalendarX,
+  BadgeCheck, PauseCircle, AlertTriangle,
+} from 'lucide-react';
 import api, { resolveImageUrl } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import EmptyState from '@/components/ui/EmptyState';
 import { StatCard } from '@/components/ui/Card';
 import { StateSelect, CitySelect } from '@/components/ui/StateCitySelect';
-import { SiteOwnerSelect } from '@/components/ui/SiteOwnerSelect';
+import { SiteOwnerMultiSelect } from '@/components/ui/SiteOwnerSelect';
 import StatusChangeModal from '@/components/sites/StatusChangeModal';
 import SiteViewModal from '@/components/sites/SiteViewModal';
 import BulkStatusModal from '@/components/inventory/BulkStatusModal';
@@ -20,16 +23,30 @@ import Loader from '@/components/ui/Loader';
 import { formatIST } from '@/lib/date';
 import type { Site, MediaStatus } from '@/lib/types';
 import ScrollTable from '@/components/ui/ScrollTable';
+import { MEDIA_STATUS_OPTIONS } from '@/lib/siteStatus';
+
+// Summary cards — clicking one filters the list by that status ('' = all).
+const STATUS_CARDS: { status: '' | MediaStatus; label: string; icon: typeof Building2; ring: string; iconCls: string }[] = [
+  { status: '', label: 'Total Sites', icon: Building2, ring: 'ring-red-400 border-red-300', iconCls: 'bg-slate-100 text-slate-600' },
+  { status: 'immediate', label: 'Immediate', icon: CheckCircle2, ring: 'ring-emerald-400 border-emerald-300', iconCls: 'bg-emerald-50 text-emerald-600' },
+  { status: 'blocked', label: 'Blocked', icon: Ban, ring: 'ring-red-400 border-red-300', iconCls: 'bg-red-50 text-red-600' },
+  { status: 'confirmed', label: 'Confirmed', icon: BadgeCheck, ring: 'ring-blue-400 border-blue-300', iconCls: 'bg-blue-50 text-blue-600' },
+  { status: 'booked', label: 'Booked', icon: CalendarCheck, ring: 'ring-yellow-400 border-yellow-300', iconCls: 'bg-yellow-50 text-yellow-600' },
+  { status: 'hold', label: 'Hold', icon: PauseCircle, ring: 'ring-orange-400 border-orange-300', iconCls: 'bg-orange-50 text-orange-600' },
+  { status: 'issue', label: 'Issue', icon: AlertTriangle, ring: 'ring-purple-400 border-purple-300', iconCls: 'bg-purple-50 text-purple-600' },
+];
 
 const PAGE_SIZE = 20;
 const rowActionCls =
   'inline-flex w-full items-center justify-center gap-1 whitespace-nowrap rounded-md border px-2 py-1 text-[11px] font-medium transition-colors';
-const emptyFilters = { state: '', city: '', mediaStatus: '', isActive: '', siteOwner: '' };
+const emptyFilters = { state: '', city: '', mediaStatus: '', isActive: '', siteOwner: [] as string[] };
 
 export default function InventoryLiveTab() {
   const { showToast } = useToast();
 
-  const [summary, setSummary] = useState({ total: 0, available: 0, booked: 0, blocked: 0 });
+  const [summary, setSummary] = useState<Record<'total' | MediaStatus, number>>({
+    total: 0, immediate: 0, booked: 0, blocked: 0, confirmed: 0, hold: 0, issue: 0,
+  });
   const [items, setItems] = useState<Site[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -159,58 +176,28 @@ export default function InventoryLiveTab() {
   }
 
   const selectedSites = items.filter((s) => selected.has(s._id));
-  const filtersActive = search || Object.values(filters).some(Boolean);
+  const filtersActive = search || Object.values(filters).some((v) => (Array.isArray(v) ? v.length > 0 : Boolean(v)));
 
   const cardBase = 'text-left rounded-xl border bg-white p-4 flex items-center justify-between shadow-sm transition ring-2 ring-transparent hover:shadow-md';
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <button onClick={() => selectStatusCard('')} className={`${cardBase} ${filters.mediaStatus === '' ? 'ring-red-400 border-red-300' : 'border-slate-200'}`}>
-          <div>
-            <p className="text-xs font-medium text-slate-500">Total Sites</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">{summary.total}</p>
-          </div>
-          <div className="h-10 w-10 rounded-lg flex items-center justify-center bg-slate-100 text-slate-600">
-            <Building2 className="h-5 w-5" />
-          </div>
-        </button>
-        <button
-          onClick={() => selectStatusCard('available')}
-          className={`${cardBase} ${filters.mediaStatus === 'available' ? 'ring-emerald-400 border-emerald-300' : 'border-slate-200'}`}
-        >
-          <div>
-            <p className="text-xs font-medium text-slate-500">Available Sites</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">{summary.available}</p>
-          </div>
-          <div className="h-10 w-10 rounded-lg flex items-center justify-center bg-emerald-50 text-emerald-600">
-            <CheckCircle2 className="h-5 w-5" />
-          </div>
-        </button>
-        <button
-          onClick={() => selectStatusCard('booked')}
-          className={`${cardBase} ${filters.mediaStatus === 'booked' ? 'ring-yellow-400 border-yellow-300' : 'border-slate-200'}`}
-        >
-          <div>
-            <p className="text-xs font-medium text-slate-500">Booked Sites</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">{summary.booked}</p>
-          </div>
-          <div className="h-10 w-10 rounded-lg flex items-center justify-center bg-yellow-50 text-yellow-600">
-            <CalendarCheck className="h-5 w-5" />
-          </div>
-        </button>
-        <button
-          onClick={() => selectStatusCard('blocked')}
-          className={`${cardBase} ${filters.mediaStatus === 'blocked' ? 'ring-red-400 border-red-300' : 'border-slate-200'}`}
-        >
-          <div>
-            <p className="text-xs font-medium text-slate-500">Blocked Sites</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">{summary.blocked}</p>
-          </div>
-          <div className="h-10 w-10 rounded-lg flex items-center justify-center bg-red-50 text-red-600">
-            <Ban className="h-5 w-5" />
-          </div>
-        </button>
+      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3">
+        {STATUS_CARDS.map(({ status, label, icon: Icon, ring, iconCls }) => (
+          <button
+            key={status || 'total'}
+            onClick={() => selectStatusCard(status)}
+            className={`${cardBase} ${filters.mediaStatus === status ? ring : 'border-slate-200'}`}
+          >
+            <div>
+              <p className="text-xs font-medium text-slate-500">{label}</p>
+              <p className="mt-1 text-2xl font-bold text-slate-900">{status ? summary[status] : summary.total}</p>
+            </div>
+            <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${iconCls}`}>
+              <Icon className="h-5 w-5" />
+            </div>
+          </button>
+        ))}
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
@@ -229,11 +216,7 @@ export default function InventoryLiveTab() {
               value={filters.mediaStatus}
               onChange={(val) => setFilters((f) => ({ ...f, mediaStatus: val }))}
               placeholder="All Media Status"
-              options={[
-                { value: 'available', label: 'Available' },
-                { value: 'booked', label: 'Booked' },
-                { value: 'blocked', label: 'Blocked' },
-              ]}
+              options={MEDIA_STATUS_OPTIONS}
             />
           </div>
           <div className="w-36">
@@ -258,10 +241,11 @@ export default function InventoryLiveTab() {
             onChange={(city) => setFilters((f) => ({ ...f, city }))}
             className="rounded-lg border border-slate-300 px-3 py-2 text-sm w-40"
           />
-          <SiteOwnerSelect
+          {/* Several owners can be picked — list, counts and Export all show sites of any of them. */}
+          <SiteOwnerMultiSelect
             value={filters.siteOwner}
             onChange={(siteOwner) => setFilters((f) => ({ ...f, siteOwner }))}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm w-44"
+            className="w-56"
           />
           {filtersActive && (
             <button
@@ -304,11 +288,7 @@ export default function InventoryLiveTab() {
               disabled={selected.size === 0}
               onChange={(val) => setBulkStatus(val as MediaStatus | '')}
               placeholder="Set Status"
-              options={[
-                { value: 'available', label: 'Available' },
-                { value: 'booked', label: 'Booked' },
-                { value: 'blocked', label: 'Blocked' },
-              ]}
+              options={MEDIA_STATUS_OPTIONS}
             />
           </div>
           <button
@@ -411,25 +391,26 @@ export default function InventoryLiveTab() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <CustomSelect
-                          value={pending || site.mediaStatus}
-                          onChange={(val) => setRowPending((prev) => ({ ...prev, [site._id]: val as MediaStatus }))}
-                          options={[
-                            { value: 'available', label: 'Available' },
-                            { value: 'booked', label: 'Booked' },
-                            { value: 'blocked', label: 'Blocked' },
-                          ]}
-                          placeholder=""
-                          className="w-28 text-xs capitalize"
-                        />
-                        {!hasChange && (() => {
+                        {/* Inactive sites stay Immediate — status can't change until the site is Active. */}
+                        <div title={site.isActive === false ? 'Inactive site — make it Active (Media Master) to change its status' : undefined}>
+                          <CustomSelect
+                            value={pending || site.mediaStatus}
+                            onChange={(val) => setRowPending((prev) => ({ ...prev, [site._id]: val as MediaStatus }))}
+                            options={MEDIA_STATUS_OPTIONS}
+                            placeholder=""
+                            disabled={site.isActive === false}
+                            className="w-28 text-xs"
+                          />
+                        </div>
+                        {!hasChange && site.isActive !== false && (() => {
                           // Booked → Booked isn't a status "change", so the Save button stays off —
                           // this lets a Booked site take another booking (another client/dates).
                           const canAddBooking = site.mediaStatus === 'booked';
-                          // Cancelling an Upcoming booking doesn't change the site's status (Available or
+                          // Cancelling an Upcoming booking doesn't change the site's status (Immediate or
                           // Booked), so it's done from its own popup instead of Save.
                           const canCancelUpcoming =
-                            site.mediaStatus !== 'blocked' && !!site.bookings?.some((b) => b.status === 'upcoming');
+                            (site.mediaStatus === 'immediate' || site.mediaStatus === 'booked') &&
+                            !!site.bookings?.some((b) => b.status === 'upcoming');
                           if (!canAddBooking && !canCancelUpcoming) return null;
                           return (
                             <div className="mt-1.5 flex flex-col gap-1">
@@ -513,7 +494,7 @@ export default function InventoryLiveTab() {
         open={bulkModalOpen && !!bulkStatus && selectedSites.length > 0}
         onClose={() => setBulkModalOpen(false)}
         sites={selectedSites}
-        status={bulkStatus || 'available'}
+        status={bulkStatus || 'immediate'}
         onSaved={refresh}
       />
 

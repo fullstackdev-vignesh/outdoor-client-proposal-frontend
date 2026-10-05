@@ -7,7 +7,7 @@ import { useToast } from '@/components/ui/Toast';
 import { formatISTDate } from '@/lib/date';
 import type { BookingRecord, Site } from '@/lib/types';
 
-// Cancels ONE Upcoming booking on a site (Available or Booked) without touching the current
+// Cancels ONE Upcoming booking on a site (Immediate or Booked) without touching the current
 // booking — the row's Save button can't do it, since the status doesn't change. Uses the same per-booking cancel
 // endpoint as Edit Site → Booking Details; the backend then recalculates the site's status.
 export default function CancelUpcomingBookingModal({
@@ -15,11 +15,14 @@ export default function CancelUpcomingBookingModal({
   onClose,
   site,
   onSaved,
+  source = 'inventory',
 }: {
   open: boolean;
   onClose: () => void;
   site: Site | null;
   onSaved: () => void;
+  // Which page it's opened from — a change from Site Management counts as a site update.
+  source?: 'sites' | 'inventory';
 }) {
   const { showToast } = useToast();
   const upcoming = (site?.bookings || [])
@@ -44,7 +47,7 @@ export default function CancelUpcomingBookingModal({
     if (!site || !bookingId || !reason.trim()) return;
     setSaving(true);
     try {
-      await api.patch(`/sites/${site._id}/bookings/${bookingId}/cancel`, { reason: reason.trim(), source: 'inventory' });
+      await api.patch(`/sites/${site._id}/bookings/${bookingId}/cancel`, { reason: reason.trim(), source });
       showToast('Upcoming booking cancelled successfully');
       onSaved();
       onClose();
@@ -101,7 +104,7 @@ export default function CancelUpcomingBookingModal({
         <p className="text-xs text-slate-500">
           {site.mediaStatus === 'booked'
             ? 'Only the selected upcoming booking is cancelled — the current booking stays as it is.'
-            : 'The site stays Available.'}{' '}
+            : 'The site stays Immediate.'}{' '}
           The cancelled booking is kept in the site&apos;s timeline.
         </p>
 

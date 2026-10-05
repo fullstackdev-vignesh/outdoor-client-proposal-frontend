@@ -5,16 +5,19 @@ import Modal from '@/components/ui/Modal';
 import BookingStatusSummary from '@/components/ui/BookingStatusSummary';
 import { formatISTDate, formatIST } from '@/lib/date';
 import type { Site } from '@/lib/types';
+import { STATUS_LABELS } from '@/lib/siteStatus';
 
 export default function StatusDetailsPopover({ site, onViewFullDetails }: { site: Site; onViewFullDetails: () => void }) {
   const [open, setOpen] = useState(false);
 
-  if (site.mediaStatus !== 'booked' && site.mediaStatus !== 'blocked') {
+  if (site.mediaStatus === 'immediate') {
     return <BookingStatusSummary site={site} />;
   }
 
   const b = site.bookingInfo;
   const bl = site.blockInfo;
+  const st = site.statusInfo;
+  const title = site.mediaStatus === 'booked' ? 'Booking Details' : `${STATUS_LABELS[site.mediaStatus]} Details`;
 
   return (
     <>
@@ -22,7 +25,7 @@ export default function StatusDetailsPopover({ site, onViewFullDetails }: { site
         <BookingStatusSummary site={site} />
       </button>
 
-      <Modal open={open} onClose={() => setOpen(false)} title={site.mediaStatus === 'booked' ? 'Booking Details' : 'Block Details'} size="sm">
+      <Modal open={open} onClose={() => setOpen(false)} title={title} size="sm">
         <div className="space-y-3 text-sm">
           {site.mediaStatus === 'booked' && (
             <dl className="space-y-2">
@@ -34,10 +37,23 @@ export default function StatusDetailsPopover({ site, onViewFullDetails }: { site
               <Row label="Updated" value={formatIST(site.inventoryUpdatedAt)} />
             </dl>
           )}
-          {site.mediaStatus === 'blocked' && (
+          {(site.mediaStatus === 'blocked' || site.mediaStatus === 'confirmed') && (
             <dl className="space-y-2">
+              {bl?.customerName && <Row label={bl.customerType === 'agency' ? 'Agency' : 'Client'} value={bl.customerName} />}
+              {bl?.startDate && bl?.endDate && (
+                <Row label={`${site.mediaStatus === 'confirmed' ? 'Confirm' : 'Block'} Period`} value={`${formatISTDate(bl.startDate)} → ${formatISTDate(bl.endDate)}`} />
+              )}
               <Row label="Reason" value={bl?.reason || '-'} />
-              <Row label="Blocked Date" value={bl?.blockedDate ? formatISTDate(bl.blockedDate) : '-'} />
+              {bl?.notes && <Row label="Notes" value={bl.notes} />}
+              <Row label={site.mediaStatus === 'confirmed' ? 'Confirmed On' : 'Blocked On'} value={bl?.blockedDate ? formatISTDate(bl.blockedDate) : '-'} />
+              <Row label="Updated" value={formatIST(site.inventoryUpdatedAt)} />
+            </dl>
+          )}
+          {(site.mediaStatus === 'hold' || site.mediaStatus === 'issue') && (
+            <dl className="space-y-2">
+              <Row label="Reason" value={st?.reason || '-'} />
+              {st?.notes && <Row label="Notes" value={st.notes} />}
+              <Row label={`${STATUS_LABELS[site.mediaStatus]} Date`} value={st?.date ? formatIST(st.date) : '-'} />
               <Row label="Updated" value={formatIST(site.inventoryUpdatedAt)} />
             </dl>
           )}

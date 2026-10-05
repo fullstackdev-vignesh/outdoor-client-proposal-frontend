@@ -224,7 +224,7 @@ export default function BulkUploadPage() {
           mountingCost: r.mountingCost ? Number(r.mountingCost) : undefined,
           siteOwner: r.siteOwner || undefined,
           mediaImage: r.mediaImage || undefined,
-          mediaStatus: r.mediaStatus || 'available',
+          mediaStatus: r.mediaStatus || 'immediate',
         }));
       const { data } = await api.post('/sites/bulk-import', { records: validRecords });
       setImported(data.imported);

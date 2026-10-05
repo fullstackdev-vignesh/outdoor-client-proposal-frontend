@@ -6,6 +6,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import api, { resolveImageUrl } from '@/lib/api';
 import { formatIST, formatISTDate } from '@/lib/date';
 import type { Site, SiteHistoryEntry } from '@/lib/types';
+import { STATUS_LABELS } from '@/lib/siteStatus';
 
 function label(field: string) {
   const map: Record<string, string> = {
@@ -17,6 +18,9 @@ function label(field: string) {
     location: 'Location',
     areaName: 'Area Name',
     locationDetails: 'Location Details',
+    trafficViewFrom: 'Traffic View From',
+    trafficViewTo: 'Traffic View To',
+    specification: 'Specification',
     latitude: 'Latitude',
     longitude: 'Longitude',
     illumination: 'Illumination',
@@ -35,6 +39,11 @@ function label(field: string) {
     siteOwner: 'Site Owner',
     'blockInfo.reason': 'Block Reason',
     'blockInfo.notes': 'Block Notes',
+    'statusInfo.reason': 'Status Reason',
+    'statusInfo.notes': 'Status Notes',
+    'blockInfo.customerName': 'Blocked For',
+    'blockInfo.startDate': 'Block Start Date',
+    'blockInfo.endDate': 'Block End Date',
   };
   return map[field] || field;
 }
@@ -154,6 +163,8 @@ export default function SiteViewModal({ open, onClose, site: siteProp }: { open:
           <ViewSection title="Location Details">
             <Row label="Latitude" value={site.latitude} />
             <Row label="Longitude" value={site.longitude} />
+            <Row label="Traffic View From" value={site.trafficViewFrom} />
+            <Row label="Traffic View To" value={site.trafficViewTo} />
             {site.latitude && site.longitude && (
               <div className="col-span-2 sm:col-span-3 rounded-lg overflow-hidden border border-slate-200 h-48">
                 <iframe
@@ -167,6 +178,7 @@ export default function SiteViewModal({ open, onClose, site: siteProp }: { open:
           <ViewSection title="Media Size">
             <Row label="Illumination" value={site.illumination} />
             <Row label="Size" value={site.width && site.height ? `${site.width} x ${site.height} = ${site.autoSize}` : '-'} />
+            <Row label="Specification" value={site.specification} />
           </ViewSection>
 
           <ViewSection title="Pricing">
@@ -198,7 +210,7 @@ export default function SiteViewModal({ open, onClose, site: siteProp }: { open:
             </ViewSection>
           )}
 
-          {site.mediaStatus === 'available' &&
+          {site.mediaStatus === 'immediate' &&
             site.bookings?.find((b) => b.status === 'upcoming') &&
             (() => {
               const upcoming = site.bookings!.filter((b) => b.status === 'upcoming').sort((a, b) => a.startDate.localeCompare(b.startDate))[0];
@@ -230,11 +242,31 @@ export default function SiteViewModal({ open, onClose, site: siteProp }: { open:
             </ViewSection>
           )}
 
-          {site.mediaStatus === 'blocked' && site.blockInfo && (
-            <ViewSection title="Block Details">
-              <Row label="Block Reason" value={site.blockInfo.reason} />
-              <Row label="Blocked Date" value={formatIST(site.blockInfo.blockedDate)} />
+          {site.blockInfo && (site.mediaStatus === 'blocked' || site.mediaStatus === 'confirmed' || site.blockInfo.startDate) && (
+            <ViewSection
+              title={
+                site.mediaStatus === 'blocked' || site.mediaStatus === 'confirmed'
+                  ? `${site.blockInfo.kind === 'confirmed' ? 'Confirm' : 'Block'} Details`
+                  : `Upcoming ${site.blockInfo.kind === 'confirmed' ? 'Confirmation' : 'Block'}`
+              }
+            >
+              <Row label={site.blockInfo.customerType === 'agency' ? 'Agency' : 'Client'} value={site.blockInfo.customerName} />
+              <Row
+                label={`${site.blockInfo.kind === 'confirmed' ? 'Confirm' : 'Block'} Period`}
+                value={site.blockInfo.startDate && site.blockInfo.endDate ? `${formatISTDate(site.blockInfo.startDate)} → ${formatISTDate(site.blockInfo.endDate)}` : undefined}
+              />
+              <Row label="Reason" value={site.blockInfo.reason} />
+              <Row label="Notes" value={site.blockInfo.notes} />
+              <Row label="Blocked On" value={formatIST(site.blockInfo.blockedDate)} />
               <Row label="Blocked By" value={typeof site.blockInfo.blockedBy === 'object' ? site.blockInfo.blockedBy?.name : undefined} />
+            </ViewSection>
+          )}
+
+          {(site.mediaStatus === 'hold' || site.mediaStatus === 'issue') && site.statusInfo && (
+            <ViewSection title={`${STATUS_LABELS[site.mediaStatus]} Details`}>
+              <Row label="Reason" value={site.statusInfo.reason} />
+              <Row label="Notes" value={site.statusInfo.notes} />
+              <Row label={`${STATUS_LABELS[site.mediaStatus]} Date`} value={formatIST(site.statusInfo.date)} />
             </ViewSection>
           )}
         </div>

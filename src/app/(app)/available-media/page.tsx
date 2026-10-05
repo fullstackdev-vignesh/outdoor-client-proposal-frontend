@@ -44,8 +44,8 @@ export default function AvailableMediaPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Available Media</h1>
-          <p className="text-sm text-slate-500">Search and select media currently available for booking</p>
+          <h1 className="text-xl font-bold text-slate-900">Immediate Media</h1>
+          <p className="text-sm text-slate-500">Search and select media currently free (Immediate) for booking</p>
         </div>
         {selected.size > 0 && (
           <button

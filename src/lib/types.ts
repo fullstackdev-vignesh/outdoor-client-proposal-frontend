@@ -1,6 +1,6 @@
 export type Role = 'admin' | 'tl' | 'user' | 'bd';
 
-export type MediaStatus = 'available' | 'booked' | 'blocked';
+export type MediaStatus = 'immediate' | 'booked' | 'blocked' | 'confirmed' | 'hold' | 'issue';
 
 export interface AuthUser {
   id: string;
@@ -43,11 +43,26 @@ export interface BookingRecord {
   cancelledByRole?: string;
 }
 
+// A Blocked or Confirmed period (kind) for one customer over its own Start/End Date (older blocks have no dates).
 export interface BlockInfo {
+  kind?: 'blocked' | 'confirmed';
   reason?: string;
   notes?: string;
+  customerType?: 'client' | 'agency';
+  client?: string;
+  customerName?: string;
+  startDate?: string;
+  endDate?: string;
   blockedDate?: string;
   blockedBy?: { _id: string; name: string } | string;
+}
+
+// Details of the Hold / Issue statuses.
+export interface StatusInfo {
+  reason?: string;
+  notes?: string;
+  date?: string;
+  by?: { _id: string; name: string } | string;
 }
 
 export interface Site {
@@ -62,6 +77,9 @@ export interface Site {
   location?: string;
   areaName?: string;
   locationDetails?: string;
+  trafficViewFrom?: string;
+  trafficViewTo?: string;
+  specification?: string;
   siteOwner?: string;
   latitude?: number;
   longitude?: number;
@@ -77,12 +95,15 @@ export interface Site {
   mountingCost?: number;
   totalCost?: number;
   mediaImage?: string;
+  // Every image saved for the site (includes mediaImage, the default). Missing on older sites.
+  mediaImages?: string[];
   siteInfoId?: SiteInfo | string | null;
   isActive: boolean;
   mediaStatus: MediaStatus;
   bookingInfo?: BookingInfo;
   bookings?: BookingRecord[];
   blockInfo?: BlockInfo;
+  statusInfo?: StatusInfo;
   createdAt: string;
   updatedAt?: string;
   inventoryUpdatedAt?: string;
@@ -138,9 +159,22 @@ export interface InventoryHistoryEntry {
     amount?: number;
   };
   blockSnapshot?: {
+    kind?: string;
     reason?: string;
     notes?: string;
     blockedDate?: string;
+    customerType?: string;
+    customerName?: string;
+    startDate?: string;
+    endDate?: string;
+  };
+  // Hold / Issue rows (rows from the old .env-based Confirmed may also carry a customer).
+  statusSnapshot?: {
+    reason?: string;
+    notes?: string;
+    customerType?: string;
+    customerName?: string;
+    date?: string;
   };
   cancellationSnapshot?: {
     reason?: string;

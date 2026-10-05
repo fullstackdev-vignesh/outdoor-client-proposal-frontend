@@ -9,6 +9,16 @@ import { todayISO } from '@/lib/date';
 import DatePicker from '@/components/ui/DatePicker';
 import CustomSelect from '@/components/ui/CustomSelect';
 import type { Site, Client, MediaStatus } from '@/lib/types';
+import { STATUS_LABELS, isDatedStatus } from '@/lib/siteStatus';
+import StatusDetailsFields, {
+  BlockDetailsFields,
+  blockDetailsError,
+  emptyBlockDetails,
+  emptyStatusDetails,
+  statusDetailsValid,
+  type BlockDetails,
+  type StatusDetails,
+} from '@/components/sites/StatusDetailsFields';
 
 function calcDurationDays(start: string, end: string) {
   if (!start || !end) return 0;
@@ -42,8 +52,8 @@ export default function BulkStatusModal({
   const [clientId, setClientId] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [blockReason, setBlockReason] = useState('');
-  const [blockNotes, setBlockNotes] = useState('');
+  const [blockDetails, setBlockDetails] = useState<BlockDetails>(emptyBlockDetails);
+  const [statusDetails, setStatusDetails] = useState<StatusDetails>(emptyStatusDetails);
   const [saving, setSaving] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -53,9 +63,9 @@ export default function BulkStatusModal({
       setClientId('');
       setStartDate('');
       setEndDate('');
-      setBlockReason('');
-      setBlockNotes('');
-      if (status === 'booked') api.get('/clients', { params: { limit: 200 } }).then((res) => setClients(res.data.items));
+      setBlockDetails(emptyBlockDetails);
+      setStatusDetails(emptyStatusDetails);
+      if (status === 'booked' || isDatedStatus(status)) api.get('/clients', { params: { limit: 200 } }).then((res) => setClients(res.data.items));
     }
   }, [open, status]);
 
@@ -67,23 +77,27 @@ export default function BulkStatusModal({
   });
   const grandTotal = perSite.reduce((sum, p) => sum + p.bookingAmount, 0);
   const canSubmit =
-    status === 'available' ||
-    (status === 'blocked' && !!blockReason) ||
+    status === 'immediate' ||
+    (isDatedStatus(status) && !blockDetailsError(blockDetails)) ||
+    ((status === 'hold' || status === 'issue') && statusDetailsValid(status, statusDetails)) ||
     (status === 'booked' && !!clientId && !!startDate && !!endDate && validDateRange);
 
   async function submit() {
     setSaving(true);
     try {
       const payload: any = { siteIds: sites.map((s) => s._id), mediaStatus: status };
-      if (status === 'blocked') {
-        payload.blockReason = blockReason;
-        payload.blockNotes = blockNotes;
-      }
+      if (isDatedStatus(status)) Object.assign(payload, blockDetails);
+      if (status === 'hold' || status === 'issue') Object.assign(payload, statusDetails);
       if (status === 'booked') {
         payload.bookingInfo = { customerType, client: clientId, startDate, endDate };
       }
       const res = await api.patch('/sites/bulk-status', payload);
+      const skippedList: { site: string; reason: string }[] = res.data.skipped || [];
       showToast(`Updated ${res.data.updated} of ${res.data.total} sites`);
+      // e.g. a block whose dates overlap that site's booking.
+      if (skippedList.length) {
+        showToast(`Skipped ${skippedList.map((s) => `${s.site}: ${s.reason}`).join(' · ')}`, 'error');
+      }
       onSaved();
       onClose();
     } catch (err: any) {
@@ -94,27 +108,23 @@ export default function BulkStatusModal({
     }
   }
 
-  const title = `Bulk ${status.charAt(0).toUpperCase() + status.slice(1)} — ${sites.length} Site${sites.length === 1 ? '' : 's'}`;
+  const title = `Bulk ${STATUS_LABELS[status]} — ${sites.length} Site${sites.length === 1 ? '' : 's'}`;
 
   return (
     <>
       <Modal open={open} onClose={onClose} title={title} size={status === 'booked' ? 'xl' : 'md'}>
         <div className="space-y-4">
-          {status === 'available' && (
-            <p className="text-sm text-slate-600">Mark {sites.length} selected site(s) as Available? Previous history is kept.</p>
+          {status === 'immediate' && (
+            <p className="text-sm text-slate-600">Mark {sites.length} selected site(s) as Immediate? Previous history is kept.</p>
           )}
 
-          {status === 'blocked' && (
-            <div className="space-y-3 rounded-lg bg-red-50 border border-red-100 p-3">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Block Reason *</label>
-                <input placeholder="Enter reason for blocking" value={blockReason} onChange={(e) => setBlockReason(e.target.value)} className={inputCls} required />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Blocked Date</label>
-                <DatePicker value={todayISO()} disabled />
-              </div>
-            </div>
+          <StatusDetailsFields status={status} value={statusDetails} onChange={setStatusDetails} />
+
+          {isDatedStatus(status) && (
+            <>
+              <BlockDetailsFields kind={status} value={blockDetails} onChange={setBlockDetails} clients={clients} />
+              <p className="text-xs text-slate-500">Sites with a booking during these dates are skipped (these dates can't overlap a booking).</p>
+            </>
           )}
 
           {status === 'booked' && (
@@ -199,7 +209,7 @@ export default function BulkStatusModal({
       <ConfirmDialog
         open={confirmOpen}
         title="Confirm Bulk Update"
-        message={`Are you sure you want to update ${sites.length} site(s) to ${status}?`}
+        message={`Are you sure you want to update ${sites.length} site(s) to ${STATUS_LABELS[status]}?`}
         confirmLabel={saving ? 'Updating...' : 'Yes, Update'}
         onConfirm={submit}
         onCancel={() => setConfirmOpen(false)}
