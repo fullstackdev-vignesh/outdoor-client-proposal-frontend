@@ -5,7 +5,8 @@
 //               for everything else (Front Lit / Non Lit)
 //   mounting  — perSqFt: rate per Sq.Ft · fixed: flat amount · perQuantity: amount × Quantity
 //
-// Sq.Ft = Width × Height × Quantity.
+// Sq.Ft = Width × Height. Every cost is for ONE unit and is multiplied by Quantity — Printing
+// (rate × Sq.Ft × Qty) and Mounting (rate × Sq.Ft × Qty, fixed × Qty, or 300 × Qty).
 
 type PrintingRate = number | { backLit: number; other: number };
 type MountingRate = { perSqFt: number } | { fixed: number } | { perQuantity: number };
@@ -60,13 +61,14 @@ export function calcMediaCosts({
   const h = Number(height) || 0;
   const qty = Number(quantity) || 1;
   if (!rate || w <= 0 || h <= 0) return null;
-  const sqFt = w * h * qty;
+  const sqFt = w * h;
 
   const backLit = /back\s*-?\s*lit/i.test(illumination || '');
   const printingPerSqFt = typeof rate.printing === 'number' ? rate.printing : backLit ? rate.printing.backLit : rate.printing.other;
 
   const m = rate.mounting;
-  const mountingCost = 'fixed' in m ? m.fixed : 'perQuantity' in m ? m.perQuantity * qty : m.perSqFt * sqFt;
+  const mountingPerUnit = 'fixed' in m ? m.fixed : 'perQuantity' in m ? m.perQuantity : m.perSqFt * sqFt;
+  const mountingCost = mountingPerUnit * qty;
 
-  return { printingCost: Math.round(printingPerSqFt * sqFt), mountingCost: Math.round(mountingCost) };
+  return { printingCost: Math.round(printingPerSqFt * sqFt * qty), mountingCost: Math.round(mountingCost) };
 }

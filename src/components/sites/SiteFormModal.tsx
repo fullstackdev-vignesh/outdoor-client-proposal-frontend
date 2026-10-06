@@ -32,7 +32,7 @@ import StatusDetailsFields, {
 const emptyForm = {
   mediaId: '',
   mediaType: '',
-  quantity: '1',
+  quantity: '',
   state: '',
   city: '',
   location: '',
@@ -101,6 +101,13 @@ function galleryOf(site: Site): string[] {
   const list = [...(site.mediaImages || [])];
   if (site.mediaImage && !list.includes(site.mediaImage)) list.unshift(site.mediaImage);
   return list;
+}
+
+// Width / Height: digits and one decimal point only (e.g. "20", "12.5").
+function numbersOnly(value: string) {
+  const cleaned = value.replace(/[^\d.]/g, '');
+  const [whole, ...rest] = cleaned.split('.');
+  return rest.length ? `${whole}.${rest.join('')}` : whole;
 }
 
 // Default Specification text from the size, e.g. "30 x 20" ('' until both are filled in).
@@ -274,13 +281,17 @@ export default function SiteFormModal({
           next.height = size.height;
         }
       }
-      // Printing / Mounting Cost (read-only) follow the Media Type rate sheet (lib/mediaCostRates.ts)
-      // whenever the type, illumination, size or quantity changes. A type with no rate, or a size not
-      // filled in yet, clears them.
+      // Printing / Mounting Cost follow the Media Type rate sheet (lib/mediaCostRates.ts) when the type,
+      // illumination, size or quantity changes — while the field is empty or still shows the previous
+      // automatic amount; an amount the user typed is left alone.
       if (['mediaType', 'illumination', 'width', 'height', 'quantity', 'specification'].includes(key as string)) {
-        const auto = calcMediaCosts(next);
-        next.printingCost = auto ? String(auto.printingCost) : '';
-        next.mountingCost = auto ? String(auto.mountingCost) : '';
+        const prevAuto = calcMediaCosts(f);
+        const nextAuto = calcMediaCosts(next);
+        if (nextAuto) {
+          (['printingCost', 'mountingCost'] as const).forEach((k) => {
+            if (!f[k] || (prevAuto && f[k] === String(prevAuto[k]))) next[k] = String(nextAuto[k]);
+          });
+        }
       }
       return next;
     });
@@ -331,6 +342,8 @@ export default function SiteFormModal({
   }
 
   const monthlyTotalCost = calcTotalCost(form.monthlyAmount, form.printingCost, form.mountingCost);
+  // Width / Height / Specification can only be filled in once an Illumination is chosen.
+  const sizeLocked = !form.illumination;
 
   // Shows plain digits while the user is actively typing in a price field (so commas/₹
   // never fight the cursor), and the formatted ₹ / Indian-grouped value once they blur out.
@@ -429,7 +442,8 @@ export default function SiteFormModal({
     const errs: Record<string, string> = {};
     if (!form.mediaId.trim()) errs.mediaId = 'MediaCode is required';
     if (!form.mediaType.trim()) errs.mediaType = 'Media Type is required';
-    if (!form.quantity || Number(form.quantity) <= 0) errs.quantity = 'Quantity must be greater than 0';
+    if (!form.quantity) errs.quantity = 'Quantity is required';
+    else if (Number(form.quantity) <= 0) errs.quantity = 'Quantity must be greater than 0';
     if (!form.state.trim()) errs.state = 'State is required';
     if (!form.city.trim()) errs.city = 'City is required';
     if (!form.location.trim()) errs.location = 'Location is required';
@@ -590,11 +604,12 @@ export default function SiteFormModal({
           <Field label="Quantity" required error={errors.quantity}>
             <input
               id="site-field-quantity"
-              type="number"
-              min={1}
+              type="text"
+              inputMode="numeric"
               placeholder="Enter quantity"
               value={form.quantity}
-              onChange={(e) => update('quantity', e.target.value)}
+              // Whole numbers only — anything else typed or pasted is dropped.
+              onChange={(e) => update('quantity', e.target.value.replace(/\D/g, ''))}
               className={fieldCls(!!errors.quantity)}
             />
           </Field>
@@ -697,26 +712,29 @@ export default function SiteFormModal({
               className={fieldCls(!!errors.illumination)}
             />
           </Field>
+          {/* Width / Height / Specification unlock once Illumination is chosen. */}
           <Field label="Width" required error={errors.width}>
             <input
               id="site-field-width"
-              type="number"
-              min={0}
-              placeholder="Enter width"
+              type="text"
+              inputMode="decimal"
+              placeholder={sizeLocked ? 'Select illumination first' : 'Enter width'}
+              disabled={sizeLocked}
               value={form.width}
-              onChange={(e) => update('width', e.target.value)}
-              className={fieldCls(!!errors.width)}
+              onChange={(e) => update('width', numbersOnly(e.target.value))}
+              className={`${fieldCls(!!errors.width)} disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400`}
             />
           </Field>
           <Field label="Height" required error={errors.height}>
             <input
               id="site-field-height"
-              type="number"
-              min={0}
-              placeholder="Enter height"
+              type="text"
+              inputMode="decimal"
+              placeholder={sizeLocked ? 'Select illumination first' : 'Enter height'}
+              disabled={sizeLocked}
               value={form.height}
-              onChange={(e) => update('height', e.target.value)}
-              className={fieldCls(!!errors.height)}
+              onChange={(e) => update('height', numbersOnly(e.target.value))}
+              className={`${fieldCls(!!errors.height)} disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400`}
             />
           </Field>
           <Field label="Total Sq.ft">
@@ -725,10 +743,11 @@ export default function SiteFormModal({
           <Field label="Specification" required error={errors.specification}>
             <input
               id="site-field-specification"
-              placeholder="e.g. 30 x 20"
+              placeholder={sizeLocked ? 'Select illumination first' : 'e.g. 30 x 20'}
+              disabled={sizeLocked}
               value={form.specification}
               onChange={(e) => update('specification', e.target.value)}
-              className={fieldCls(!!errors.specification)}
+              className={`${fieldCls(!!errors.specification)} disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400`}
             />
           </Field>
         </Section>
@@ -747,23 +766,31 @@ export default function SiteFormModal({
               className={fieldCls(!!errors.monthlyAmount)}
             />
           </Field>
-          {/* Read-only — worked out from the Media Type rate sheet (lib/mediaCostRates.ts). */}
-          <Field label="Printing Cost">
+          {/* Filled from the Media Type rate sheet (lib/mediaCostRates.ts); still editable. */}
+          <Field label="Printing Cost" error={errors.printingCost}>
             <input
               id="site-field-printingCost"
-              disabled
-              placeholder="Auto from Media Type & size"
-              value={form.printingCost ? formatINR(form.printingCost) : ''}
-              className={`${inputCls} bg-slate-50 text-slate-500`}
+              type="text"
+              inputMode="decimal"
+              placeholder="Enter printing cost"
+              value={priceDisplayValue('printingCost')}
+              onFocus={() => setFocusedPriceField('printingCost')}
+              onBlur={() => setFocusedPriceField(null)}
+              onChange={(e) => updatePriceField('printingCost', e.target.value)}
+              className={fieldCls(!!errors.printingCost)}
             />
           </Field>
-          <Field label="Mounting Cost">
+          <Field label="Mounting Cost" error={errors.mountingCost}>
             <input
               id="site-field-mountingCost"
-              disabled
-              placeholder="Auto from Media Type & size"
-              value={form.mountingCost ? formatINR(form.mountingCost) : ''}
-              className={`${inputCls} bg-slate-50 text-slate-500`}
+              type="text"
+              inputMode="decimal"
+              placeholder="Enter mounting cost"
+              value={priceDisplayValue('mountingCost')}
+              onFocus={() => setFocusedPriceField('mountingCost')}
+              onBlur={() => setFocusedPriceField(null)}
+              onChange={(e) => updatePriceField('mountingCost', e.target.value)}
+              className={fieldCls(!!errors.mountingCost)}
             />
           </Field>
           <Field label="Total Cost">

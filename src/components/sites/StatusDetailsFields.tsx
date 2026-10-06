@@ -147,9 +147,7 @@ export function BlockDetailsFields({
       <div>
         <p className={`text-xs font-semibold uppercase tracking-wide ${copy.titleCls}`}>{copy.title}</p>
         <p className="mt-0.5 text-xs text-slate-500">
-          {kind === 'confirmed'
-            ? 'The site shows Confirmed as soon as you save, until the End Date, then goes back to Immediate automatically.'
-            : `The site is ${copy.status} from the Start Date to the End Date, then goes back to Immediate automatically. It can be set ahead of time.`}
+          {`The site shows ${copy.status} as soon as you save, until the End Date, then goes back to Immediate automatically.`}
         </p>
       </div>
       <div>

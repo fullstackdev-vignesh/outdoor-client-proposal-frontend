@@ -24,6 +24,7 @@ import { formatIST } from '@/lib/date';
 import type { Site, MediaStatus } from '@/lib/types';
 import ScrollTable from '@/components/ui/ScrollTable';
 import { MEDIA_STATUS_OPTIONS } from '@/lib/siteStatus';
+import { MEDIA_TYPES } from '@/lib/mediaTypes';
 
 // Summary cards — clicking one filters the list by that status ('' = all).
 const STATUS_CARDS: { status: '' | MediaStatus; label: string; icon: typeof Building2; ring: string; iconCls: string }[] = [
@@ -39,7 +40,7 @@ const STATUS_CARDS: { status: '' | MediaStatus; label: string; icon: typeof Buil
 const PAGE_SIZE = 20;
 const rowActionCls =
   'inline-flex w-full items-center justify-center gap-1 whitespace-nowrap rounded-md border px-2 py-1 text-[11px] font-medium transition-colors';
-const emptyFilters = { state: '', city: '', mediaStatus: '', isActive: '', siteOwner: [] as string[] };
+const emptyFilters = { mediaType: '', state: '', city: '', mediaStatus: '', isActive: '', siteOwner: [] as string[] };
 
 export default function InventoryLiveTab() {
   const { showToast } = useToast();
@@ -72,7 +73,7 @@ export default function InventoryLiveTab() {
 
   const fetchSummary = useCallback(() => {
     api.get('/sites/summary', { params: { search, ...filters, mediaStatus: '' } }).then((res) => setSummary(res.data));
-  }, [search, filters.state, filters.city, filters.isActive, filters.siteOwner]);
+  }, [search, filters.mediaType, filters.state, filters.city, filters.isActive, filters.siteOwner]);
 
   const fetchPage = useCallback(
     (pageNum: number, append: boolean) => {
@@ -182,7 +183,7 @@ export default function InventoryLiveTab() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {STATUS_CARDS.map(({ status, label, icon: Icon, ring, iconCls }) => (
           <button
             key={status || 'total'}
@@ -217,6 +218,14 @@ export default function InventoryLiveTab() {
               onChange={(val) => setFilters((f) => ({ ...f, mediaStatus: val }))}
               placeholder="All Media Status"
               options={MEDIA_STATUS_OPTIONS}
+            />
+          </div>
+          <div className="w-44">
+            <CustomSelect
+              value={filters.mediaType}
+              onChange={(val) => setFilters((f) => ({ ...f, mediaType: val }))}
+              placeholder="All Media Types"
+              options={MEDIA_TYPES}
             />
           </div>
           <div className="w-36">
@@ -330,20 +339,19 @@ export default function InventoryLiveTab() {
                 <th className="px-4 py-3">Site Last Updated</th>
                 <th className="px-4 py-3">Updated By</th>
                 <th className="px-4 py-3 text-center">Timeline</th>
-                <th className="px-4 py-3 text-center">Save</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading && (
                 <tr>
-                  <td colSpan={17} className="px-4 py-10 text-center">
+                  <td colSpan={16} className="px-4 py-10 text-center">
                     <Loader overlay text="Loading inventory..." />
                   </td>
                 </tr>
               )}
               {!loading && items.length === 0 && (
                 <tr>
-                  <td colSpan={17}>
+                  <td colSpan={16}>
                     <EmptyState title="No sites found" subtitle="Try adjusting your filters." />
                   </td>
                 </tr>
@@ -392,7 +400,10 @@ export default function InventoryLiveTab() {
                       </td>
                       <td className="px-4 py-3">
                         {/* Inactive sites stay Immediate — status can't change until the site is Active. */}
-                        <div title={site.isActive === false ? 'Inactive site — make it Active (Media Master) to change its status' : undefined}>
+                        <div
+                          className="flex items-center gap-1.5"
+                          title={site.isActive === false ? 'Inactive site — make it Active (Media Master) to change its status' : undefined}
+                        >
                           <CustomSelect
                             value={pending || site.mediaStatus}
                             onChange={(val) => setRowPending((prev) => ({ ...prev, [site._id]: val as MediaStatus }))}
@@ -401,6 +412,16 @@ export default function InventoryLiveTab() {
                             disabled={site.isActive === false}
                             className="w-28 text-xs"
                           />
+                          <button
+                            disabled={!hasChange}
+                            onClick={() => hasChange && setRowModal({ site, status: pending })}
+                            title={hasChange ? 'Save status change' : 'Change status to enable'}
+                            className={`inline-flex items-center justify-center rounded-lg p-2 ${
+                              hasChange ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-slate-50 text-slate-300'
+                            }`}
+                          >
+                            <Save className="h-4 w-4" />
+                          </button>
                         </div>
                         {!hasChange && site.isActive !== false && (() => {
                           // Booked → Booked isn't a status "change", so the Save button stays off —
@@ -455,18 +476,6 @@ export default function InventoryLiveTab() {
                           className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50"
                         >
                           <History className="h-3.5 w-3.5" /> View
-                        </button>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <button
-                          disabled={!hasChange}
-                          onClick={() => hasChange && setRowModal({ site, status: pending })}
-                          title={hasChange ? 'Save status change' : 'Change status to enable'}
-                          className={`inline-flex items-center justify-center rounded-lg p-2 ${
-                            hasChange ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-slate-50 text-slate-300'
-                          }`}
-                        >
-                          <Save className="h-4 w-4" />
                         </button>
                       </td>
                     </tr>

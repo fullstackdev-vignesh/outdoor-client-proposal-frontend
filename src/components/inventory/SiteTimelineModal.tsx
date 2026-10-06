@@ -155,7 +155,7 @@ export default function SiteTimelineModal({
                     {h.blockSnapshot.notes && <p>Notes: {h.blockSnapshot.notes}</p>}
                   </div>
                 )}
-                {(h.status === 'hold' || h.status === 'issue' || (h.status === 'confirmed' && !h.blockSnapshot)) && h.statusSnapshot && (
+                {(h.status === 'hold' || h.status === 'issue' || h.status === 'immediate' || (h.status === 'confirmed' && !h.blockSnapshot)) && h.statusSnapshot && (
                   <div className="text-sm text-slate-600 mt-1 space-y-0.5">
                     {h.status === 'confirmed' ? (
                       <p>
