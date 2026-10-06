@@ -1,62 +1,54 @@
-// Printing / Mounting cost rates per Media Type — used by the site form to fill Printing Cost and
-// Mounting Cost automatically (both are read-only in the form). Source: the media cost rate sheet.
+// Printing / Mounting cost calculation — used by the site form to fill Printing Cost and Mounting
+// Cost automatically (both stay editable). The rates come from the Rate Master (GET /media-rates).
 //
-//   printing  — rate per Sq.Ft: one rate for every illumination, or a Back Lit rate and a rate
-//               for everything else (Front Lit / Non Lit)
-//   mounting  — perSqFt: rate per Sq.Ft · fixed: flat amount · perQuantity: amount × Quantity
+//   printing  — rate per Sq.Ft: printingBackLit for Back Lit sites, printingOther for Front Lit / Non Lit
+//   mounting  — perSqFt: rate × Sq.Ft · fixed: flat amount · perQuantity: amount per unit
 //
 // Sq.Ft = Width × Height. Every cost is for ONE unit and is multiplied by Quantity — Printing
-// (rate × Sq.Ft × Qty) and Mounting (rate × Sq.Ft × Qty, fixed × Qty, or 300 × Qty).
+// (rate × Sq.Ft × Qty) and Mounting (rate × Sq.Ft × Qty, fixed × Qty, or amount × Qty).
 
-type PrintingRate = number | { backLit: number; other: number };
-type MountingRate = { perSqFt: number } | { fixed: number } | { perQuantity: number };
+export type MountingType = 'perSqFt' | 'fixed' | 'perQuantity';
 
-const LIT_PRINTING = { backLit: 25, other: 13 };
+export interface MediaRate {
+  _id: string;
+  mediaType: string;
+  printingBackLit: number;
+  printingOther: number;
+  mountingType: MountingType;
+  mountingAmount: number;
+  createdAt?: string;
+  updatedAt?: string;
+  updatedBy?: { name?: string } | string | null;
+}
 
-const RATES: Record<string, { printing: PrintingRate; mounting: MountingRate }> = {
-  'ROB': { printing: LIT_PRINTING, mounting: { fixed: 10000 } },
-  'Pole Kiosk': { printing: LIT_PRINTING, mounting: { perQuantity: 300 } },
-  'Bus Shelter': { printing: LIT_PRINTING, mounting: { fixed: 2000 } },
-  'Signal Post': { printing: LIT_PRINTING, mounting: { perSqFt: 20 } },
-  'Branding Board': { printing: LIT_PRINTING, mounting: { perSqFt: 5 } },
-  'Gantry': { printing: LIT_PRINTING, mounting: { fixed: 4000 } },
-  'Police booth': { printing: LIT_PRINTING, mounting: { perSqFt: 15 } },
-  'Lamp Post': { printing: LIT_PRINTING, mounting: { perQuantity: 300 } },
-  'Center Median': { printing: LIT_PRINTING, mounting: { perQuantity: 300 } },
-  'Top panels': { printing: LIT_PRINTING, mounting: { perSqFt: 5 } },
-  'Police Umbrella': { printing: LIT_PRINTING, mounting: { perSqFt: 15 } },
-  'Transformer': { printing: LIT_PRINTING, mounting: { perSqFt: 20 } },
-  // Same printing cost for Front Lit and Non Lit.
-  'Hoarding': { printing: 13, mounting: { perSqFt: 5 } },
-  'Unipole': { printing: 13, mounting: { perSqFt: 7 } },
-  'Wall Graphics': { printing: 13, mounting: { perSqFt: 5 } },
-  'Wall Frame': { printing: 13, mounting: { perSqFt: 5 } },
-  'LED Hoarding': { printing: 0, mounting: { perSqFt: 0 } },
-  'LED': { printing: 0, mounting: { perSqFt: 0 } },
-  'Wall Hoarding': { printing: 13, mounting: { perSqFt: 5 } },
-  'Wall Wrap': { printing: 13, mounting: { perSqFt: 5 } },
+export const MOUNTING_TYPE_LABELS: Record<MountingType, string> = {
+  perSqFt: 'Per Sq.Ft',
+  fixed: 'Fixed',
+  perQuantity: 'Per Quantity',
 };
 
-const byKey = new Map(Object.entries(RATES).map(([name, rate]) => [name.trim().toLowerCase(), rate]));
-
 /**
- * Printing and Mounting cost for a site, or null when its Media Type has no rate (e.g. Digital
- * Hoarding) or the size isn't filled in yet — the form then leaves both fields as they are.
+ * Printing and Mounting cost for a site, or null when its Media Type has no rate in the Rate Master
+ * or the size isn't filled in yet — the form then leaves both fields as they are.
  */
-export function calcMediaCosts({
-  mediaType,
-  illumination,
-  width,
-  height,
-  quantity,
-}: {
-  mediaType: string;
-  illumination: string;
-  width: string;
-  height: string;
-  quantity: string;
-}): { printingCost: number; mountingCost: number } | null {
-  const rate = byKey.get((mediaType || '').trim().toLowerCase());
+export function calcMediaCosts(
+  {
+    mediaType,
+    illumination,
+    width,
+    height,
+    quantity,
+  }: {
+    mediaType: string;
+    illumination: string;
+    width: string;
+    height: string;
+    quantity: string;
+  },
+  rates: MediaRate[]
+): { printingCost: number; mountingCost: number } | null {
+  const key = (mediaType || '').trim().toLowerCase();
+  const rate = key ? rates.find((r) => r.mediaType.trim().toLowerCase() === key) : undefined;
   const w = Number(width) || 0;
   const h = Number(height) || 0;
   const qty = Number(quantity) || 1;
@@ -64,11 +56,10 @@ export function calcMediaCosts({
   const sqFt = w * h;
 
   const backLit = /back\s*-?\s*lit/i.test(illumination || '');
-  const printingPerSqFt = typeof rate.printing === 'number' ? rate.printing : backLit ? rate.printing.backLit : rate.printing.other;
+  const printingPerSqFt = (backLit ? rate.printingBackLit : rate.printingOther) || 0;
 
-  const m = rate.mounting;
-  const mountingPerUnit = 'fixed' in m ? m.fixed : 'perQuantity' in m ? m.perQuantity : m.perSqFt * sqFt;
-  const mountingCost = mountingPerUnit * qty;
+  const amount = rate.mountingAmount || 0;
+  const mountingPerUnit = rate.mountingType === 'perSqFt' ? amount * sqFt : amount;
 
-  return { printingCost: Math.round(printingPerSqFt * sqFt * qty), mountingCost: Math.round(mountingCost) };
+  return { printingCost: Math.round(printingPerSqFt * sqFt * qty), mountingCost: Math.round(mountingPerUnit * qty) };
 }

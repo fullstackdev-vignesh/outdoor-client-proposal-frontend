@@ -20,9 +20,9 @@ export const MEDIA_TYPES = [
   'LED',
   'Wall Hoarding',
   'Wall Wrap',
-  // Earlier types, kept so existing sites saved with them can still be selected and filtered.
-  'Digital Hoarding',
-  'Bridge Panel',
+  // // Earlier types, kept so existing sites saved with them can still be selected and filtered.
+  // 'Digital Hoarding',
+  // 'Bridge Panel',
 ];
 
 // Illumination options offered by the site form and the illumination filter.
