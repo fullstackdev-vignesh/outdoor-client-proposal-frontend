@@ -57,6 +57,8 @@ const emptyForm = {
   mediaStatus: 'immediate' as MediaStatus,
   // Active/Inactive is the site's own setting — Inactive sites never appear in client proposals.
   isActive: true,
+  // Required when the site is Inactive; shown against it in the lists.
+  inactiveReason: '',
   siteInfoId: '',
 };
 
@@ -230,6 +232,7 @@ export default function SiteFormModal({
         mediaImage: site.mediaImage || '',
         mediaStatus: site.mediaStatus,
         isActive: site.isActive !== false,
+        inactiveReason: site.inactiveReason || '',
         siteInfoId: typeof site.siteInfoId === 'object' ? site.siteInfoId?._id || '' : site.siteInfoId || '',
       });
       const saved = galleryOf(site);
@@ -462,6 +465,7 @@ export default function SiteFormModal({
     if (!form.height) errs.height = 'Height is required';
     else if (Number(form.height) <= 0) errs.height = 'Height must be greater than 0';
     if (!form.specification.trim()) errs.specification = 'Specification is required';
+    if (!form.isActive && !form.inactiveReason.trim()) errs.inactiveReason = 'Inactive Reason is required';
 
     for (const [key, label, required] of [
       ['monthlyAmount', 'Display Cost Per Month', false],
@@ -944,6 +948,20 @@ export default function SiteFormModal({
               <span className="sr-only">{form.isActive ? 'Active' : 'Inactive'}</span>
             </button>
           </div>
+          {!form.isActive && (
+            <div className="col-span-2">
+              <Field label="Inactive Reason" required error={errors.inactiveReason}>
+                <textarea
+                  id="site-field-inactiveReason"
+                  rows={2}
+                  placeholder="e.g. Site removed by corporation, structure damaged"
+                  value={form.inactiveReason}
+                  onChange={(e) => update('inactiveReason', e.target.value)}
+                  className={fieldCls(!!errors.inactiveReason)}
+                />
+              </Field>
+            </div>
+          )}
         </Section>
 
         {form.mediaStatus === 'booked' && (

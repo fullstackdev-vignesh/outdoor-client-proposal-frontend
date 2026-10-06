@@ -3,12 +3,13 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Search, Plus, Upload, Download, Pencil, Trash2, RefreshCcw, X, ImageOff, Save, CalendarX, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Search, Plus, Upload, Download, Pencil, Trash2, RefreshCcw, X, ImageOff, Save, CalendarX, ToggleLeft, ToggleRight, Info } from 'lucide-react';
 import api, { resolveImageUrl } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useToast } from '@/components/ui/Toast';
 import EmptyState from '@/components/ui/EmptyState';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import Modal from '@/components/ui/Modal';
 import SiteFormModal from '@/components/sites/SiteFormModal';
 import StatusChangeModal from '@/components/sites/StatusChangeModal';
 import SiteViewModal from '@/components/sites/SiteViewModal';
@@ -53,6 +54,10 @@ export default function SitesPage() {
   const [rowPending, setRowPending] = useState<Record<string, MediaStatus>>({});
   const [viewSite, setViewSite] = useState<Site | null>(null);
   const [activeTarget, setActiveTarget] = useState<Site | null>(null);
+  const [inactiveReason, setInactiveReason] = useState('');
+  // Inactive site whose reason popup is open.
+  const [reasonSite, setReasonSite] = useState<Site | null>(null);
+  const [savingActive, setSavingActive] = useState(false);
   const [cancelUpcomingSite, setCancelUpcomingSite] = useState<Site | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Site | null>(null);
   const [previewImage, setPreviewImage] = useState('');
@@ -142,8 +147,10 @@ export default function SitesPage() {
   async function handleToggleActive() {
     if (!activeTarget) return;
     const isActive = !activeTarget.isActive;
+    if (!isActive && !inactiveReason.trim()) return; // a reason is required to make a site Inactive
+    setSavingActive(true);
     try {
-      const res = await api.patch(`/sites/${activeTarget._id}/active`, { isActive });
+      const res = await api.patch(`/sites/${activeTarget._id}/active`, { isActive, reason: isActive ? undefined : inactiveReason.trim() });
       const byListOrder = (a: Site, b: Site) =>
         Number(b.isActive !== false) - Number(a.isActive !== false) ||
         (b.updatedAt || '').localeCompare(a.updatedAt || '') ||
@@ -160,6 +167,7 @@ export default function SitesPage() {
     } catch (err: any) {
       showToast(err?.response?.data?.message || 'Failed to update site', 'error');
     } finally {
+      setSavingActive(false);
       setActiveTarget(null);
     }
   }
@@ -469,7 +477,10 @@ export default function SitesPage() {
                         {canManage && (
                           <>
                             <button
-                              onClick={() => setActiveTarget(site)}
+                              onClick={() => {
+                                setInactiveReason('');
+                                setActiveTarget(site);
+                              }}
                               title={site.isActive ? 'Active — click to make Inactive' : 'Inactive — click to make Active'}
                               aria-label={site.isActive ? 'Make site inactive' : 'Make site active'}
                               className={`rounded p-1.5 hover:bg-slate-100 ${site.isActive ? 'text-emerald-600 hover:text-emerald-700' : 'text-slate-400 hover:text-slate-600'}`}
@@ -500,6 +511,18 @@ export default function SitesPage() {
                           </>
                         )}
                       </div>
+                      {!site.isActive && (
+                        <div className="mt-1 flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => setReasonSite(site)}
+                            title="View why this site is Inactive"
+                            className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                          >
+                            <Info className="h-3 w-3" /> Inactive Reason
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -525,19 +548,74 @@ export default function SitesPage() {
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
       />
-      <ConfirmDialog
+      <Modal open={!!reasonSite} onClose={() => setReasonSite(null)} title="Inactive Reason" size="sm">
+        <div className="space-y-4">
+          <p className="text-xs font-medium text-slate-500">{reasonSite?.mediaCode || reasonSite?.mediaId}</p>
+          {reasonSite?.inactiveReason ? (
+            <p className="whitespace-pre-wrap rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">{reasonSite.inactiveReason}</p>
+          ) : (
+            <p className="rounded-lg border border-dashed border-slate-200 p-3 text-sm text-slate-500">
+              No reason was recorded — this site was made Inactive before reasons were required.
+            </p>
+          )}
+          <div className="flex justify-end pt-2 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setReasonSite(null)}
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
         open={!!activeTarget}
+        onClose={() => setActiveTarget(null)}
         title={activeTarget?.isActive ? 'Make Site Inactive' : 'Make Site Active'}
-        message={
-          activeTarget?.isActive
-            ? `Make "${activeTarget?.mediaCode || activeTarget?.mediaId}" Inactive? Its status changes to Immediate (any block, confirmation, hold or issue is removed; bookings are kept) and it is hidden from client proposals (not deleted).`
-            : `Make "${activeTarget?.mediaCode || activeTarget?.mediaId}" Active? It can appear in client proposals again.`
-        }
-        confirmLabel={activeTarget?.isActive ? 'Make Inactive' : 'Make Active'}
-        danger={!!activeTarget?.isActive}
-        onConfirm={handleToggleActive}
-        onCancel={() => setActiveTarget(null)}
-      />
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            {activeTarget?.isActive
+              ? `Make "${activeTarget?.mediaCode || activeTarget?.mediaId}" Inactive? Its status changes to Immediate (any block, confirmation, hold or issue is removed; bookings are kept) and it is hidden from client proposals (not deleted).`
+              : `Make "${activeTarget?.mediaCode || activeTarget?.mediaId}" Active? It can appear in client proposals again.`}
+          </p>
+          {activeTarget?.isActive && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Inactive Reason <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                rows={3}
+                autoFocus
+                placeholder="e.g. Site removed by corporation, structure damaged"
+                value={inactiveReason}
+                onChange={(e) => setInactiveReason(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100"
+              />
+            </div>
+          )}
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setActiveTarget(null)}
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleToggleActive}
+              disabled={savingActive || (!!activeTarget?.isActive && !inactiveReason.trim())}
+              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+            >
+              {savingActive ? 'Saving...' : activeTarget?.isActive ? 'Make Inactive' : 'Make Active'}
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {previewImage && (
         <div
