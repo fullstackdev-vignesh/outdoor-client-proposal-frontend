@@ -16,7 +16,7 @@ import StatusDetailsPopover from '@/components/inventory/StatusDetailsPopover';
 import CancelUpcomingBookingModal from '@/components/inventory/CancelUpcomingBookingModal';
 import { StateSelect, CitySelect } from '@/components/ui/StateCitySelect';
 import { SiteOwnerMultiSelect } from '@/components/ui/SiteOwnerSelect';
-import { ILLUMINATION_OPTIONS } from '@/lib/mediaTypes';
+import { ILLUMINATION_OPTIONS, MEDIA_TYPES } from '@/lib/mediaTypes';
 import Loader from '@/components/ui/Loader';
 import CustomSelect from '@/components/ui/CustomSelect';
 import { formatIST } from '@/lib/date';
@@ -240,6 +240,14 @@ export default function SitesPage() {
               onChange={(val) => setFilters((f) => ({ ...f, mediaStatus: val }))}
               placeholder="All Media Status"
               options={MEDIA_STATUS_OPTIONS}
+            />
+          </div>
+          <div className="w-44">
+            <CustomSelect
+              value={filters.mediaType}
+              onChange={(val) => setFilters((f) => ({ ...f, mediaType: val }))}
+              placeholder="All Media Types"
+              options={MEDIA_TYPES}
             />
           </div>
           <div className="w-36">

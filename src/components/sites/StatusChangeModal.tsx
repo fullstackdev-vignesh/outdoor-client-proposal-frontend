@@ -76,6 +76,8 @@ export default function StatusChangeModal({
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [cancellationReason, setCancellationReason] = useState('');
+  // Optional reason when moving to Immediate from Blocked / Confirmed / Hold / Issue.
+  const [immediateReason, setImmediateReason] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   // A site can hold several bookings (active + upcoming). null adds a separate new booking and
@@ -116,6 +118,7 @@ export default function StatusChangeModal({
     setBlockDetails(blockDetailsFromSite(site));
     setRemoveBlock(false);
     setCancellationReason('');
+    setImmediateReason('');
     setStatusDetails(statusDetailsFromSite(site, initialStatus || site.mediaStatus));
 
     api.get('/clients', { params: { limit: 200 } }).then((res) => setClients(res.data.items));
@@ -186,6 +189,9 @@ export default function StatusChangeModal({
       if (isCancellingBooking) {
         payload.cancellationReason = cancellationReason.trim();
       }
+      if (newStatus === 'immediate' && !isCancellingBooking && immediateReason.trim()) {
+        payload.changeReason = immediateReason.trim();
+      }
       await api.patch(`/sites/${site._id}/status`, payload);
       showToast('Media status updated successfully');
       onSaved();
@@ -242,9 +248,23 @@ export default function StatusChangeModal({
           </div>
 
           {newStatus === 'immediate' && !isCancellingBooking && (
-            <p className="text-sm text-slate-500">
-              This will mark the site as Immediate (free for proposals). Previous booking/block history is kept for reference.
-            </p>
+            <div className="space-y-2">
+              {/* <p className="text-sm text-slate-500">
+                This will mark the site as Immediate (free for proposals). Previous booking/block history is kept for reference.
+              </p> */}
+              {site.mediaStatus !== 'immediate' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Reason</label>
+                  <textarea
+                    placeholder="e.g. Client dropped the plan (optional)"
+                    value={immediateReason}
+                    onChange={(e) => setImmediateReason(e.target.value)}
+                    className={inputCls}
+                    rows={2}
+                  />
+                </div>
+              )}
+            </div>
           )}
 
           {newStatus === 'immediate' && upcomingBlock && block && (

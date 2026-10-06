@@ -17,7 +17,9 @@ const COLUMN_ALIASES: Record<string, string> = {
   medianame: 'mediaName',
   mediatype: 'mediaType',
   quantity: 'quantity',
-  autosize: 'autoSize',
+  // Specification (e.g. "40x25"); older sheets called this column autoSize.
+  specification: 'specification',
+  autosize: 'specification',
   state: 'state',
   city: 'city',
   location: 'location',
@@ -44,8 +46,8 @@ const COLUMN_ALIASES: Record<string, string> = {
   mediastatus: 'mediaStatus',
 };
 
-// Columns we intentionally ignore: SrNo, Specification, Size, TotalCost (auto-calculated server-side).
-const IGNORED_COLUMNS = new Set(['srno', 'specification', 'size', 'totalcost']);
+// Columns we intentionally ignore: SrNo, Size, TotalCost (auto-calculated server-side).
+const IGNORED_COLUMNS = new Set(['srno', 'size', 'totalcost']);
 
 function normalizeKey(key: string) {
   return key.toLowerCase().replace(/[\s_-]/g, '');
@@ -107,7 +109,7 @@ function usableCoord(value: unknown, limit: number): number | undefined {
 const REQUIRED_FIELDS = ['mediaId', 'mediaType', 'city'];
 const SAMPLE_HEADERS = [
   'MediaCode', 'MediaType', 'City', 'AreaName', 'Location', 'Quantity',
-  'Width', 'Height', 'Illumination', 'DisplayCostPerMonth', 'PrintingCost', 'MountingCost',
+  'Width', 'Height', 'Specification', 'Illumination', 'DisplayCostPerMonth', 'PrintingCost', 'MountingCost',
   'Latitude', 'Longitude', 'SiteOwner', 'MediaImage',
 ];
 
@@ -133,8 +135,8 @@ export default function BulkUploadPage() {
     const ws = XLSX.utils.json_to_sheet([
       {
         SrNo:1,Mediacode: 'ADINCHN0001', mediaType: 'Unipole',state: 'Tamil Nadu', city: 'Chennai', areaName: 'Gemini Flyover',
-        location: 'Gemini flyover twds Cathedral rd / Marina Beach (Top)', sizeUnit: 1, width: 40, height: 25,autoSize:'40x20',
-        illumination: 'Front Lit',Size:1000, monthlyAmount: 600000, printingCos: 13000, mountingCost: 5000,totalCost: 618000,
+        location: 'Gemini flyover twds Cathedral rd / Marina Beach (Top)', sizeUnit: 1, width: 40, height: 25, specification: '40x25',
+        illumination: 'Front Lit', Size: 1000, monthlyAmount: 600000, printingCost: 13000, mountingCost: 5000, totalCost: 618000,
         latitude: 13.0536, longitude: 80.2502, SiteOwner: 'Adinn', MediaImage: '',
       },
     ]);
@@ -217,6 +219,8 @@ export default function BulkUploadPage() {
           illumination: r.illumination,
           width: r.width ? Number(r.width) : undefined,
           height: r.height ? Number(r.height) : undefined,
+          // The sheet's Specification, or the size ("40x25") when the column is blank / missing.
+          specification: String(r.specification ?? '').trim() || (r.width && r.height ? `${r.width}x${r.height}` : undefined),
           amount: r.amount ? Number(r.amount) : undefined,
           gstAmount: r.gstAmount ? Number(r.gstAmount) : undefined,
           monthlyAmount: r.monthlyAmount ? Number(r.monthlyAmount) : undefined,
