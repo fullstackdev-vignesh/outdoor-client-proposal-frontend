@@ -15,6 +15,7 @@ import StatusChangeModal from '@/components/sites/StatusChangeModal';
 import SiteViewModal from '@/components/sites/SiteViewModal';
 import StatusDetailsPopover from '@/components/inventory/StatusDetailsPopover';
 import CancelUpcomingBookingModal from '@/components/inventory/CancelUpcomingBookingModal';
+import AddUpcomingBlockModal from '@/components/inventory/AddUpcomingBlockModal';
 import { StateSelect, CitySelect } from '@/components/ui/StateCitySelect';
 import { SiteOwnerMultiSelect } from '@/components/ui/SiteOwnerSelect';
 import { ILLUMINATION_OPTIONS, MEDIA_TYPES } from '@/lib/mediaTypes';
@@ -59,6 +60,7 @@ export default function SitesPage() {
   const [reasonSite, setReasonSite] = useState<Site | null>(null);
   const [savingActive, setSavingActive] = useState(false);
   const [cancelUpcomingSite, setCancelUpcomingSite] = useState<Site | null>(null);
+  const [addBlockTarget, setAddBlockTarget] = useState<{ site: Site; kind: 'blocked' | 'confirmed' } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Site | null>(null);
   const [previewImage, setPreviewImage] = useState('');
 
@@ -398,11 +400,12 @@ export default function SitesPage() {
                           const hasChange = !!pending && pending !== site.mediaStatus;
                           // Inactive sites stay Immediate — their status can't be changed until made Active.
                           const inactive = site.isActive === false;
-                          const canAddBooking = !inactive && site.mediaStatus === 'booked';
-                          const canCancelUpcoming =
-                            !inactive &&
-                            (site.mediaStatus === 'immediate' || site.mediaStatus === 'booked') &&
-                            !!site.bookings?.some((b) => b.status === 'upcoming');
+                          const canAddBooking = !inactive && !hasChange && site.mediaStatus === 'booked';
+                          // Any status can have an Upcoming booking cancelled — it doesn't touch the current status.
+                          const canCancelUpcoming = !inactive && !!site.bookings?.some((b) => b.status === 'upcoming');
+                          // Same idea for Blocked / Confirmed: add another period without touching the current one.
+                          const addBlockKind =
+                            !inactive && !hasChange && (site.mediaStatus === 'blocked' || site.mediaStatus === 'confirmed') ? site.mediaStatus : null;
                           return (
                             <>
                               <div className="flex items-center gap-1.5" title={inactive ? 'Inactive site — make it Active to change its status' : undefined}>
@@ -425,7 +428,7 @@ export default function SitesPage() {
                                   <Save className="h-4 w-4" />
                                 </button>
                               </div>
-                              {!hasChange && (canAddBooking || canCancelUpcoming) && (
+                              {(canAddBooking || canCancelUpcoming || addBlockKind) && (
                                 <div className="mt-1.5 inline-flex min-w-28 flex-col gap-1">
                                   {canAddBooking && (
                                     <button
@@ -434,6 +437,19 @@ export default function SitesPage() {
                                       className={`${rowActionCls} border-red-100 bg-red-50 text-red-600 hover:bg-red-100`}
                                     >
                                       <Plus className="h-3 w-3 shrink-0" /> Add Booking
+                                    </button>
+                                  )}
+                                  {addBlockKind && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setAddBlockTarget({ site, kind: addBlockKind })}
+                                      className={`${rowActionCls} ${
+                                        addBlockKind === 'confirmed'
+                                          ? 'border-blue-100 bg-blue-50 text-blue-600 hover:bg-blue-100'
+                                          : 'border-rose-100 bg-rose-50 text-rose-600 hover:bg-rose-100'
+                                      }`}
+                                    >
+                                      <Plus className="h-3 w-3 shrink-0" /> {addBlockKind === 'confirmed' ? 'Add Confirmed' : 'Add Blocked'}
                                     </button>
                                   )}
                                   {canCancelUpcoming && (
@@ -539,6 +555,14 @@ export default function SitesPage() {
       <StatusChangeModal open={!!statusSite} onClose={() => setStatusSite(null)} site={statusSite} initialStatus={statusInitial} onSaved={refresh} />
       <SiteViewModal open={!!viewSite} onClose={() => setViewSite(null)} site={viewSite} />
       <CancelUpcomingBookingModal open={!!cancelUpcomingSite} onClose={() => setCancelUpcomingSite(null)} site={cancelUpcomingSite} onSaved={refresh} source="sites" />
+      <AddUpcomingBlockModal
+        open={!!addBlockTarget}
+        onClose={() => setAddBlockTarget(null)}
+        site={addBlockTarget?.site || null}
+        kind={addBlockTarget?.kind || 'blocked'}
+        onSaved={refresh}
+        source="sites"
+      />
       <ConfirmDialog
         open={!!deleteTarget}
         title="Delete Site"

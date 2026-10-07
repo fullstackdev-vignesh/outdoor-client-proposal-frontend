@@ -18,6 +18,7 @@ import MediaPreviewModal from '@/components/inventory/MediaPreviewModal';
 import StatusDetailsPopover from '@/components/inventory/StatusDetailsPopover';
 import SiteTimelineModal from '@/components/inventory/SiteTimelineModal';
 import CancelUpcomingBookingModal from '@/components/inventory/CancelUpcomingBookingModal';
+import AddUpcomingBlockModal from '@/components/inventory/AddUpcomingBlockModal';
 import CustomSelect from '@/components/ui/CustomSelect';
 import Loader from '@/components/ui/Loader';
 import { formatIST } from '@/lib/date';
@@ -65,6 +66,7 @@ export default function InventoryLiveTab() {
   const [viewSite, setViewSite] = useState<Site | null>(null);
   const [timelineSite, setTimelineSite] = useState<Site | null>(null);
   const [cancelUpcomingSite, setCancelUpcomingSite] = useState<Site | null>(null);
+  const [addBlockTarget, setAddBlockTarget] = useState<{ site: Site; kind: 'blocked' | 'confirmed' } | null>(null);
 
   const sentinelRef = useRef<HTMLDivElement>(null);
   const nextPageRef = useRef(1);
@@ -428,16 +430,16 @@ export default function InventoryLiveTab() {
                             <Save className="h-4 w-4" />
                           </button>
                         </div>
-                        {!hasChange && site.isActive !== false && (() => {
+                        {site.isActive !== false && (() => {
                           // Booked → Booked isn't a status "change", so the Save button stays off —
                           // this lets a Booked site take another booking (another client/dates).
-                          const canAddBooking = site.mediaStatus === 'booked';
-                          // Cancelling an Upcoming booking doesn't change the site's status (Immediate or
-                          // Booked), so it's done from its own popup instead of Save.
-                          const canCancelUpcoming =
-                            (site.mediaStatus === 'immediate' || site.mediaStatus === 'booked') &&
-                            !!site.bookings?.some((b) => b.status === 'upcoming');
-                          if (!canAddBooking && !canCancelUpcoming) return null;
+                          const canAddBooking = !hasChange && site.mediaStatus === 'booked';
+                          // Cancelling an Upcoming booking doesn't change the site's status (whatever it is),
+                          // so it's done from its own popup instead of Save — available for every status.
+                          const canCancelUpcoming = !!site.bookings?.some((b) => b.status === 'upcoming');
+                          // Same idea for Blocked / Confirmed: add another period without touching the current one.
+                          const addBlockKind = !hasChange && (site.mediaStatus === 'blocked' || site.mediaStatus === 'confirmed') ? site.mediaStatus : null;
+                          if (!canAddBooking && !canCancelUpcoming && !addBlockKind) return null;
                           return (
                             <div className="mt-1.5 flex flex-col gap-1">
                               {canAddBooking && (
@@ -447,6 +449,19 @@ export default function InventoryLiveTab() {
                                   className={`${rowActionCls} border-red-100 bg-red-50 text-red-600 hover:bg-red-100`}
                                 >
                                   <Plus className="h-3 w-3 shrink-0" /> Add Booking
+                                </button>
+                              )}
+                              {addBlockKind && (
+                                <button
+                                  type="button"
+                                  onClick={() => setAddBlockTarget({ site, kind: addBlockKind })}
+                                  className={`${rowActionCls} ${
+                                    addBlockKind === 'confirmed'
+                                      ? 'border-blue-100 bg-blue-50 text-blue-600 hover:bg-blue-100'
+                                      : 'border-rose-100 bg-rose-50 text-rose-600 hover:bg-rose-100'
+                                  }`}
+                                >
+                                  <Plus className="h-3 w-3 shrink-0" /> {addBlockKind === 'confirmed' ? 'Add Confirmed' : 'Add Blocked'}
                                 </button>
                               )}
                               {canCancelUpcoming && (
@@ -532,6 +547,13 @@ export default function InventoryLiveTab() {
         open={!!cancelUpcomingSite}
         onClose={() => setCancelUpcomingSite(null)}
         site={cancelUpcomingSite}
+        onSaved={refresh}
+      />
+      <AddUpcomingBlockModal
+        open={!!addBlockTarget}
+        onClose={() => setAddBlockTarget(null)}
+        site={addBlockTarget?.site || null}
+        kind={addBlockTarget?.kind || 'blocked'}
         onSaved={refresh}
       />
 

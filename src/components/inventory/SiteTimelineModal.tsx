@@ -19,11 +19,46 @@ type TimelineEvent = InventoryHistoryEntry & {
   // change, previousBooking is what it was before.
   eventType?: 'edited';
   previousBooking?: InventoryHistoryEntry['bookingSnapshot'];
+  // A change to a Blocked/Confirmed period: blockSnapshot is the period after the change,
+  // previousBlock is what it was before.
+  previousBlock?: InventoryHistoryEntry['blockSnapshot'];
   edits?: unknown[];
+  blockEdits?: unknown[];
 };
 
 function periodLabel(start?: string | null, end?: string | null) {
   return `${formatISTDate(start || undefined)}${end ? ` → ${formatISTDate(end)}` : ''}`;
+}
+
+// Inclusive day count of a date-only period (same as a booking's Duration).
+function periodDays(start?: string | null, end?: string | null) {
+  if (!start || !end) return 0;
+  const diff = Math.round((new Date(end).getTime() - new Date(start).getTime()) / 86400000);
+  return diff >= 0 ? diff + 1 : 0;
+}
+
+// Old → New rows of an "Updated" step — for a booking edit or a Blocked/Confirmed period edit.
+function editRows(h: TimelineEvent): [string, string, string][] {
+  if (h.previousBlock) {
+    const before = h.previousBlock;
+    const after = h.blockSnapshot;
+    const kindLabel = (k?: string) => (k === 'confirmed' ? 'Confirmed' : 'Blocked');
+    return [
+      ['Period', periodLabel(before?.startDate, before?.endDate), periodLabel(after?.startDate, after?.endDate)],
+      [after?.customerType === 'agency' ? 'Agency Name' : 'Client Name', before?.customerName || '-', after?.customerName || '-'],
+      ['Duration', `${periodDays(before?.startDate, before?.endDate)} Days`, `${periodDays(after?.startDate, after?.endDate)} Days`],
+      ['Status', kindLabel(before?.kind), kindLabel(after?.kind)],
+      ['Reason', before?.reason || '-', after?.reason || '-'],
+    ];
+  }
+  const before = h.previousBooking;
+  const after = h.bookingSnapshot;
+  return [
+    ['Period', periodLabel(before?.startDate, before?.endDate), periodLabel(after?.startDate, after?.endDate)],
+    [after?.customerType === 'agency' ? 'Agency Name' : 'Client Name', before?.customerName || '-', after?.customerName || '-'],
+    ['Duration', `${before?.durationDays || 0} Days`, `${after?.durationDays || 0} Days`],
+    ['Amount', `₹${(before?.amount || 0).toLocaleString()}`, `₹${(after?.amount || 0).toLocaleString()}`],
+  ];
 }
 
 export default function SiteTimelineModal({
@@ -60,9 +95,6 @@ export default function SiteTimelineModal({
           {items.map((h, index) => {
             const changedByName = typeof h.changedBy === 'object' ? h.changedBy?.name : undefined;
             const isEdit = h.eventType === 'edited';
-            const before = h.previousBooking;
-            const after = h.bookingSnapshot;
-            const customerLabel = after?.customerType === 'agency' ? 'Agency Name' : 'Client Name';
             return (
               <div key={h.eventKey} className="relative">
                 <span
@@ -81,14 +113,7 @@ export default function SiteTimelineModal({
                       <span className="px-2.5 py-1.5 text-slate-500">Old</span>
                       <span className="px-2.5 py-1.5 text-sky-700">New</span>
                     </div>
-                    {(
-                      [
-                        ['Period', periodLabel(before?.startDate, before?.endDate), periodLabel(after?.startDate, after?.endDate)],
-                        [customerLabel, before?.customerName || '-', after?.customerName || '-'],
-                        ['Duration', `${before?.durationDays || 0} Days`, `${after?.durationDays || 0} Days`],
-                        ['Amount', `₹${(before?.amount || 0).toLocaleString()}`, `₹${(after?.amount || 0).toLocaleString()}`],
-                      ] as const
-                    ).map(([label, oldVal, newVal]) => {
+                    {editRows(h).map(([label, oldVal, newVal]) => {
                       const changed = oldVal !== newVal;
                       return (
                         <div key={label} className="grid grid-cols-[88px_1fr_1fr] border-t border-slate-100">
@@ -139,7 +164,10 @@ export default function SiteTimelineModal({
                     </p>
                   </div>
                 )}
-                {(h.status === 'blocked' || h.status === 'confirmed') && h.blockSnapshot && (
+                {!isEdit && (h.status === 'blocked' || h.status === 'confirmed') && !!h.blockEdits?.length && (
+                  <p className="text-xs text-sky-600 mt-0.5">{h.status === 'confirmed' ? 'Confirm' : 'Block'} dates/details later updated (see above)</p>
+                )}
+                {!isEdit && (h.status === 'blocked' || h.status === 'confirmed') && h.blockSnapshot && (
                   <div className="text-sm text-slate-600 mt-1 space-y-0.5">
                     {h.blockSnapshot.customerName && (
                       <p>
