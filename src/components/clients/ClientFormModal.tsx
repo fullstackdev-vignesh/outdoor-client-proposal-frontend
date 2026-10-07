@@ -7,6 +7,7 @@ import api, { resolveImageUrl } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import type { Client } from '@/lib/types';
 
+
 const empty = {
   customerType: 'client' as 'client' | 'agency',
   name: '',

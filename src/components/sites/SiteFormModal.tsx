@@ -14,7 +14,7 @@ import DatePicker from '@/components/ui/DatePicker';
 import MediaPreviewModal from '@/components/inventory/MediaPreviewModal';
 import CustomSelect from '@/components/ui/CustomSelect';
 import { MEDIA_TYPES, ILLUMINATION_OPTIONS } from '@/lib/mediaTypes';
-import { calcMediaCosts } from '@/lib/mediaCostRates';
+import { calcMediaCosts, type MediaRate } from '@/lib/mediaCostRates';
 import { MEDIA_STATUS_LIST, STATUS_LABELS, isDatedStatus } from '@/lib/siteStatus';
 import StatusDetailsFields, {
   BlockDetailsFields,
@@ -57,6 +57,8 @@ const emptyForm = {
   mediaStatus: 'immediate' as MediaStatus,
   // Active/Inactive is the site's own setting — Inactive sites never appear in client proposals.
   isActive: true,
+  // Required when the site is Inactive; shown against it in the lists.
+  inactiveReason: '',
   siteInfoId: '',
 };
 
@@ -190,6 +192,9 @@ export default function SiteFormModal({
     api.get('/site-info').then((res) => setSiteInfos(res.data));
   }
 
+  // Rate Master rates (GET /media-rates) — Printing / Mounting Cost are worked out from these.
+  const [mediaRates, setMediaRates] = useState<MediaRate[]>([]);
+
   // Block Details (customer + dates + reason, shown when Media Status = Blocked)
   const [blockDetails, setBlockDetails] = useState<BlockDetails>(emptyBlockDetails);
   // Hold / Issue (reason) details.
@@ -199,6 +204,7 @@ export default function SiteFormModal({
     if (!open) return;
     api.get('/clients', { params: { limit: 200 } }).then((res) => setClients(res.data.items));
     loadSiteInfos();
+    api.get('/media-rates').then((res) => setMediaRates(res.data)).catch(() => setMediaRates([]));
   }, [open]);
 
   useEffect(() => {
@@ -230,6 +236,7 @@ export default function SiteFormModal({
         mediaImage: site.mediaImage || '',
         mediaStatus: site.mediaStatus,
         isActive: site.isActive !== false,
+        inactiveReason: site.inactiveReason || '',
         siteInfoId: typeof site.siteInfoId === 'object' ? site.siteInfoId?._id || '' : site.siteInfoId || '',
       });
       const saved = galleryOf(site);
@@ -281,12 +288,12 @@ export default function SiteFormModal({
           next.height = size.height;
         }
       }
-      // Printing / Mounting Cost follow the Media Type rate sheet (lib/mediaCostRates.ts) when the type,
+      // Printing / Mounting Cost follow the Media Type's Rate Master rates (lib/mediaCostRates.ts) when the type,
       // illumination, size or quantity changes — while the field is empty or still shows the previous
       // automatic amount; an amount the user typed is left alone.
       if (['mediaType', 'illumination', 'width', 'height', 'quantity', 'specification'].includes(key as string)) {
-        const prevAuto = calcMediaCosts(f);
-        const nextAuto = calcMediaCosts(next);
+        const prevAuto = calcMediaCosts(f, mediaRates);
+        const nextAuto = calcMediaCosts(next, mediaRates);
         if (nextAuto) {
           (['printingCost', 'mountingCost'] as const).forEach((k) => {
             if (!f[k] || (prevAuto && f[k] === String(prevAuto[k]))) next[k] = String(nextAuto[k]);
@@ -462,6 +469,7 @@ export default function SiteFormModal({
     if (!form.height) errs.height = 'Height is required';
     else if (Number(form.height) <= 0) errs.height = 'Height must be greater than 0';
     if (!form.specification.trim()) errs.specification = 'Specification is required';
+    if (!form.isActive && !form.inactiveReason.trim()) errs.inactiveReason = 'Inactive Reason is required';
 
     for (const [key, label, required] of [
       ['monthlyAmount', 'Display Cost Per Month', false],
@@ -766,7 +774,7 @@ export default function SiteFormModal({
               className={fieldCls(!!errors.monthlyAmount)}
             />
           </Field>
-          {/* Filled from the Media Type rate sheet (lib/mediaCostRates.ts); still editable. */}
+          {/* Filled from the Media Type's Rate Master rates (lib/mediaCostRates.ts); still editable. */}
           <Field label="Printing Cost" error={errors.printingCost}>
             <input
               id="site-field-printingCost"
@@ -944,6 +952,20 @@ export default function SiteFormModal({
               <span className="sr-only">{form.isActive ? 'Active' : 'Inactive'}</span>
             </button>
           </div>
+          {!form.isActive && (
+            <div className="col-span-2">
+              <Field label="Inactive Reason" required error={errors.inactiveReason}>
+                <textarea
+                  id="site-field-inactiveReason"
+                  rows={2}
+                  placeholder="e.g. Site removed by corporation, structure damaged"
+                  value={form.inactiveReason}
+                  onChange={(e) => update('inactiveReason', e.target.value)}
+                  className={fieldCls(!!errors.inactiveReason)}
+                />
+              </Field>
+            </div>
+          )}
         </Section>
 
         {form.mediaStatus === 'booked' && (

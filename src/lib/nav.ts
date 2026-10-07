@@ -19,6 +19,7 @@ import {
   ReceiptText,
   Boxes,
   Handshake,
+  IndianRupee,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -35,6 +36,7 @@ const NAV: Record<Role, NavItem[]> = {
     { label: 'Client Master', href: '/clients', icon: Contact2 },
     { label: 'Media Master', href: '/sites', icon: Signpost },
     { label: 'Site Quotes Master', href: '/site-info', icon: ReceiptText },
+    { label: 'Rate Master', href: '/rate-master', icon: IndianRupee },
     { label: 'User Management', href: '/users', icon: Users },
     { label: 'TL Management', href: '/tl-management', icon: UserCog },
     { label: 'BD Management', href: '/bd-management', icon: UserCheck },

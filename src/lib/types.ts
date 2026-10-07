@@ -99,6 +99,8 @@ export interface Site {
   mediaImages?: string[];
   siteInfoId?: SiteInfo | string | null;
   isActive: boolean;
+  // Why the site was made Inactive (shown against it).
+  inactiveReason?: string;
   mediaStatus: MediaStatus;
   bookingInfo?: BookingInfo;
   bookings?: BookingRecord[];

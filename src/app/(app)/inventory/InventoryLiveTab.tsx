@@ -397,6 +397,11 @@ export default function InventoryLiveTab() {
                         <span className={`text-xs font-medium ${site.isActive ? 'text-emerald-600' : 'text-slate-400'}`}>
                           {site.isActive ? 'Active' : 'Inactive'}
                         </span>
+                        {!site.isActive && site.inactiveReason && (
+                          <p className="mt-0.5 max-w-[11rem] truncate text-[10px] font-medium text-slate-500" title={site.inactiveReason}>
+                            {site.inactiveReason}
+                          </p>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         {/* Inactive sites stay Immediate — status can't change until the site is Active. */}
