@@ -149,6 +149,8 @@ export default function StatusChangeModal({
   // A Blocked/Confirmed period set ahead (the site doesn't have that status yet).
   const upcomingBlock = !!block && !isDatedStatus(site?.mediaStatus);
   const blockKindLabel = block?.kind === 'confirmed' ? 'confirmation' : 'block';
+  // Further Blocked/Confirmed periods waiting for their Start Date — their dates are taken too.
+  const addedBlockRanges = (site?.upcomingBlocks || []).map((b) => ({ start: b.startDate.slice(0, 10), end: b.endDate.slice(0, 10) }));
   // Dates taken by OTHER bookings — and by the block — are greyed out in both booking pickers (when
   // editing, the booking being edited doesn't block itself). Choosing Booked on a currently Blocked
   // site ends that block, so its dates are free then.
@@ -157,11 +159,15 @@ export default function StatusChangeModal({
       .filter((b) => b.bookingId !== editBookingId && b.startDate && b.endDate)
       .map((b) => ({ start: b.startDate.slice(0, 10), end: b.endDate.slice(0, 10) })),
     ...(blockRange && upcomingBlock ? [blockRange] : []),
+    ...addedBlockRanges,
   ];
-  // A block can't overlap any booking.
-  const bookingRangesForBlock = openBookings
-    .filter((b) => b.startDate && b.endDate)
-    .map((b) => ({ start: b.startDate.slice(0, 10), end: b.endDate.slice(0, 10) }));
+  // A block can't overlap any booking (or a period added with "+ Add Blocked/Confirmed").
+  const bookingRangesForBlock = [
+    ...openBookings
+      .filter((b) => b.startDate && b.endDate)
+      .map((b) => ({ start: b.startDate.slice(0, 10), end: b.endDate.slice(0, 10) })),
+    ...addedBlockRanges,
+  ];
   const blockError = blockDetailsError(blockDetails);
   // The End Date can't run past the next booking after the chosen Start Date.
   const nextBookedStart = startDate ? bookedRanges.map((r) => r.start).filter((s) => s > startDate).sort()[0] : undefined;

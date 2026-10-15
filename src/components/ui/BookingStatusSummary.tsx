@@ -40,6 +40,8 @@ export default function BookingStatusSummary({ site }: { site: Site }) {
   const kindLabel = block?.kind === 'confirmed' ? 'Confirmed' : 'Blocked';
   // A Blocked/Confirmed period set ahead of time, shown under Immediate/Booked until it starts.
   const upcomingBlock = showBookingLines && blockPeriod ? `${block?.kind === 'confirmed' ? 'Confirm' : 'Block'}: ${blockPeriod}` : '';
+  // The next period added with "+ Add Blocked/Confirmed" (waits until its Start Date).
+  const nextAdded = [...(site.upcomingBlocks || [])].sort((a, b) => a.startDate.localeCompare(b.startDate))[0];
 
   return (
     <div className="flex flex-col items-start gap-0.5">
@@ -52,6 +54,12 @@ export default function BookingStatusSummary({ site }: { site: Site }) {
       {upcomingBlock && (
         <span className="text-[10px] font-medium text-rose-500 whitespace-nowrap">
           {upcomingBlock}
+        </span>
+      )}
+      {nextAdded && (
+        <span className={`text-[10px] font-medium whitespace-nowrap ${nextAdded.kind === 'confirmed' ? 'text-blue-500' : 'text-rose-500'}`}>
+          Upcoming {nextAdded.kind === 'confirmed' ? 'Confirmed' : 'Blocked'}: {dateLabel(nextAdded.startDate)} → {dateLabel(nextAdded.endDate)}
+          {(site.upcomingBlocks?.length || 0) > 1 ? ` (+${site.upcomingBlocks!.length - 1})` : ''}
         </span>
       )}
       {showBookingLines && site.mediaStatus === 'booked' && active && (

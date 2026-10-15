@@ -57,6 +57,14 @@ export interface BlockInfo {
   blockedBy?: { _id: string; name: string } | string;
 }
 
+// A further Blocked/Confirmed period added with "+ Add Blocked/Confirmed" — waits until its Start Date,
+// then becomes the site's blockInfo (like an Upcoming booking becoming Active).
+export interface UpcomingBlock extends BlockInfo {
+  blockId: string;
+  startDate: string;
+  endDate: string;
+}
+
 // Details of the Hold / Issue statuses.
 export interface StatusInfo {
   reason?: string;
@@ -105,6 +113,7 @@ export interface Site {
   bookingInfo?: BookingInfo;
   bookings?: BookingRecord[];
   blockInfo?: BlockInfo;
+  upcomingBlocks?: UpcomingBlock[];
   statusInfo?: StatusInfo;
   createdAt: string;
   updatedAt?: string;

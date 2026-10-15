@@ -104,7 +104,7 @@ export default function CancelUpcomingBookingModal({
         <p className="text-xs text-slate-500">
           {site.mediaStatus === 'booked'
             ? 'Only the selected upcoming booking is cancelled — the current booking stays as it is.'
-            : 'The site stays Immediate.'}{' '}
+            : `The site's current status (${site.mediaStatus}) stays as it is.`}{' '}
           The cancelled booking is kept in the site&apos;s timeline.
         </p>
 
